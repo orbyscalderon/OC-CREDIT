@@ -1,0 +1,51 @@
+services:
+  - type: web
+    name: oc-credit-api
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: API_PREFIX
+        value: api
+      - key: DATABASE_HOST
+        sync: false
+      - key: DATABASE_PORT
+        value: 5432
+      - key: DATABASE_NAME
+        sync: false
+      - key: DATABASE_USER
+        sync: false
+      - key: DATABASE_PASSWORD
+        sync: false
+      - key: DATABASE_SSL
+        value: true
+      - key: DATABASE_SCHEMA
+        value: public
+      - key: DATABASE_MAX_CONNECTIONS
+        value: 10
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRATION
+        value: 8h
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_EXPIRATION
+        value: 30d
+      - key: SUPER_ADMIN_JWT_SECRET
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: WHATSAPP_TOKEN
+        value: ""
+      - key: WHATSAPP_PHONE_NUMBER_ID
+        value: ""
+      - key: AZUL_WEBHOOK_SECRET
+        value: ""
+      - key: PLACETOPAY_WEBHOOK_SECRET
+        value: ""
