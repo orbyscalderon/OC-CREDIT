@@ -1,0 +1,72 @@
+version: '3.9'
+
+# © 2026 OC Moon Group LLC. Todos los derechos reservados.
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: oc_credit_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: oc_credit_db
+      POSTGRES_USER: oc_credit_user
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-changeme_strong_pass}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d:ro  # Auto-ejecuta la migración al iniciar
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oc_credit_user -d oc_credit_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: oc_credit_api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+    ports:
+      - "3000:3000"
+    volumes:
+      - uploads_data:/app/uploads
+
+  # ── Backup automático cada 6 horas ──────────────────────────────────────────
+  pg_backup:
+    image: postgres:16-alpine
+    container_name: oc_credit_backup
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${DATABASE_PASSWORD:-changeme_strong_pass}
+    volumes:
+      - backup_data:/backups
+    entrypoint: >
+      sh -c "
+        while true; do
+          FILENAME=/backups/oc_credit_$(date +%Y%m%d_%H%M%S).sql.gz;
+          pg_dump -h postgres -U oc_credit_user -d oc_credit_db | gzip > $$FILENAME;
+          echo \"Backup: $$FILENAME\";
+          find /backups -name '*.sql.gz' -mtime +30 -delete;
+          sleep 21600;
+        done
+      "
+
+volumes:
+  postgres_data:
+  uploads_data:
+  backup_data:

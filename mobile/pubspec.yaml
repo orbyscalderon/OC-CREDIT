@@ -1,0 +1,64 @@
+name: oc_credit_mobile
+description: OC Credit - App de cobros para cobradores en ruta
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # HTTP & Auth
+  dio: ^5.4.3
+  flutter_secure_storage: ^9.0.0
+
+  # Local DB (SQLite offline)
+  sqflite: ^2.3.3
+  path: ^1.9.0
+
+  # State management
+  flutter_riverpod: ^2.5.1
+
+  # Navigation
+  go_router: ^13.2.4
+
+  # Forms & validation
+  reactive_forms: ^17.0.0
+
+  # ESC/POS Bluetooth printing
+  print_bluetooth_thermal: ^1.0.9
+
+  # GPS
+  geolocator: ^12.0.0
+  permission_handler: ^11.3.1
+
+  # UUID (idempotency)
+  uuid: ^4.4.0
+
+  # Date helpers
+  intl: ^0.19.0
+
+  # Connectivity
+  connectivity_plus: ^6.0.3
+
+  # Root / emulator detection
+  flutter_jailbreak_detection: ^1.10.0
+
+  # Image / logo
+  cached_network_image: ^3.3.1
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  mockito: ^5.4.4
+  build_runner: ^2.4.9
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
