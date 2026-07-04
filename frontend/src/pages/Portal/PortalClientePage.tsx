@@ -90,7 +90,7 @@ export function PortalClientePage() {
             </button>
 
             <p className="text-center text-xs text-gray-400">
-              © 2026 OC Moon Group LLC. Todos los derechos reservados.
+              © 2026 OC HOLDING GROUP LLC. Todos los derechos reservados.
             </p>
           </div>
         ) : (

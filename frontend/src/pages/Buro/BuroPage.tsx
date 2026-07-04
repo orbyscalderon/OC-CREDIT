@@ -81,7 +81,7 @@ export function BuroPage() {
       />
 
       <p className="text-right text-[11px] text-gray-400">
-        © 2026 OC Moon Group LLC. Todos los derechos reservados.
+        © 2026 OC HOLDING GROUP LLC. Todos los derechos reservados.
       </p>
     </div>
   );

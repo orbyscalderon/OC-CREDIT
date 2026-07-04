@@ -11,10 +11,10 @@ import { BuroCreditoService } from '../buro-credito/buro-credito.service';
 import { InactivarReporteBuroDto } from '../buro-credito/dto/buro.dto';
 
 /**
- * Panel exclusivo de OC Moon Group LLC
+ * Panel exclusivo de OC HOLDING GROUP LLC
  * Protegido por JWT propio de super-admin (ver SuperAdminAuthController para login)
  */
-@ApiTags('Super Admin — OC Moon Group')
+@ApiTags('Super Admin — OC HOLDING GROUP')
 @ApiBearerAuth('SuperAdminJWT')
 @UseGuards(SuperAdminJwtGuard)
 @Controller({ path: 'super-admin', version: '1' })

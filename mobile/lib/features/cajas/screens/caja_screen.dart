@@ -126,7 +126,7 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
         ),
         const Spacer(),
         Text(
-          '© 2026 OC Moon Group LLC. Todos los derechos reservados.',
+          '© 2026 OC HOLDING GROUP LLC. Todos los derechos reservados.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 10, color: Colors.grey.shade400),
         ),

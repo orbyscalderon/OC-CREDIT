@@ -51,7 +51,7 @@ async function bootstrap() {
     const swaggerCfg = new DocumentBuilder()
       .setTitle('OC Credit API')
       .setDescription(
-        'Sistema de Préstamos y Cobranzas por Rutas\n© 2026 OC Moon Group LLC. Todos los derechos reservados.',
+        'Sistema de Préstamos y Cobranzas por Rutas\n© 2026 OC HOLDING GROUP LLC. Todos los derechos reservados.',
       )
       .setVersion('1.0')
       .addBearerAuth(
@@ -84,7 +84,7 @@ async function bootstrap() {
   console.log(`
   ╔══════════════════════════════════════════════════╗
   ║     OC CREDIT API - v1.0.0                       ║
-  ║     © 2026 OC Moon Group LLC                     ║
+  ║     © 2026 OC HOLDING GROUP LLC                     ║
   ║     Ambiente: ${config.get('NODE_ENV')?.padEnd(34)}║
   ║     Puerto  : ${String(port).padEnd(34)}║
   ╚══════════════════════════════════════════════════╝

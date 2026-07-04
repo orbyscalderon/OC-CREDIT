@@ -121,7 +121,7 @@ export function LandingPage() {
             </Link>
           </div>
           <p className="mt-4 text-xs text-blue-200">
-            © 2026 OC Moon Group LLC. Todos los derechos reservados.
+            © 2026 OC HOLDING GROUP LLC. Todos los derechos reservados.
           </p>
         </div>
       </section>
@@ -396,7 +396,7 @@ export function LandingPage() {
             )}
 
             <p className="text-center text-xs text-gray-400">
-              Al registrarte aceptas los términos de servicio de OC Moon Group LLC.
+              Al registrarte aceptas los términos de servicio de OC HOLDING GROUP LLC.
             </p>
           </form>
         </div>
@@ -405,7 +405,7 @@ export function LandingPage() {
       {/* ── FOOTER ───────────────────────────────────────────────── */}
       <footer className="bg-gray-900 text-gray-400 py-8 px-6 text-center text-xs">
         <p className="font-semibold text-white mb-1">OC Credit — Sistema de Préstamos por Rutas</p>
-        <p>© 2026 OC Moon Group LLC. Todos los derechos reservados.</p>
+        <p>© 2026 OC HOLDING GROUP LLC. Todos los derechos reservados.</p>
         <p className="mt-2">República Dominicana · Azul · PlacetoPay · Leaflet/OSM</p>
       </footer>
     </div>

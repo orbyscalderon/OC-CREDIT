@@ -94,7 +94,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      '© 2026 OC Moon Group LLC.\nTodos los derechos reservados.',
+                      '© 2026 OC HOLDING GROUP LLC.\nTodos los derechos reservados.',
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
                     ),

@@ -4,7 +4,7 @@ import { Throttle } from '@nestjs/throttler';
 import { SuperAdminAuthService } from './super-admin-auth.service';
 import { SuperAdminLoginDto } from './dto/super-admin-login.dto';
 
-@ApiTags('Super Admin — OC Moon Group')
+@ApiTags('Super Admin — OC HOLDING GROUP')
 @Controller({ path: 'super-admin/auth', version: '1' })
 export class SuperAdminAuthController {
   constructor(private readonly authService: SuperAdminAuthService) {}

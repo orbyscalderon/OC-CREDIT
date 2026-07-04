@@ -68,7 +68,7 @@ export function LoginPage() {
           </div>
         </div>
 
-        <p className="text-blue-400/60 text-xs">© 2026 OC Moon Group LLC. Todos los derechos reservados.</p>
+        <p className="text-blue-400/60 text-xs">© 2026 OC HOLDING GROUP LLC. Todos los derechos reservados.</p>
       </div>
 
       {/* Panel derecho — formulario */}

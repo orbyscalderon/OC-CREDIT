@@ -13,7 +13,7 @@ export class HealthController {
       status: 'ok',
       timestamp: new Date().toISOString(),
       version: '1.0.0',
-      copyright: '© 2026 OC Moon Group LLC. Todos los derechos reservados.',
+      copyright: '© 2026 OC HOLDING GROUP LLC. Todos los derechos reservados.',
     };
   }
 }

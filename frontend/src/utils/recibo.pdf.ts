@@ -99,7 +99,7 @@ export function generarReciboPDF(data: ReciboPagoData): void {
     doc.text(piePagina, cx, y, { align: 'center', maxWidth: 68 });
     y += 8;
   }
-  doc.text('© 2026 OC Moon Group LLC.', cx, y, { align: 'center' });
+  doc.text('© 2026 OC HOLDING GROUP LLC.', cx, y, { align: 'center' });
 
   doc.save(`recibo-${data.transaccionId.slice(-8).toUpperCase()}.pdf`);
 }

@@ -1,6 +1,6 @@
 -- =============================================================================
 -- OC CREDIT - Sistema de Préstamos y Cobranzas por Rutas
--- © 2026 OC Moon Group LLC. Todos los derechos reservados.
+-- © 2026 OC HOLDING GROUP LLC. Todos los derechos reservados.
 -- Migration: 001_initial_schema.sql
 -- Engine: PostgreSQL 15+
 -- =============================================================================

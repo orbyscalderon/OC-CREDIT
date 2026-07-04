@@ -114,7 +114,7 @@ export function BackupPage() {
       )}
 
       <p className="text-xs text-gray-400 text-center">
-        © 2026 OC Moon Group LLC. Todos los derechos reservados.
+        © 2026 OC HOLDING GROUP LLC. Todos los derechos reservados.
       </p>
     </div>
   );

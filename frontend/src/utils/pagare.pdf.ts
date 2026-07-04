@@ -130,7 +130,7 @@ export function generarPagarePDF(data: PagareData): void {
   doc.setFontSize(8);
   doc.setTextColor(150);
   doc.text(
-    '© 2026 OC Moon Group LLC. Todos los derechos reservados. Generado por OC Credit.',
+    '© 2026 OC HOLDING GROUP LLC. Todos los derechos reservados. Generado por OC Credit.',
     105,
     285,
     { align: 'center' },

@@ -48,7 +48,7 @@ class ThermalPrintService {
       ...PrintTextSize.size1(syncedOnline ? 'Estado: SINCRONIZADO' : 'Estado: PENDIENTE DE SYNC'),
       ...PrintTextSize.size1('Ref: ${uuid.substring(0, 8).toUpperCase()}'),
       ...PrintTextSize.size1('================================'),
-      ...PrintTextSize.size1(_center('© 2026 OC Moon Group LLC.')),
+      ...PrintTextSize.size1(_center('© 2026 OC HOLDING GROUP LLC.')),
       ...PrintTextSize.size1(_center('Todos los derechos reservados.')),
       ...PrintTextSize.size1(''),
       ...PrintTextSize.size1(''),

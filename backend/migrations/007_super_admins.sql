@@ -1,4 +1,4 @@
--- Cuentas reales de Super Admin (plataforma OC Moon Group LLC).
+-- Cuentas reales de Super Admin (plataforma OC HOLDING GROUP LLC).
 -- Reemplaza el header estático x-super-admin-key, que quedaba expuesto en
 -- el bundle JS del frontend y no daba trazabilidad de quién hizo cada acción.
 

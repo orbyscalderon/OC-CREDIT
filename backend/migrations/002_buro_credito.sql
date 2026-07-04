@@ -1,6 +1,6 @@
 -- =============================================================================
 -- OC CREDIT - Buró de Crédito Permanente (Cross-Tenant)
--- © 2026 OC Moon Group LLC. Todos los derechos reservados.
+-- © 2026 OC HOLDING GROUP LLC. Todos los derechos reservados.
 -- Migration: 002_buro_credito.sql
 --
 -- DISEÑO DE PERMANENCIA:
@@ -33,7 +33,7 @@ CREATE TYPE motivo_reporte_buro AS ENUM (
 );
 
 CREATE TYPE rol_sistema AS ENUM (
-    'super_admin',        -- Plataforma OC Moon Group LLC
+    'super_admin',        -- Plataforma OC HOLDING GROUP LLC
     'admin_tenant',
     'supervisor_tenant',
     'cobrador_tenant'
@@ -125,7 +125,7 @@ COMMENT ON TABLE consultas_buro IS
     'Auditoría inmutable de todas las consultas al buró. Permite rastrear si se prestó a alguien con mala historia.';
 
 -- ---------------------------------------------------------------------------
--- TABLA: super_admin_usuarios (Plataforma OC Moon Group LLC)
+-- TABLA: super_admin_usuarios (Plataforma OC HOLDING GROUP LLC)
 -- Segregada de usuarios para no contaminar el scope de tenants
 -- ---------------------------------------------------------------------------
 CREATE TABLE super_admin_usuarios (
@@ -140,7 +140,7 @@ CREATE TABLE super_admin_usuarios (
 );
 
 COMMENT ON TABLE super_admin_usuarios IS
-    'Administradores de la plataforma OC Moon Group LLC. No pertenecen a ningún tenant.';
+    'Administradores de la plataforma OC HOLDING GROUP LLC. No pertenecen a ningún tenant.';
 
 -- ---------------------------------------------------------------------------
 -- VISTA AGREGADA: v_perfil_buro (consulta enriquecida por cédula)
