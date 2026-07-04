@@ -22,4 +22,16 @@ export const clientesApi = {
 
   porRuta: (rutaId: string) =>
     api.get<Cliente[]>(`/clientes/ruta/${rutaId}`).then((r) => r.data),
+
+  subirCedula: (id: string, frontal?: File | null, trasera?: File | null) => {
+    const form = new FormData();
+    if (frontal) form.append('frontal', frontal);
+    if (trasera) form.append('trasera', trasera);
+    return api.post<Cliente>(`/clientes/${id}/cedula`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then((r) => r.data);
+  },
+
+  urlCedula: (id: string, lado: 'frontal' | 'trasera') =>
+    `/api/v1/clientes/${id}/cedula/${lado}`,
 };

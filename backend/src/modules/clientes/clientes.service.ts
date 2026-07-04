@@ -1,6 +1,7 @@
 import {
   BadRequestException, Injectable, NotFoundException,
 } from '@nestjs/common';
+import * as path from 'path';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, In, Repository } from 'typeorm';
 import { Cliente } from './entities/cliente.entity';
@@ -93,6 +94,19 @@ export class ClientesService {
   async actualizar(tenantId: string, id: string, dto: ActualizarClienteDto): Promise<Cliente> {
     const cliente = await this.obtener(tenantId, id);
     Object.assign(cliente, dto);
+    return this.repo.save(cliente);
+  }
+
+  async subirFotosCedula(
+    tenantId: string,
+    clienteId: string,
+    frontalPath?: string,
+    traseraPath?: string,
+  ): Promise<Cliente> {
+    const cliente = await this.obtener(tenantId, clienteId);
+    const uploadsDir = process.env.UPLOADS_DIR || '/var/www/oc-credit/uploads';
+    if (frontalPath) cliente.foto_cedula_frontal_url = path.relative(uploadsDir, frontalPath);
+    if (traseraPath) cliente.foto_cedula_trasera_url = path.relative(uploadsDir, traseraPath);
     return this.repo.save(cliente);
   }
 

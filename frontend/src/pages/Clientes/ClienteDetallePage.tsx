@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, CreditCard } from 'lucide-react';
+import { ArrowLeft, CreditCard, IdCard } from 'lucide-react';
 import { clientesApi } from '@/api/clientes.api';
 import { prestamosApi } from '@/api/prestamos.api';
 import { Table } from '@/components/common/Table';
@@ -50,6 +50,39 @@ export function ClienteDetallePage() {
               </span>
             </div>
           </div>
+          {/* Fotos de cédula */}
+          {(cliente.foto_cedula_frontal_url || cliente.foto_cedula_trasera_url) && (
+            <div className="mt-5 pt-5 border-t border-gray-100">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+                <IdCard size={13} />
+                Cédula de identidad
+              </p>
+              <div className="grid grid-cols-2 gap-3 max-w-md">
+                {(['frontal', 'trasera'] as const).map((lado) => {
+                  const hasPhoto = lado === 'frontal' ? !!cliente.foto_cedula_frontal_url : !!cliente.foto_cedula_trasera_url;
+                  if (!hasPhoto) return null;
+                  return (
+                    <div key={lado}>
+                      <p className="text-xs text-gray-400 mb-1 capitalize">{lado}</p>
+                      <a
+                        href={clientesApi.urlCedula(id!, lado)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block rounded-xl overflow-hidden border border-gray-200 aspect-video bg-gray-50 hover:opacity-90 transition-opacity"
+                      >
+                        <img
+                          src={clientesApi.urlCedula(id!, lado)}
+                          alt={`Cédula ${lado}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </a>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="mt-4 flex gap-3">
             <Link
               to={`/prestamos/nueva-solicitud?cliente_id=${id}`}

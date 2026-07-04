@@ -1,8 +1,14 @@
 import {
-  Body, Controller, Get, Param, ParseUUIDPipe,
-  Post, Put, Query, UseGuards, DefaultValuePipe, ParseIntPipe,
+  Body, Controller, Get, NotFoundException, Param, ParseUUIDPipe,
+  Post, Put, Query, Res, UploadedFiles, UseGuards, UseInterceptors,
+  DefaultValuePipe, ParseIntPipe,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { diskStorage } from 'multer';
+import * as path from 'path';
+import * as fs from 'fs';
+import { Response as ExpressResponse } from 'express';
 import { ClientesService } from './clientes.service';
 import { CrearClienteDto, ActualizarClienteDto } from './dto/cliente.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -10,6 +16,20 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser, JwtPayload } from '../../common/decorators/current-user.decorator';
 import { Rol } from '../../common/constants/roles.enum';
+
+const UPLOADS_DIR = process.env.UPLOADS_DIR || '/var/www/oc-credit/uploads';
+
+const cedulaStorage = diskStorage({
+  destination: (req, _file, cb) => {
+    const dir = path.join(UPLOADS_DIR, 'cedulas', req.params.id as string);
+    fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+    cb(null, `${file.fieldname}${ext}`);
+  },
+});
 
 @ApiTags('Clientes')
 @ApiBearerAuth('JWT')
@@ -93,5 +113,49 @@ export class ClientesController {
     @Param('rutaId', ParseUUIDPipe) rutaId: string,
   ) {
     return this.service.reasignarRuta(user.tenantId, id, rutaId);
+  }
+
+  @Post(':id/cedula')
+  @Roles(Rol.SUPERVISOR_TENANT, Rol.ADMIN_TENANT)
+  @ApiOperation({ summary: 'Subir fotos de cédula (frontal y/o trasera)' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileFieldsInterceptor(
+    [{ name: 'frontal', maxCount: 1 }, { name: 'trasera', maxCount: 1 }],
+    {
+      storage: cedulaStorage,
+      limits: { fileSize: 10 * 1024 * 1024 },
+      fileFilter: (_req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) cb(null, true);
+        else cb(new Error('Solo se aceptan imágenes'), false);
+      },
+    },
+  ))
+  subirCedula(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFiles() files: { frontal?: Express.Multer.File[]; trasera?: Express.Multer.File[] },
+  ) {
+    return this.service.subirFotosCedula(
+      user.tenantId, id,
+      files.frontal?.[0]?.path,
+      files.trasera?.[0]?.path,
+    );
+  }
+
+  @Get(':id/cedula/:lado')
+  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT)
+  @ApiOperation({ summary: 'Ver foto de cédula (frontal o trasera)' })
+  async verCedula(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('lado') lado: string,
+    @Res() res: ExpressResponse,
+  ) {
+    const cliente = await this.service.obtener(user.tenantId, id);
+    const relPath = lado === 'frontal' ? cliente.foto_cedula_frontal_url : cliente.foto_cedula_trasera_url;
+    if (!relPath) throw new NotFoundException('Imagen no disponible');
+    const absPath = path.join(UPLOADS_DIR, relPath);
+    if (!fs.existsSync(absPath)) throw new NotFoundException('Archivo no encontrado en el servidor');
+    res.sendFile(absPath);
   }
 }

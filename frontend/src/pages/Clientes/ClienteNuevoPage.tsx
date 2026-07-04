@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, UserPlus, MapPin, CheckCircle2, LocateFixed } from 'lucide-react';
+import { ArrowLeft, UserPlus, MapPin, CheckCircle2, LocateFixed, Upload, X as XIcon } from 'lucide-react';
 import { clientesApi } from '@/api/clientes.api';
 import { rutasApi } from '@/api/rutas.api';
 
@@ -26,6 +26,25 @@ export function ClienteNuevoPage() {
   const [ubicacion, setUbicacion] = useState<{ lat: number; lng: number } | null>(null);
   const [ubicacionError, setUbicacionError] = useState('');
   const [buscandoUbicacion, setBuscandoUbicacion] = useState(false);
+
+  // Fotos de cédula
+  const [frontalFile, setFrontalFile] = useState<File | null>(null);
+  const [traseraFile, setTraseraFile] = useState<File | null>(null);
+  const [frontalPreview, setFrontalPreview] = useState<string | null>(null);
+  const [traseraPreview, setTraseraPreview] = useState<string | null>(null);
+  const frontalRef = useRef<HTMLInputElement>(null);
+  const traseraRef = useRef<HTMLInputElement>(null);
+
+  const seleccionarFoto = (lado: 'frontal' | 'trasera', file: File) => {
+    const url = URL.createObjectURL(file);
+    if (lado === 'frontal') { setFrontalFile(file); setFrontalPreview(url); }
+    else { setTraseraFile(file); setTraseraPreview(url); }
+  };
+
+  const quitarFoto = (lado: 'frontal' | 'trasera') => {
+    if (lado === 'frontal') { setFrontalFile(null); setFrontalPreview(null); }
+    else { setTraseraFile(null); setTraseraPreview(null); }
+  };
 
   const capturarUbicacion = () => {
     if (!navigator.geolocation) {
@@ -62,8 +81,8 @@ export function ClienteNuevoPage() {
   });
 
   const crear = useMutation({
-    mutationFn: (dto: FormData) =>
-      clientesApi.crear({
+    mutationFn: async (dto: FormData) => {
+      const cliente = await clientesApi.crear({
         cedula:         dto.cedula,
         nombre:         dto.nombre,
         apellido:       dto.apellido,
@@ -72,7 +91,12 @@ export function ClienteNuevoPage() {
         ruta_id:        dto.ruta_id   || undefined,
         latitud_casa:   ubicacion?.lat,
         longitud_casa:  ubicacion?.lng,
-      }),
+      });
+      if (frontalFile || traseraFile) {
+        await clientesApi.subirCedula(cliente.id, frontalFile, traseraFile);
+      }
+      return cliente;
+    },
     onSuccess: (cliente) => {
       qc.invalidateQueries({ queryKey: ['clientes'] });
       navigate(`/clientes/${cliente.id}`);
@@ -105,6 +129,57 @@ export function ClienteNuevoPage() {
             className="input-field"
           />
           {errors.cedula && <p className="mt-1 text-xs text-red-500">{errors.cedula.message}</p>}
+        </div>
+
+        {/* Fotos de cédula */}
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            Foto de cédula <span className="text-gray-400 normal-case font-normal">(opcional)</span>
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            {(['frontal', 'trasera'] as const).map((lado) => {
+              const preview = lado === 'frontal' ? frontalPreview : traseraPreview;
+              const inputRef = lado === 'frontal' ? frontalRef : traseraRef;
+              return (
+                <div key={lado}>
+                  <p className="text-xs text-gray-400 mb-1 capitalize">{lado}</p>
+                  {preview ? (
+                    <div className="relative rounded-xl overflow-hidden border border-gray-200 aspect-video bg-gray-50">
+                      <img src={preview} alt={`Cédula ${lado}`} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => quitarFoto(lado)}
+                        className="absolute top-1.5 right-1.5 rounded-full bg-white/90 p-1 shadow text-gray-600 hover:text-red-600"
+                      >
+                        <XIcon size={12} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => inputRef.current?.click()}
+                      className="w-full aspect-video rounded-xl border-2 border-dashed border-gray-200 hover:border-brand-400 hover:bg-brand-50 transition-colors flex flex-col items-center justify-center gap-1.5 text-gray-400 hover:text-brand-600"
+                    >
+                      <Upload size={18} />
+                      <span className="text-xs font-medium">Subir foto</span>
+                    </button>
+                  )}
+                  <input
+                    ref={inputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) seleccionarFoto(lado, f);
+                      e.target.value = '';
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Nombre y apellido */}
