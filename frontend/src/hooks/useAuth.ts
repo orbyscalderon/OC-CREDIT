@@ -37,8 +37,8 @@ export function useAuth() {
       setUser(session);
       return true;
     } catch (e: unknown) {
-      const msg = (e as { response?: { data?: { message?: string } } })
-        ?.response?.data?.message ?? 'Credenciales inválidas';
+      const data = (e as { response?: { data?: { error?: string; message?: string } } })?.response?.data;
+      const msg = data?.error ?? data?.message ?? 'Credenciales inválidas';
       setError(msg);
       return false;
     } finally {
@@ -56,8 +56,10 @@ export function useAuth() {
       setUser(session);
       navigate('/panel', { replace: true });
     } catch (e: unknown) {
-      const msg = (e as { response?: { data?: { message?: string } } })
-        ?.response?.data?.message ?? 'Error al iniciar sesión con Google';
+      // El filtro de excepciones del backend devuelve { error, details.message }
+      const data = (e as { response?: { data?: { error?: string; message?: string; details?: { message?: string } } } })
+        ?.response?.data;
+      const msg = data?.error ?? data?.message ?? data?.details?.message ?? 'Error al iniciar sesión con Google';
       setGoogleError(msg);
     } finally {
       setLoading(false);

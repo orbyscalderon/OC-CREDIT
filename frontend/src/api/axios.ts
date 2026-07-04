@@ -18,7 +18,8 @@ api.interceptors.response.use(
     return res;
   },
   (err: AxiosError) => {
-    if (err.response?.status === 401) {
+    // Solo redirigir si no estamos ya en /login (evita reload que borra errores de auth)
+    if (err.response?.status === 401 && window.location.pathname !== '/login') {
       authStore.clearSession();
       window.location.href = '/login';
     }
