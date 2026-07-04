@@ -26,7 +26,7 @@ export function getDatabaseConfig(config: ConfigService): TypeOrmModuleOptions {
     password: config.get<string>('DATABASE_PASSWORD'),
     schema: config.get<string>('DATABASE_SCHEMA', 'public'),
     ssl: config.get<string>('DATABASE_SSL') === 'true'
-      ? { rejectUnauthorized: true }
+      ? { rejectUnauthorized: false }
       : false,
     entities: [
       Tenant, TenantSettings,

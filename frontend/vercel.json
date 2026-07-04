@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://oc-credit-api.onrender.com/api/:path*"
+      "destination": "http://104.207.144.76/api/:path*"
     }
   ]
 }
