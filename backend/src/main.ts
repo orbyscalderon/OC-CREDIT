@@ -3,6 +3,7 @@ import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
+import * as cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
@@ -15,11 +16,9 @@ async function bootstrap() {
 
   const config = app.get(ConfigService);
 
-  app.use(
-    helmet({
-      contentSecurityPolicy: config.get('NODE_ENV') === 'production',
-    }),
-  );
+  app.use(cookieParser());
+
+  app.use(helmet({ contentSecurityPolicy: true }));
 
   // '*' nunca debe combinarse con credentials:true (los navegadores lo
   // rechazan, y si algo lo "arregla" reflejando el origin literal sería un

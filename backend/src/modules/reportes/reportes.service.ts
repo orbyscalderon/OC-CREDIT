@@ -306,15 +306,15 @@ export class ReportesService {
 
   async generarBackup(tenantId: string) {
     const [clientes, prestamos, cuotas, transacciones, cajas] = await Promise.all([
-      this.em.query(`SELECT * FROM clientes WHERE tenant_id = $1 ORDER BY created_at`, [tenantId]),
-      this.em.query(`SELECT * FROM prestamos WHERE tenant_id = $1 ORDER BY created_at`, [tenantId]),
+      this.em.query(`SELECT * FROM clientes WHERE tenant_id = $1 ORDER BY created_at LIMIT 5000`, [tenantId]),
+      this.em.query(`SELECT * FROM prestamos WHERE tenant_id = $1 ORDER BY created_at LIMIT 5000`, [tenantId]),
       this.em.query(`
         SELECT ca.* FROM cuotas_amortizacion ca
         JOIN prestamos p ON p.id = ca.prestamo_id
-        WHERE ca.tenant_id = $1 ORDER BY p.created_at, ca.numero_cuota
+        WHERE ca.tenant_id = $1 ORDER BY p.created_at, ca.numero_cuota LIMIT 50000
       `, [tenantId]),
-      this.em.query(`SELECT * FROM transacciones WHERE tenant_id = $1 ORDER BY created_at`, [tenantId]),
-      this.em.query(`SELECT * FROM cajas WHERE tenant_id = $1 ORDER BY fecha DESC`, [tenantId]),
+      this.em.query(`SELECT * FROM transacciones WHERE tenant_id = $1 ORDER BY created_at DESC LIMIT 10000`, [tenantId]),
+      this.em.query(`SELECT * FROM cajas WHERE tenant_id = $1 ORDER BY fecha DESC LIMIT 1000`, [tenantId]),
     ]);
 
     const generadoEn = new Date().toISOString();

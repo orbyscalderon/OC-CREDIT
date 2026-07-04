@@ -30,8 +30,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const errorResponse = {
       statusCode: status,
       timestamp: new Date().toISOString(),
-      path: request.url,
-      method: request.method,
       error: typeof message === 'string' ? message : (message as any).message,
       details: typeof message === 'object' ? message : undefined,
     };

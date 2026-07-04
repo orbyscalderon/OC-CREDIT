@@ -14,11 +14,8 @@ export class LoginDto {
 }
 
 export class LoginResponseDto {
-  @ApiProperty()
+  @ApiProperty({ description: 'Token de acceso — entregado solo internamente al controller para la cookie' })
   access_token: string;
-
-  @ApiProperty()
-  refresh_token: string;
 
   @ApiProperty()
   usuario: {

@@ -11,7 +11,7 @@ export class SuperAdminAuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @Throttle({ long: { limit: 8, ttl: 60_000 } })
+  @Throttle({ short: { limit: 3, ttl: 60_000 }, long: { limit: 5, ttl: 60_000 } })
   @ApiOperation({ summary: 'Login de Super Admin — devuelve JWT propio, separado del de los tenants' })
   login(@Body() dto: SuperAdminLoginDto) {
     return this.authService.login(dto.email, dto.password);

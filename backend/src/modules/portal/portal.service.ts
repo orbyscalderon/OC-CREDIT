@@ -1,5 +1,6 @@
 import { Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
+import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
@@ -12,6 +13,7 @@ export class PortalService {
   constructor(
     @InjectDataSource() private readonly ds: DataSource,
     private readonly wa: WhatsappService,
+    private readonly config: ConfigService,
   ) {}
 
   async consultarPorCedula(cedula: string, tenantId: string) {
@@ -95,7 +97,7 @@ export class PortalService {
       [dto.tenantId],
     );
 
-    this.logger.log(`Nueva solicitud portal: ${dto.nombre} ${dto.apellido} — RD$ ${dto.monto_solicitado}`);
+    this.logger.log(`Nueva solicitud portal: cédula ***${dto.cedula.slice(-3)} — RD$ ${dto.monto_solicitado}`);
 
     return {
       solicitud_id: result[0].id,
@@ -105,9 +107,9 @@ export class PortalService {
 
   // ── Webhooks de pago digital ────────────────────────────────────────────────
 
-  /** HMAC-SHA256 verification. Only enforced when the secret env var is set. */
+  /** HMAC-SHA256 verification. Fail-closed: rejects all requests when no secret is configured. */
   private verifyHmac(secret: string | undefined, rawBody: string, received: string | undefined): void {
-    if (!secret) return; // gateway disabled — skip
+    if (!secret) throw new UnauthorizedException('Webhook gateway not configured');
     if (!received) throw new UnauthorizedException('Missing webhook signature');
     const expected = createHmac('sha256', secret).update(rawBody).digest('hex');
     const expectedBuf = Buffer.from(expected);
@@ -119,7 +121,7 @@ export class PortalService {
 
   async procesarWebhookAzul(payload: Record<string, unknown>, sig?: string) {
     try {
-      this.verifyHmac(process.env.AZUL_WEBHOOK_SECRET, JSON.stringify(payload), sig);
+      this.verifyHmac(this.config.get('AZUL_WEBHOOK_SECRET'), JSON.stringify(payload), sig);
       /*
        * Azul envía un payload con:
        *   OrderNumber     → UUID del cobro / cuota
@@ -144,7 +146,7 @@ export class PortalService {
 
   async procesarWebhookPlacetoPay(payload: Record<string, unknown>, sig?: string) {
     try {
-      this.verifyHmac(process.env.PLACETOPAY_WEBHOOK_SECRET, JSON.stringify(payload), sig);
+      this.verifyHmac(this.config.get('PLACETOPAY_WEBHOOK_SECRET'), JSON.stringify(payload), sig);
       /*
        * PlacetoPay estructura:
        *   status.status   → "APPROVED"

@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { Request } from 'express';
 import { Repository } from 'typeorm';
 import { JwtPayload } from '../../../common/decorators/current-user.decorator';
 import { Usuario } from '../../usuarios/entities/usuario.entity';
@@ -15,7 +16,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private readonly usuarioRepo: Repository<Usuario>,
   ) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        // Cookie HttpOnly (navegador web)
+        (req: Request) => req?.cookies?.['oc_token'] ?? null,
+        // Authorization: Bearer (apps móviles / API clients)
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ]),
       ignoreExpiration: false,
       secretOrKey: config.get<string>('JWT_SECRET'),
     });

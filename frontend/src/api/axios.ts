@@ -4,13 +4,8 @@ export const api = axios.create({
   baseURL: '/api/v1',
   timeout: 30_000,
   headers: { 'Content-Type': 'application/json' },
-});
-
-// Attach JWT on every request
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('oc_token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
+  // Cookie HttpOnly enviada automáticamente en cada request al mismo origen
+  withCredentials: true,
 });
 
 // Auto-unwrap { success, data, timestamp } → data
@@ -24,9 +19,12 @@ api.interceptors.response.use(
   },
   (err: AxiosError) => {
     if (err.response?.status === 401) {
-      localStorage.removeItem('oc_token');
+      authStore.clearSession();
       window.location.href = '/login';
     }
     return Promise.reject(err);
   },
 );
+
+// Importación diferida para evitar circular dependency
+import { authStore } from '@/stores/auth.store';

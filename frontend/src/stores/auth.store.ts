@@ -1,38 +1,42 @@
-import type { JwtPayload } from '@/types';
+// El JWT vive en una cookie HttpOnly gestionada por el servidor.
+// El frontend NO tiene acceso al token — solo almacena la información
+// de usuario necesaria para la UI en sessionStorage.
 
-function decodeJwt(token: string): JwtPayload {
-  const payload = token.split('.')[1];
-  return JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+export interface SessionUser {
+  id: string;
+  email: string;
+  rol: string;
+  nombre: string;
+  apellido: string;
+  empleadoId: string;
+  tenantId: string;
+  tenant_nombre: string;
+  expiresAt: number; // epoch ms
 }
 
-const TOKEN_KEY = 'oc_token';
+const SESSION_KEY = 'oc_session';
 
 export const authStore = {
-  getToken: (): string | null => localStorage.getItem(TOKEN_KEY),
-
-  setToken: (token: string): void => {
-    localStorage.setItem(TOKEN_KEY, token);
+  setSession: (user: SessionUser): void => {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(user));
   },
 
-  removeToken: (): void => {
-    localStorage.removeItem(TOKEN_KEY);
-  },
-
-  getUser: (): JwtPayload | null => {
-    const token = localStorage.getItem(TOKEN_KEY);
-    if (!token) return null;
+  getUser: (): SessionUser | null => {
     try {
-      return decodeJwt(token);
+      const raw = sessionStorage.getItem(SESSION_KEY);
+      return raw ? (JSON.parse(raw) as SessionUser) : null;
     } catch {
       return null;
     }
   },
 
-  isExpired: (): boolean => {
-    const user = authStore.getUser();
-    if (!user) return true;
-    return user.exp * 1000 < Date.now();
+  clearSession: (): void => {
+    sessionStorage.removeItem(SESSION_KEY);
   },
 
-  isAuthenticated: (): boolean => !!authStore.getToken() && !authStore.isExpired(),
+  isAuthenticated: (): boolean => {
+    const user = authStore.getUser();
+    if (!user) return false;
+    return user.expiresAt > Date.now();
+  },
 };

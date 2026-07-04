@@ -6,8 +6,6 @@ export interface LoginDto {
 }
 
 export interface LoginResponse {
-  access_token: string;
-  refresh_token: string;
   usuario: {
     id: string;
     email: string;

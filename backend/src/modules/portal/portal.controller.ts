@@ -2,6 +2,7 @@ import {
   Body, Controller, Get, Headers, HttpCode, Param, Post, Query,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { Public } from '../../common/decorators/public.decorator';
 import { PortalService } from './portal.service';
 
@@ -13,6 +14,7 @@ export class PortalController {
 
   /** El cliente consulta sus préstamos activos con su cédula */
   @Get('consultar/:cedula')
+  @Throttle({ short: { limit: 5, ttl: 60_000 } })
   @ApiOperation({ summary: 'Cliente consulta sus préstamos por cédula' })
   consultar(@Param('cedula') cedula: string, @Query('tenantId') tenantId: string) {
     return this.svc.consultarPorCedula(cedula, tenantId);

@@ -80,24 +80,12 @@ export class AuthService {
       email: usuario.email,
     };
 
-    const [access_token, refresh_token] = await Promise.all([
-      this.jwtService.signAsync(payload, {
-        expiresIn: this.config.get('JWT_EXPIRATION', '8h'),
-      }),
-      this.jwtService.signAsync(payload, {
-        secret: this.config.get('JWT_REFRESH_SECRET'),
-        expiresIn: this.config.get('JWT_REFRESH_EXPIRATION', '30d'),
-      }),
-    ]);
-
-    // Guardar hash del refresh token
-    await this.usuarioRepo.update(usuario.id, {
-      token_refresh: await bcrypt.hash(refresh_token, 10),
+    const access_token = await this.jwtService.signAsync(payload, {
+      expiresIn: this.config.get('JWT_EXPIRATION', '8h'),
     });
 
     return {
       access_token,
-      refresh_token,
       usuario: {
         id: usuario.id,
         email: usuario.email,

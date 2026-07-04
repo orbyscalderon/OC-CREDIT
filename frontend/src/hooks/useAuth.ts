@@ -1,11 +1,12 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authApi } from '@/api/auth.api';
-import { authStore } from '@/stores/auth.store';
-import type { JwtPayload } from '@/types';
+import { authStore, type SessionUser } from '@/stores/auth.store';
+
+const JWT_DURATION_MS = 8 * 60 * 60 * 1000; // 8h — igual que JWT_EXPIRATION
 
 export function useAuth() {
-  const [user, setUser] = useState<JwtPayload | null>(() => authStore.getUser());
+  const [user, setUser] = useState<SessionUser | null>(() => authStore.getUser());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -14,9 +15,22 @@ export function useAuth() {
     setLoading(true);
     setError(null);
     try {
-      const resp = await authApi.login({ email, password });
-      authStore.setToken(resp.access_token);
-      setUser(authStore.getUser());
+      const { usuario, tenant_config } = await authApi.login({ email, password });
+
+      const session: SessionUser = {
+        id: usuario.id,
+        email: usuario.email,
+        rol: usuario.rol,
+        nombre: usuario.nombre,
+        apellido: usuario.apellido,
+        empleadoId: usuario.empleado_id,
+        tenantId: tenant_config.tenant_id,
+        tenant_nombre: tenant_config.nombre_empresa,
+        expiresAt: Date.now() + JWT_DURATION_MS,
+      };
+
+      authStore.setSession(session);
+      setUser(session);
       return true;
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string } } })
@@ -29,10 +43,8 @@ export function useAuth() {
   }, []);
 
   const logout = useCallback(() => {
-    // Revocar el refresh token en el servidor. Si falla (red caída, token ya
-    // expirado), no bloquea el logout local — el usuario igual debe poder salir.
     authApi.logout().catch(() => {});
-    authStore.removeToken();
+    authStore.clearSession();
     setUser(null);
     navigate('/login', { replace: true });
   }, [navigate]);
