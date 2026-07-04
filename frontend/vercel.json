@@ -3,6 +3,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://104-207-144-76.nip.io/api/:path*"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
     }
   ]
 }
