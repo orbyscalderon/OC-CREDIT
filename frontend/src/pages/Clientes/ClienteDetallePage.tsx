@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, CreditCard, IdCard } from 'lucide-react';
+import { ArrowLeft, CreditCard, ScanLine } from 'lucide-react';
 import { clientesApi } from '@/api/clientes.api';
 import { prestamosApi } from '@/api/prestamos.api';
 import { Table } from '@/components/common/Table';
@@ -54,7 +54,7 @@ export function ClienteDetallePage() {
           {(cliente.foto_cedula_frontal_url || cliente.foto_cedula_trasera_url) && (
             <div className="mt-5 pt-5 border-t border-gray-100">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-1.5">
-                <IdCard size={13} />
+                <ScanLine size={13} />
                 Cédula de identidad
               </p>
               <div className="grid grid-cols-2 gap-3 max-w-md">
