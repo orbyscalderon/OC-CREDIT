@@ -3,6 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Navigate, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { GoogleLogin } from '@react-oauth/google';
 import { Eye, EyeOff, ArrowRight, Shield } from 'lucide-react';
 import { useState } from 'react';
 
@@ -14,9 +15,10 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export function LoginPage() {
-  const { login, loading, error, isAuthenticated } = useAuth();
+  const { login, loginWithGoogle, loading, error, googleError, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [showPwd, setShowPwd] = useState(false);
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -161,6 +163,38 @@ export function LoginPage() {
               )}
             </button>
           </form>
+
+          {/* Google Sign-In */}
+          {googleClientId && (
+            <div className="mt-6">
+              <div className="relative flex items-center mb-4">
+                <div className="flex-1 border-t border-gray-200" />
+                <span className="mx-3 text-xs text-gray-400">o continúa con</span>
+                <div className="flex-1 border-t border-gray-200" />
+              </div>
+
+              <div className="flex justify-center">
+                <GoogleLogin
+                  onSuccess={(cred) => {
+                    if (cred.credential) loginWithGoogle(cred.credential);
+                  }}
+                  onError={() => {}}
+                  width="320"
+                  theme="outline"
+                  size="large"
+                  text="signin_with"
+                  shape="rectangular"
+                />
+              </div>
+
+              {googleError && (
+                <div className="mt-3 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 flex items-start gap-2">
+                  <span className="text-red-400 mt-0.5 flex-shrink-0">⚠</span>
+                  {googleError}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="mt-6 text-center">
             <Link to="/" className="text-xs text-gray-400 hover:text-brand-600 transition-colors">

@@ -32,6 +32,12 @@ export const authApi = {
   login: (dto: LoginDto) =>
     api.post<LoginResponse>('/auth/login', dto).then((r) => r.data),
 
+  loginWithGoogle: (credential: string) =>
+    api.post<LoginResponse>('/auth/google', { credential }).then((r) => r.data),
+
+  me: () =>
+    api.get<LoginResponse>('/auth/me').then((r) => r.data),
+
   logout: () =>
     api.post('/auth/logout').then((r) => r.data),
 };

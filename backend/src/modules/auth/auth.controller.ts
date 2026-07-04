@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post, Res, Get, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Response } from 'express';
@@ -41,6 +41,36 @@ export class AuthController {
 
     // El token NO va en el body — vive solo en la cookie HttpOnly
     return { usuario, tenant_config };
+  }
+
+  @Public()
+  @Post('google')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ long: { limit: 8, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Iniciar sesión con Google — verifica ID token y establece cookie HttpOnly' })
+  async loginGoogle(
+    @Body() body: { credential: string },
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { access_token, usuario, tenant_config } = await this.authService.loginWithGoogle(body.credential);
+
+    res.cookie(COOKIE_NAME, access_token, {
+      httpOnly: true,
+      secure: this.config.get('NODE_ENV') === 'production',
+      sameSite: 'strict',
+      path: '/api',
+      maxAge: COOKIE_MAX_AGE_MS,
+    });
+
+    return { usuario, tenant_config };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Devuelve los datos del usuario autenticado (útil tras OAuth redirect)' })
+  async me(@CurrentUser() user: JwtPayload) {
+    return this.authService.getMe(user.sub);
   }
 
   @UseGuards(JwtAuthGuard)

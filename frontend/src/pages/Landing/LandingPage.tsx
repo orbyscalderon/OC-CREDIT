@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Check, X, ArrowRight, Shield, MapPin, Smartphone, Zap } from 'lucide-react';
 import { planesApi, type Plan, type RegistrarTenantDto } from '@/api/planes.api';
+import { GooglePayButton } from '@/components/common/GooglePayButton';
 import { CalculadoraPrestamo } from '@/components/common/CalculadoraPrestamo';
 import { clsx } from 'clsx';
 
@@ -41,6 +42,7 @@ export function LandingPage() {
   });
 
   const [registroOk, setRegistroOk] = useState(false);
+  const [gpayError, setGpayError] = useState<string | null>(null);
 
   const registrarMut = useMutation({
     mutationFn: (dto: RegistrarTenantDto) => planesApi.registrar(dto),
@@ -49,6 +51,21 @@ export function LandingPage() {
       setTimeout(() => navigate('/login'), 2500);
     },
   });
+
+  const registrarGpayMut = useMutation({
+    mutationFn: (dto: RegistrarTenantDto & { googlePayToken: string }) =>
+      planesApi.registrarConGooglePay({ ...dto, monto_usd: precioSeleccionado }),
+    onSuccess: () => {
+      setRegistroOk(true);
+      setTimeout(() => navigate('/login'), 2500);
+    },
+  });
+
+  const planActual = planes.find((p) => p.id === planSeleccionado);
+  const precioSeleccionado = planActual
+    ? (anual ? Number(planActual.precio_anual_usd) : Number(planActual.precio_mensual_usd))
+    : 0;
+  const esPlanGratis = precioSeleccionado === 0;
 
   const seleccionarPlan = (planId: string) => {
     setPlanSeleccionado(planId);
@@ -333,19 +350,50 @@ export function LandingPage() {
               </div>
             )}
 
-            {registrarMut.isError && (
+            {(registrarMut.isError || registrarGpayMut.isError) && (
               <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                {(registrarMut.error as {message?: string})?.message ?? 'Error al registrarse'}
+                {(registrarMut.error as {message?: string} | null)?.message ??
+                 (registrarGpayMut.error as {message?: string} | null)?.message ??
+                 'Error al registrarse'}
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={registrarMut.isPending || registroOk}
-              className="btn-primary w-full justify-center py-3"
-            >
-              {registrarMut.isPending ? 'Creando cuenta…' : 'Crear mi cuenta ahora'}
-            </button>
+            {gpayError && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {gpayError}
+              </div>
+            )}
+
+            {esPlanGratis ? (
+              <button
+                type="submit"
+                disabled={registrarMut.isPending || registroOk}
+                className="btn-primary w-full justify-center py-3"
+              >
+                {registrarMut.isPending ? 'Creando cuenta…' : 'Crear mi cuenta gratis'}
+              </button>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-center text-xs font-medium text-gray-500">
+                  Total: <strong className="text-gray-900">${precioSeleccionado.toFixed(2)} USD</strong>
+                  {anual ? ' / año' : ' / mes'}
+                </p>
+                <GooglePayButton
+                  amountUsd={precioSeleccionado}
+                  disabled={registrarGpayMut.isPending || registroOk}
+                  onError={(msg) => setGpayError(msg)}
+                  onPaymentToken={(token) => {
+                    setGpayError(null);
+                    handleSubmit((formData) =>
+                      registrarGpayMut.mutate({ ...formData, googlePayToken: token }),
+                    )();
+                  }}
+                />
+                <p className="text-center text-xs text-gray-400">
+                  {registrarGpayMut.isPending ? 'Procesando pago…' : 'Pulsa el botón para pagar con Google Pay'}
+                </p>
+              </div>
+            )}
 
             <p className="text-center text-xs text-gray-400">
               Al registrarte aceptas los términos de servicio de OC Moon Group LLC.

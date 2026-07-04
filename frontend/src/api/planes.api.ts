@@ -46,6 +46,11 @@ export interface UsoPlan {
   permite_pagare_pdf: boolean;
 }
 
+export interface GooglePayRegistroDto extends RegistrarTenantDto {
+  googlePayToken: string;
+  monto_usd?: number;
+}
+
 // Llamada pública sin JWT
 const publicApi = axios.create({ baseURL: '/api/v1', timeout: 15_000 });
 
@@ -57,6 +62,11 @@ export const planesApi = {
 
   registrar: (dto: RegistrarTenantDto) =>
     publicApi.post('/planes/registro', dto).then((r) =>
+      (r.data as unknown as { data: unknown }).data ?? r.data,
+    ),
+
+  registrarConGooglePay: (dto: GooglePayRegistroDto) =>
+    publicApi.post('/planes/google-pay', dto).then((r) =>
       (r.data as unknown as { data: unknown }).data ?? r.data,
     ),
 

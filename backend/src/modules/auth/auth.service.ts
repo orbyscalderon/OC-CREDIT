@@ -7,6 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import { OAuth2Client } from 'google-auth-library';
 import { LoginDto, LoginResponseDto } from './dto/login.dto';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { Empleado } from '../usuarios/entities/empleado.entity';
@@ -93,6 +94,118 @@ export class AuthService {
         nombre: empleado.nombre,
         apellido: empleado.apellido,
         empleado_id: empleado.id,
+      },
+      tenant_config: {
+        tenant_id: tenant.id,
+        nombre_empresa: tenant.nombre_empresa,
+        url_logo: settings?.url_logo ?? null,
+        color_primario: settings?.color_primario ?? '#1976D2',
+        color_secundario: settings?.color_secundario ?? '#424242',
+        color_acento: settings?.color_acento ?? '#FF6F00',
+        moneda: settings?.moneda ?? 'DOP',
+        simbolo_moneda: settings?.simbolo_moneda ?? 'RD$',
+        zona_horaria: settings?.zona_horaria ?? 'America/Santo_Domingo',
+        formato_fecha: settings?.formato_fecha ?? 'DD/MM/YYYY',
+      },
+    };
+  }
+
+  async loginWithGoogle(idToken: string): Promise<LoginResponseDto> {
+    const clientId = this.config.get<string>('GOOGLE_CLIENT_ID');
+    if (!clientId) throw new UnauthorizedException('Google login no está configurado en este servidor');
+
+    const client = new OAuth2Client(clientId);
+    let email: string;
+    try {
+      const ticket = await client.verifyIdToken({ idToken, audience: clientId });
+      const payload = ticket.getPayload();
+      email = (payload?.email ?? '').toLowerCase().trim();
+      if (!email) throw new Error('no email');
+    } catch {
+      throw new UnauthorizedException('Token de Google inválido o expirado');
+    }
+
+    const usuario = await this.usuarioRepo.findOne({ where: { email } });
+    if (!usuario) {
+      throw new UnauthorizedException(
+        'No existe una cuenta activa con ese email de Google. Regístrate primero seleccionando un plan.',
+      );
+    }
+    if (!usuario.activo) throw new UnauthorizedException('Cuenta inactiva');
+
+    if (usuario.bloqueado_hasta && usuario.bloqueado_hasta > new Date()) {
+      throw new UnauthorizedException(`Cuenta bloqueada hasta ${usuario.bloqueado_hasta.toISOString()}`);
+    }
+
+    await this.usuarioRepo.update(usuario.id, {
+      intentos_fallidos: 0,
+      ultimo_acceso: new Date(),
+      bloqueado_hasta: null,
+    });
+
+    const empleado = await this.empleadoRepo.findOne({ where: { usuario_id: usuario.id } });
+    if (!empleado) throw new NotFoundException('Perfil de empleado no encontrado');
+
+    const tenant = await this.tenantRepo.findOne({ where: { id: usuario.tenant_id } });
+    if (!tenant || !tenant.activo) throw new UnauthorizedException('Empresa inactiva');
+
+    const settings = await this.settingsRepo.findOne({ where: { tenant_id: usuario.tenant_id } });
+
+    const jwtPayload = {
+      sub: usuario.id,
+      tenantId: usuario.tenant_id,
+      empleadoId: empleado.id,
+      rol: usuario.rol,
+      email: usuario.email,
+    };
+
+    const access_token = await this.jwtService.signAsync(jwtPayload, {
+      expiresIn: this.config.get('JWT_EXPIRATION', '8h'),
+    });
+
+    return {
+      access_token,
+      usuario: {
+        id: usuario.id,
+        email: usuario.email,
+        rol: usuario.rol,
+        nombre: empleado.nombre,
+        apellido: empleado.apellido,
+        empleado_id: empleado.id,
+      },
+      tenant_config: {
+        tenant_id: tenant.id,
+        nombre_empresa: tenant.nombre_empresa,
+        url_logo: settings?.url_logo ?? null,
+        color_primario: settings?.color_primario ?? '#1976D2',
+        color_secundario: settings?.color_secundario ?? '#424242',
+        color_acento: settings?.color_acento ?? '#FF6F00',
+        moneda: settings?.moneda ?? 'DOP',
+        simbolo_moneda: settings?.simbolo_moneda ?? 'RD$',
+        zona_horaria: settings?.zona_horaria ?? 'America/Santo_Domingo',
+        formato_fecha: settings?.formato_fecha ?? 'DD/MM/YYYY',
+      },
+    };
+  }
+
+  async getMe(usuarioId: string) {
+    const usuario = await this.usuarioRepo.findOne({ where: { id: usuarioId } });
+    if (!usuario || !usuario.activo) throw new UnauthorizedException('Sesión inválida');
+
+    const empleado = await this.empleadoRepo.findOne({ where: { usuario_id: usuarioId } });
+    const tenant = await this.tenantRepo.findOne({ where: { id: usuario.tenant_id } });
+    if (!tenant || !tenant.activo) throw new UnauthorizedException('Empresa inactiva');
+
+    const settings = await this.settingsRepo.findOne({ where: { tenant_id: usuario.tenant_id } });
+
+    return {
+      usuario: {
+        id: usuario.id,
+        email: usuario.email,
+        rol: usuario.rol,
+        nombre: empleado?.nombre ?? '',
+        apellido: empleado?.apellido ?? '',
+        empleado_id: empleado?.id ?? '',
       },
       tenant_config: {
         tenant_id: tenant.id,
