@@ -2,7 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { reportesApi } from '@/api/reportes.api';
 import { Badge } from '@/components/common/Badge';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Download } from 'lucide-react';
+import { exportarCSV } from '@/utils/export';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, CartesianGrid,
@@ -40,8 +41,26 @@ export function ReportesPage() {
 
       {/* ── Aging de cartera ─────────────────────────────────────── */}
       <section>
-        {/* S3-20: h2 estandarizado */}
-        <h2 className="text-sm font-semibold text-gray-800 mb-4">Aging de Cartera</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-gray-800">Aging de Cartera</h2>
+          {aging && aging.length > 0 && (
+            <button
+              onClick={() => exportarCSV(
+                aging.map((r: any) => ({
+                  'Banda': r.banda,
+                  'Cantidad préstamos': r.cantidad_prestamos,
+                  'Capital (RD$)': r.monto_capital,
+                  'Porcentaje': r.porcentaje + '%',
+                })),
+                `aging-cartera-${new Date().toISOString().slice(0, 10)}`
+              )}
+              className="btn-secondary text-xs"
+            >
+              <Download size={13} />
+              Exportar
+            </button>
+          )}
+        </div>
         {!loadingAging && aging && (
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div className="card p-5">

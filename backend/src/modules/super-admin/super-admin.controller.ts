@@ -85,4 +85,26 @@ export class SuperAdminController {
   ) {
     return this.buroSvc.inactivarReporte(dto, admin.email);
   }
+
+  /** Gestión de cuentas super-admin */
+  @Get('admins')
+  @ApiOperation({ summary: 'Listar cuentas de super-admin' })
+  listarAdmins() {
+    return this.svc.listarAdmins();
+  }
+
+  @Post('admins')
+  @ApiOperation({ summary: 'Crear nueva cuenta de super-admin' })
+  crearAdmin(@Body() dto: { email: string; password: string; nombre: string }) {
+    return this.svc.crearAdmin(dto.email, dto.password, dto.nombre);
+  }
+
+  @Patch('admins/:id/activo')
+  @ApiOperation({ summary: 'Activar o desactivar cuenta de super-admin' })
+  toggleAdminActivo(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: { activo: boolean },
+  ) {
+    return this.svc.toggleAdminActivo(id, dto.activo);
+  }
 }

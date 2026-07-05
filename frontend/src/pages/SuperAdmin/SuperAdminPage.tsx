@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Building2, Users, TrendingUp, AlertTriangle,
-  CheckCircle, XCircle, RefreshCw, DollarSign, LogOut, Lock,
+  CheckCircle, XCircle, RefreshCw, DollarSign, LogOut, Lock, ShieldCheck, PlusCircle,
 } from 'lucide-react';
 import axios from 'axios';
 import {
@@ -138,6 +138,31 @@ export function SuperAdminPage() {
   const { data: mrr } = useQuery({
     queryKey: ['sa-mrr'],
     queryFn: () => superApi.get('/super-admin/mrr').then(unwrap),
+  });
+
+  const [showNuevoAdmin, setShowNuevoAdmin] = useState(false);
+  const [nuevoEmail, setNuevoEmail] = useState('');
+  const [nuevoNombre, setNuevoNombre] = useState('');
+  const [nuevoPwd, setNuevoPwd] = useState('');
+
+  const { data: admins = [], refetch: refetchAdmins } = useQuery({
+    queryKey: ['sa-admins'],
+    queryFn: () => superApi.get('/super-admin/admins').then(unwrap),
+  });
+
+  const crearAdminMut = useMutation({
+    mutationFn: () => superApi.post('/super-admin/admins', { email: nuevoEmail, password: nuevoPwd, nombre: nuevoNombre }).then(unwrap),
+    onSuccess: () => {
+      refetchAdmins();
+      setShowNuevoAdmin(false);
+      setNuevoEmail(''); setNuevoNombre(''); setNuevoPwd('');
+    },
+  });
+
+  const toggleAdminMut = useMutation({
+    mutationFn: ({ id, activo }: { id: string; activo: boolean }) =>
+      superApi.patch(`/super-admin/admins/${id}/activo`, { activo }).then(unwrap),
+    onSuccess: () => refetchAdmins(),
   });
 
   const cambiarPlanMut = useMutation({
@@ -328,6 +353,90 @@ export function SuperAdminPage() {
               </button>
             </div>
           )}
+        </div>
+
+        {/* Cuentas Super Admin */}
+        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-800 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+              <ShieldCheck size={15} className="text-blue-400" />
+              Cuentas Super Admin ({admins.length})
+            </h2>
+            <button
+              onClick={() => setShowNuevoAdmin(!showNuevoAdmin)}
+              className="flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 px-3 py-1.5 text-xs font-semibold text-white"
+            >
+              <PlusCircle size={13} />
+              Nueva cuenta
+            </button>
+          </div>
+
+          {showNuevoAdmin && (
+            <div className="px-5 py-4 border-b border-gray-800 bg-gray-800/40 space-y-3">
+              <div className="grid grid-cols-3 gap-3">
+                <input value={nuevoNombre} onChange={e => setNuevoNombre(e.target.value)} placeholder="Nombre" className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                <input type="email" value={nuevoEmail} onChange={e => setNuevoEmail(e.target.value)} placeholder="Email" className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                <input type="password" value={nuevoPwd} onChange={e => setNuevoPwd(e.target.value)} placeholder="Contraseña (mín. 12 car.)" className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+              </div>
+              {crearAdminMut.isError && (
+                <p className="text-xs text-red-400">
+                  {(crearAdminMut.error as any)?.response?.data?.message ?? 'Error al crear cuenta'}
+                </p>
+              )}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => crearAdminMut.mutate()}
+                  disabled={!nuevoEmail || !nuevoPwd || nuevoPwd.length < 12 || crearAdminMut.isPending}
+                  className="rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-4 py-1.5 text-xs font-semibold text-white"
+                >
+                  {crearAdminMut.isPending ? 'Creando…' : 'Crear'}
+                </button>
+                <button onClick={() => setShowNuevoAdmin(false)} className="rounded-lg border border-gray-700 px-4 py-1.5 text-xs text-gray-400 hover:bg-gray-800">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+
+          <table className="w-full text-sm">
+            <thead className="bg-gray-800/60">
+              <tr>
+                {['Nombre', 'Email', 'Estado', 'Último acceso', 'Acciones'].map(h => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-800">
+              {(admins as any[]).map((a) => (
+                <tr key={a.id} className="hover:bg-gray-800/40 transition-colors">
+                  <td className="px-4 py-3 font-medium text-gray-200">{a.nombre}</td>
+                  <td className="px-4 py-3 text-gray-400 text-xs">{a.email}</td>
+                  <td className="px-4 py-3">
+                    {a.activo ? (
+                      <span className="inline-flex items-center gap-1 text-xs text-emerald-400"><CheckCircle size={11} /> Activo</span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs text-red-400"><XCircle size={11} /> Inactivo</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-gray-500">
+                    {a.ultimo_acceso ? new Date(a.ultimo_acceso).toLocaleString('es-DO') : '—'}
+                  </td>
+                  <td className="px-4 py-3">
+                    <button
+                      onClick={() => toggleAdminMut.mutate({ id: a.id, activo: !a.activo })}
+                      className={`rounded-lg px-3 py-1 text-xs font-semibold transition-colors ${
+                        a.activo
+                          ? 'bg-red-900/40 text-red-400 hover:bg-red-900/60'
+                          : 'bg-emerald-900/40 text-emerald-400 hover:bg-emerald-900/60'
+                      }`}
+                    >
+                      {a.activo ? 'Desactivar' : 'Activar'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
       </div>

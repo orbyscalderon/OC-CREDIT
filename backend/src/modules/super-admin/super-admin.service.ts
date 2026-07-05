@@ -1,10 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
+import * as bcrypt from 'bcrypt';
+import { SuperAdmin } from './entities/super-admin.entity';
 
 @Injectable()
 export class SuperAdminService {
-  constructor(@InjectDataSource() private readonly ds: DataSource) {}
+  constructor(
+    @InjectDataSource() private readonly ds: DataSource,
+    @InjectRepository(SuperAdmin) private readonly adminRepo: Repository<SuperAdmin>,
+  ) {}
 
   async dashboardGlobal() {
     const [stats] = await this.ds.query(`
@@ -103,5 +108,28 @@ export class SuperAdminService {
       GROUP BY DATE_TRUNC('month', t.created_at)
       ORDER BY mes DESC
     `);
+  }
+
+  async listarAdmins() {
+    return this.adminRepo.find({
+      select: ['id', 'email', 'nombre', 'activo', 'ultimo_acceso', 'created_at'],
+      order: { created_at: 'ASC' },
+    });
+  }
+
+  async crearAdmin(email: string, password: string, nombre: string) {
+    const existe = await this.adminRepo.findOne({ where: { email: email.toLowerCase().trim() } });
+    if (existe) throw new BadRequestException('Ya existe una cuenta con ese email');
+    const password_hash = await bcrypt.hash(password, 12);
+    return this.adminRepo.save(
+      this.adminRepo.create({ email: email.toLowerCase().trim(), password_hash, nombre, activo: true }),
+    );
+  }
+
+  async toggleAdminActivo(id: string, activo: boolean) {
+    const admin = await this.adminRepo.findOne({ where: { id } });
+    if (!admin) throw new NotFoundException('Cuenta no encontrada');
+    await this.adminRepo.update(id, { activo });
+    return { ...admin, activo };
   }
 }

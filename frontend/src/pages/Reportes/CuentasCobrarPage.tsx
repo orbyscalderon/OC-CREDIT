@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { api } from '@/api/axios';
 import { Badge } from '@/components/common/Badge';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, Download } from 'lucide-react';
+import { exportarCSV } from '@/utils/export';
 
 interface CuentaCobrar {
   prestamo_id: string;
@@ -44,15 +45,41 @@ export function CuentasCobrarPage() {
           <h1 className="text-2xl font-bold text-gray-900">Cuentas por Cobrar</h1>
           <p className="text-sm text-gray-500">{data.length} préstamos con saldo pendiente</p>
         </div>
-        <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={soloVencidos}
-            onChange={(e) => setSoloVencidos(e.target.checked)}
-            className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
-          />
-          Solo vencidos
-        </label>
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={soloVencidos}
+              onChange={(e) => setSoloVencidos(e.target.checked)}
+              className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+            />
+            Solo vencidos
+          </label>
+          {data.length > 0 && (
+            <button
+              onClick={() => exportarCSV(
+                data.map((r) => ({
+                  'Nombre':            `${r.nombre} ${r.apellido}`,
+                  'Cédula':            r.cedula,
+                  'Teléfono':          r.telefono,
+                  'Ruta':              r.ruta ?? '',
+                  'Capital aprobado':  r.capital_aprobado,
+                  'Cuotas pendientes': r.cuotas_pendientes,
+                  'Saldo pendiente':   r.saldo_pendiente,
+                  'Mora total':        r.mora_total,
+                  'Días de atraso':    r.dias_atraso,
+                  'Estado':            r.estado_prestamo,
+                  'Próx. vencimiento': r.proxima_fecha_vencimiento,
+                })),
+                `cuentas-cobrar-${new Date().toISOString().slice(0, 10)}`
+              )}
+              className="btn-secondary text-xs"
+            >
+              <Download size={13} />
+              Exportar Excel
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Totales */}
