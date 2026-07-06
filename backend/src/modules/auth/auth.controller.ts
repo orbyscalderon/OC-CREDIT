@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Res, Get, UseGuards } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post, Res, Get, UseGuards, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Response } from 'express';
@@ -71,6 +71,18 @@ export class AuthController {
   @ApiOperation({ summary: 'Devuelve los datos del usuario autenticado (útil tras OAuth redirect)' })
   async me(@CurrentUser() user: JwtPayload) {
     return this.authService.getMe(user.sub);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put('cambiar-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Cambiar contraseña propia (usuario logueado)' })
+  async cambiarPassword(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: { password_actual: string; nueva_password: string },
+  ) {
+    return this.authService.cambiarPassword(user.sub, dto.password_actual, dto.nueva_password);
   }
 
   @UseGuards(JwtAuthGuard)

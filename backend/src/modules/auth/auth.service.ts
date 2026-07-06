@@ -1,5 +1,5 @@
 import {
-  Injectable, NotFoundException,
+  BadRequestException, Injectable, NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -220,6 +220,20 @@ export class AuthService {
         formato_fecha: settings?.formato_fecha ?? 'DD/MM/YYYY',
       },
     };
+  }
+
+  async cambiarPassword(usuarioId: string, passwordActual: string, nuevaPassword: string) {
+    const usuario = await this.usuarioRepo.findOne({ where: { id: usuarioId } });
+    if (!usuario) throw new NotFoundException('Usuario no encontrado');
+
+    const ok = await bcrypt.compare(passwordActual, usuario.password_hash);
+    if (!ok) throw new BadRequestException('La contraseña actual es incorrecta');
+
+    if (nuevaPassword.length < 8) throw new BadRequestException('La nueva contraseña debe tener al menos 8 caracteres');
+
+    usuario.password_hash = await bcrypt.hash(nuevaPassword, 12);
+    await this.usuarioRepo.save(usuario);
+    return { mensaje: 'Contraseña actualizada correctamente' };
   }
 
   async logout(usuarioId: string): Promise<void> {

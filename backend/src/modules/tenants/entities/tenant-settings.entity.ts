@@ -62,6 +62,9 @@ export class TenantSettings {
   @Column({ length: 30, nullable: true })
   telefono_soporte: string;
 
+  @Column({ default: true })
+  whatsapp_activo: boolean;
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 

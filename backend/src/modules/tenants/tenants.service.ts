@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { IsDateString, IsNotEmpty, IsOptional, IsString, Length, Matches } from 'class-validator';
+import { IsBoolean, IsDateString, IsNotEmpty, IsOptional, IsString, Length, Matches } from 'class-validator';
 import { TenantSettings } from './entities/tenant-settings.entity';
 
 /* ── DTOs ───────────────────────────────────────────────────────────────── */
@@ -29,6 +29,9 @@ export class UpdateSettingsDto {
 
   @IsOptional() @IsString() @Length(0, 300)
   texto_pie_recibo?: string;
+
+  @IsOptional() @IsBoolean()
+  whatsapp_activo?: boolean;
 }
 
 export class CrearFeriadoDto {

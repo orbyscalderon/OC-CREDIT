@@ -47,6 +47,7 @@ export class WhatsappScheduler {
         AND c.fecha_vencimiento = $1
         AND cl.telefono IS NOT NULL
         AND p2.permite_whatsapp_bot = TRUE
+        AND (ts.whatsapp_activo IS NULL OR ts.whatsapp_activo = TRUE)
         AND t.activo = TRUE
     `, [fechaStr]);
 
@@ -93,6 +94,7 @@ export class WhatsappScheduler {
       LEFT JOIN planes_saas p2     ON p2.id = t.plan_id
       WHERE cm.estado = 'Pendiente'
         AND p2.permite_whatsapp_bot = TRUE
+        AND (ts.whatsapp_activo IS NULL OR ts.whatsapp_activo = TRUE)
         AND cl.telefono IS NOT NULL
         AND t.activo = TRUE
         AND EXTRACT(DAY FROM NOW() - cm.created_at) IN (3, 7, 15)

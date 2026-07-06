@@ -27,6 +27,7 @@ export interface TenantSettings {
   simbolo_moneda: string;
   texto_pie_recibo: string | null;
   nombre_comercial: string | null;
+  whatsapp_activo: boolean;
 }
 
 // ─── Cliente ─────────────────────────────────────────────────────────────────
