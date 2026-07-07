@@ -4,10 +4,11 @@ import { z } from 'zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/api/axios';
 import { reportesApi } from '@/api/reportes.api';
+import { useAuth } from '@/hooks/useAuth';
 import type { TenantSettings } from '@/types';
 import { useEffect, useRef, useState } from 'react';
 import {
-  CheckCircle2, AlertCircle, KeyRound, Upload, X, MessageCircle,
+  CheckCircle2, AlertCircle, KeyRound, Upload, X, MessageCircle, Link2, Copy, Check,
 } from 'lucide-react';
 
 const schema = z.object({
@@ -24,6 +25,16 @@ type FormData = z.infer<typeof schema>;
 
 export function ConfigPage() {
   const qc = useQueryClient();
+  const { user } = useAuth();
+
+  // ── Portal link ────────────────────────────────────────────────────────────
+  const portalUrl = `${window.location.origin}/portal?tenantId=${user?.tenantId ?? ''}`;
+  const [copiado, setCopiado] = useState(false);
+  const copiarLink = () => {
+    navigator.clipboard.writeText(portalUrl);
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2000);
+  };
 
   // ── Logo upload ────────────────────────────────────────────────────────────
   const logoRef = useRef<HTMLInputElement>(null);
@@ -271,6 +282,44 @@ export function ConfigPage() {
           {saveMut.isPending ? 'Guardando…' : 'Guardar cambios'}
         </button>
       </form>
+
+      {/* ── Portal del cliente ──────────────────────────────────────────────── */}
+      <div className="card p-6 space-y-3">
+        <div className="flex items-center gap-2">
+          <Link2 size={16} className="text-brand-600" />
+          <h2 className="text-sm font-semibold text-gray-800">Portal del Cliente</h2>
+        </div>
+        <p className="text-xs text-gray-500">
+          Comparte este enlace con tus clientes para que puedan consultar sus préstamos y cuotas pendientes.
+        </p>
+        <div className="flex items-center gap-2">
+          <div className="flex-1 rounded-lg bg-gray-50 border border-gray-200 px-3 py-2 text-xs text-gray-600 font-mono truncate">
+            {portalUrl}
+          </div>
+          <button
+            onClick={copiarLink}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
+              copiado
+                ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
+                : 'btn-secondary'
+            }`}
+          >
+            {copiado ? <Check size={13} /> : <Copy size={13} />}
+            {copiado ? 'Copiado' : 'Copiar'}
+          </button>
+          <a
+            href={portalUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="btn-secondary text-xs"
+          >
+            Abrir
+          </a>
+        </div>
+        <p className="text-[11px] text-gray-400">
+          El cliente ingresa su cédula y automáticamente ve todos sus préstamos activos.
+        </p>
+      </div>
 
       {/* ── Seguridad ───────────────────────────────────────────────────────── */}
       <div className="card p-6 space-y-4">

@@ -5,8 +5,10 @@ import {
   Globe, Crown, ClipboardList, HardDrive, ChevronRight,
   UserCog, PiggyBank, CalendarOff, Route as RouteIcon,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useTenantSettings } from '@/hooks/useTenantSettings';
+import { prestamosApi } from '@/api/prestamos.api';
 import { Rol } from '@/types';
 import { clsx } from 'clsx';
 
@@ -37,6 +39,20 @@ export function Sidebar() {
   const { user, logout } = useAuth();
   const settings = useTenantSettings();
 
+  const esAdmin = user?.rol === Rol.ADMIN_TENANT || user?.rol === Rol.SUPERVISOR_TENANT;
+  const { data: pendientesData } = useQuery({
+    queryKey: ['prestamos-pendientes-count'],
+    queryFn: () => prestamosApi.listar({ estado: 'Pendiente', limit: 1 }),
+    refetchInterval: 2 * 60 * 1000,
+    enabled: esAdmin,
+    select: (d) => d.total as number,
+  });
+  const pendientes = pendientesData ?? 0;
+
+  const logoUrl = settings?.url_logo
+    ? (settings.url_logo.startsWith('http') ? settings.url_logo : '/api/v1/tenants/logo')
+    : null;
+
   const allowed = navItems.filter((i) => user && i.roles.includes(user.rol as Rol));
   const initials = user?.email?.slice(0, 2).toUpperCase() ?? 'OC';
 
@@ -48,8 +64,8 @@ export function Sidebar() {
         className="flex items-center gap-3 px-5 h-16 flex-shrink-0"
         style={{ borderBottom: `1px solid ${SIDEBAR_HOVER}` }}
       >
-        {settings?.url_logo ? (
-          <img src={settings.url_logo} alt="Logo" className="h-8 w-auto object-contain" />
+        {logoUrl ? (
+          <img src={logoUrl} alt="Logo" className="h-8 w-auto object-contain" />
         ) : (
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-glow-sm flex-shrink-0">
@@ -73,7 +89,6 @@ export function Sidebar() {
             key={to}
             to={to}
             end={to === '/panel'}
-            /* S0-2: un único prop style (función) que incluye animationDelay */
             style={({ isActive }) => ({
               animationDelay: `${i * 25}ms`,
               background: isActive ? SIDEBAR_ACTIVE_BG : 'transparent',
@@ -94,7 +109,12 @@ export function Sidebar() {
                   style={{ color: isActive ? '#93c5fd' : 'currentColor' }}
                 />
                 <span className="flex-1 truncate">{label}</span>
-                {isActive && (
+                {to === '/prestamos' && pendientes > 0 && (
+                  <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white flex-shrink-0">
+                    {pendientes > 99 ? '99+' : pendientes}
+                  </span>
+                )}
+                {isActive && (to !== '/prestamos' || pendientes === 0) && (
                   <ChevronRight size={12} style={{ color: '#60a5fa' }} className="flex-shrink-0" />
                 )}
               </>
