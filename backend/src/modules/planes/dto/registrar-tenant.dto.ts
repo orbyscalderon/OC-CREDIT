@@ -1,6 +1,6 @@
 import { IsEmail, IsIn, IsNotEmpty, IsOptional, IsString, Length, Matches } from 'class-validator';
 
-const PLANES_VALIDOS = ['free', 'personal', 'basico', 'profesional', 'avanzado', 'comercial', 'enterprise'];
+const PLANES_VALIDOS = ['basico', 'pro'];
 
 export class RegistrarTenantDto {
   @IsString() @Length(3, 200)

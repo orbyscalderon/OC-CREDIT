@@ -6,7 +6,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Check, X, ArrowRight, Shield, MapPin, Smartphone, Zap } from 'lucide-react';
 import { planesApi, type Plan, type RegistrarTenantDto } from '@/api/planes.api';
-import { GooglePayButton } from '@/components/common/GooglePayButton';
 import { CalculadoraPrestamo } from '@/components/common/CalculadoraPrestamo';
 import { clsx } from 'clsx';
 
@@ -42,19 +41,9 @@ export function LandingPage() {
   });
 
   const [registroOk, setRegistroOk] = useState(false);
-  const [gpayError, setGpayError] = useState<string | null>(null);
 
   const registrarMut = useMutation({
     mutationFn: (dto: RegistrarTenantDto) => planesApi.registrar(dto),
-    onSuccess: () => {
-      setRegistroOk(true);
-      setTimeout(() => navigate('/login'), 2500);
-    },
-  });
-
-  const registrarGpayMut = useMutation({
-    mutationFn: (dto: RegistrarTenantDto & { googlePayToken: string }) =>
-      planesApi.registrarConGooglePay({ ...dto, monto_usd: precioSeleccionado }),
     onSuccess: () => {
       setRegistroOk(true);
       setTimeout(() => navigate('/login'), 2500);
@@ -65,7 +54,6 @@ export function LandingPage() {
   const precioSeleccionado = planActual
     ? (anual ? Number(planActual.precio_anual_usd) : Number(planActual.precio_mensual_usd))
     : 0;
-  const esPlanGratis = precioSeleccionado === 0;
 
   const seleccionarPlan = (planId: string) => {
     setPlanSeleccionado(planId);
@@ -103,11 +91,11 @@ export function LandingPage() {
       <section className="bg-gradient-to-br from-brand-600 to-brand-800 text-white py-20 px-6">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl font-extrabold leading-tight md:text-5xl">
-            Sistema de Préstamos y Cobranzas<br />por Rutas para República Dominicana
+            Software de Préstamos y Cobranza en Ruta<br />para Prestamistas y Financieras
           </h1>
           <p className="mt-5 text-lg text-blue-100 max-w-2xl mx-auto">
-            Control total de tu cartera — desde el panel web hasta el cobrador en calle.
-            App móvil offline, buró de crédito permanente y cobranza puerta a puerta.
+            Control total de tu cartera de préstamos — desde el panel web hasta el cobrador en la calle,
+            en cualquier país. App móvil offline, buró de crédito propio y cobranza puerta a puerta.
           </p>
           <div className="mt-8 flex items-center justify-center gap-4 flex-wrap">
             <button
@@ -121,7 +109,7 @@ export function LandingPage() {
             </Link>
           </div>
           <p className="mt-4 text-xs text-blue-200">
-            © 2026 OC HOLDING GROUP LLC. Todos los derechos reservados.
+            © 2026 OCA HOLDING GROUP LLC. Todos los derechos reservados.
           </p>
         </div>
       </section>
@@ -139,7 +127,7 @@ export function LandingPage() {
               <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
                 {icon}
               </div>
-              <p className="font-semibold text-sm text-gray-900">{t}</p>
+              <h3 className="font-semibold text-sm text-gray-900">{t}</h3>
               <p className="mt-1 text-xs text-gray-500">{d}</p>
             </div>
           ))}
@@ -194,9 +182,9 @@ export function LandingPage() {
                     </span>
                   )}
 
-                  <p className={clsx('text-xl font-extrabold', isPro ? 'text-white' : 'text-gray-900')}>
+                  <h3 className={clsx('text-xl font-extrabold', isPro ? 'text-white' : 'text-gray-900')}>
                     {plan.nombre}
-                  </p>
+                  </h3>
                   <p className={clsx('text-sm mt-1 mb-5', isPro ? 'text-blue-100' : 'text-gray-400')}>
                     {plan.descripcion}
                   </p>
@@ -266,7 +254,7 @@ export function LandingPage() {
                           : 'bg-brand-600 text-white hover:bg-brand-700',
                     )}
                   >
-                    {selected ? '✓ Seleccionado' : `Empezar con ${plan.nombre}`}
+                    {selected ? '✓ Seleccionado' : `Probar ${plan.nombre} gratis`}
                   </button>
                 </div>
               );
@@ -288,11 +276,13 @@ export function LandingPage() {
       <section id="registro" className={clsx('py-16 px-6 bg-gray-50 transition-all', !showForm && 'hidden')}>
         <div className="max-w-xl mx-auto">
           <h2 className="text-2xl font-extrabold text-gray-900 text-center mb-2">
-            Crear cuenta
+            Crear cuenta — 7 días de prueba gratis
           </h2>
           <p className="text-center text-sm text-gray-500 mb-8">
             Plan seleccionado: <strong className="text-brand-600 capitalize">{planSeleccionado}</strong>
             {anual && <span className="ml-2 text-green-600">· Facturación anual (-15%)</span>}
+            <br />
+            No se te cobra nada hoy. Después de 7 días, ${precioSeleccionado.toFixed(0)}{anual ? '/año' : '/mes'} para seguir usando la cuenta.
           </p>
 
           <form
@@ -350,53 +340,22 @@ export function LandingPage() {
               </div>
             )}
 
-            {(registrarMut.isError || registrarGpayMut.isError) && (
+            {registrarMut.isError && (
               <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                {(registrarMut.error as {message?: string} | null)?.message ??
-                 (registrarGpayMut.error as {message?: string} | null)?.message ??
-                 'Error al registrarse'}
+                {(registrarMut.error as {message?: string} | null)?.message ?? 'Error al registrarse'}
               </div>
             )}
 
-            {gpayError && (
-              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                {gpayError}
-              </div>
-            )}
-
-            {esPlanGratis ? (
-              <button
-                type="submit"
-                disabled={registrarMut.isPending || registroOk}
-                className="btn-primary w-full justify-center py-3"
-              >
-                {registrarMut.isPending ? 'Creando cuenta…' : 'Crear mi cuenta gratis'}
-              </button>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-center text-xs font-medium text-gray-500">
-                  Total: <strong className="text-gray-900">${precioSeleccionado.toFixed(2)} USD</strong>
-                  {anual ? ' / año' : ' / mes'}
-                </p>
-                <GooglePayButton
-                  amountUsd={precioSeleccionado}
-                  disabled={registrarGpayMut.isPending || registroOk}
-                  onError={(msg) => setGpayError(msg)}
-                  onPaymentToken={(token) => {
-                    setGpayError(null);
-                    handleSubmit((formData) =>
-                      registrarGpayMut.mutate({ ...formData, googlePayToken: token }),
-                    )();
-                  }}
-                />
-                <p className="text-center text-xs text-gray-400">
-                  {registrarGpayMut.isPending ? 'Procesando pago…' : 'Pulsa el botón para pagar con Google Pay'}
-                </p>
-              </div>
-            )}
+            <button
+              type="submit"
+              disabled={registrarMut.isPending || registroOk}
+              className="btn-primary w-full justify-center py-3"
+            >
+              {registrarMut.isPending ? 'Creando cuenta…' : 'Crear mi cuenta gratis — 7 días'}
+            </button>
 
             <p className="text-center text-xs text-gray-400">
-              Al registrarte aceptas los términos de servicio de OC HOLDING GROUP LLC.
+              Al registrarte aceptas los términos de servicio de OCA HOLDING GROUP LLC.
             </p>
           </form>
         </div>
@@ -405,8 +364,8 @@ export function LandingPage() {
       {/* ── FOOTER ───────────────────────────────────────────────── */}
       <footer className="bg-gray-900 text-gray-400 py-8 px-6 text-center text-xs">
         <p className="font-semibold text-white mb-1">OC Credit — Sistema de Préstamos por Rutas</p>
-        <p>© 2026 OC HOLDING GROUP LLC. Todos los derechos reservados.</p>
-        <p className="mt-2">República Dominicana · Azul · PlacetoPay · Leaflet/OSM</p>
+        <p>© 2026 OCA HOLDING GROUP LLC. Todos los derechos reservados.</p>
+        <p className="mt-2">República Dominicana</p>
       </footer>
     </div>
   );

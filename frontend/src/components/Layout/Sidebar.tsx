@@ -174,7 +174,7 @@ export function Sidebar() {
           </button>
         </div>
         <p className="text-[9px] text-center mt-2 leading-tight px-2" style={{ color: '#334155' }}>
-          © 2026 OC HOLDING GROUP LLC.
+          © 2026 OCA HOLDING GROUP LLC.
         </p>
       </div>
     </aside>

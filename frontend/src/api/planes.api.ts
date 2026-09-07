@@ -51,6 +51,12 @@ export interface GooglePayRegistroDto extends RegistrarTenantDto {
   monto_usd?: number;
 }
 
+export interface SuscribirPlanDto {
+  plan_id: string;
+  facturacion_anual?: boolean;
+  googlePayToken?: string;
+}
+
 // Llamada pública sin JWT
 const publicApi = axios.create({ baseURL: '/api/v1', timeout: 15_000 });
 
@@ -72,4 +78,7 @@ export const planesApi = {
 
   usoActual: () =>
     api.get<UsoPlan>('/reportes/uso-plan').then((r) => r.data),
+
+  suscribir: (dto: SuscribirPlanDto) =>
+    api.post('/planes/suscribir', dto).then((r) => r.data),
 };

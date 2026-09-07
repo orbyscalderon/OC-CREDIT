@@ -23,6 +23,15 @@ api.interceptors.response.use(
       authStore.clearSession();
       window.location.href = '/login';
     }
+    // Prueba de 7 días vencida sin suscripción activa → pantalla para pagar.
+    const code = (err.response?.data as { details?: { code?: string } } | undefined)?.details?.code;
+    if (
+      err.response?.status === 402 &&
+      code === 'TRIAL_EXPIRED' &&
+      window.location.pathname !== '/suscripcion-vencida'
+    ) {
+      window.location.href = '/suscripcion-vencida';
+    }
     return Promise.reject(err);
   },
 );

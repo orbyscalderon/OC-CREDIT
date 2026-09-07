@@ -73,7 +73,7 @@ function SuperAdminLogin({ onSuccess }: { onSuccess: () => void }) {
           </div>
           <div>
             <h1 className="text-base font-bold text-white">Super Admin</h1>
-            <p className="text-xs text-gray-500">OC HOLDING GROUP LLC</p>
+            <p className="text-xs text-gray-500">OCA HOLDING GROUP LLC</p>
           </div>
         </div>
 
@@ -184,9 +184,9 @@ export function SuperAdminPage() {
       {/* Header */}
       <div className="border-b border-gray-800 px-8 py-5 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-extrabold text-white">OC HOLDING GROUP — Super Admin</h1>
+          <h1 className="text-xl font-extrabold text-white">OCA HOLDING GROUP — Super Admin</h1>
           <p className="text-xs text-gray-400 mt-0.5">
-            © 2026 OC HOLDING GROUP LLC. Panel exclusivo de plataforma.
+            © 2026 OCA HOLDING GROUP LLC. Panel exclusivo de plataforma.
           </p>
         </div>
         <div className="flex items-center gap-2">

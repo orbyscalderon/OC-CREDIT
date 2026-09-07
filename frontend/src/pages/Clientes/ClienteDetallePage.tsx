@@ -196,7 +196,7 @@ export function ClienteDetallePage() {
                   clienteCedula:    cliente.cedula,
                   clienteTelefono:  cliente.telefono,
                   clienteDireccion: cliente.direccion_casa,
-                  tenantNombre:     user?.tenant_nombre ?? 'OC HOLDING GROUP LLC',
+                  tenantNombre:     user?.tenant_nombre ?? 'OCA HOLDING GROUP LLC',
                   prestamos:        prestamos.data,
                 });
               }}

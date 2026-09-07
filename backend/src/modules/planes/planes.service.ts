@@ -10,6 +10,7 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { RegistrarTenantDto } from './dto/registrar-tenant.dto';
 import { GooglePayRegistroDto } from './dto/google-pay-registro.dto';
+import { SuscribirPlanDto } from './dto/suscribir-plan.dto';
 import { Tenant } from '../tenants/entities/tenant.entity';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 
@@ -65,7 +66,14 @@ export class PlanesService {
     }
   }
 
-  async registrarTenant(dto: RegistrarTenantDto) {
+  /**
+   * Crea el tenant + usuario admin.
+   * esPago=false (registro self-service, sin tarjeta): arranca con 7 días de
+   * prueba gratis del plan elegido (fecha_prueba_hasta), sin fecha de vencimiento.
+   * esPago=true (ya cobrado vía Google Pay): arranca con suscripción vigente
+   * (fecha_vencimiento_suscripcion), sin período de prueba.
+   */
+  async registrarTenant(dto: RegistrarTenantDto, esPago = false) {
     const existe = await this.usuarioRepo.findOne({
       where: { email: dto.email_admin.toLowerCase() },
     });
@@ -90,11 +98,24 @@ export class PlanesService {
       } as any);
       await em.save(tenant);
 
-      await em.query(
-        `UPDATE tenants SET plan_id = $1, max_prestamos_activos = $2, facturacion_anual = $3
-         WHERE id = $4`,
-        [dto.plan_id, plan.max_prestamos_activos, dto.facturacion_anual ?? false, tenant.id],
-      );
+      if (esPago) {
+        const meses = dto.facturacion_anual ? 12 : 1;
+        await em.query(
+          `UPDATE tenants SET plan_id = $1, max_prestamos_activos = $2, facturacion_anual = $3,
+             fecha_prueba_hasta = NULL,
+             fecha_vencimiento_suscripcion = CURRENT_DATE + ($4 || ' months')::interval
+           WHERE id = $5`,
+          [dto.plan_id, plan.max_prestamos_activos, dto.facturacion_anual ?? false, meses, tenant.id],
+        );
+      } else {
+        await em.query(
+          `UPDATE tenants SET plan_id = $1, max_prestamos_activos = $2, facturacion_anual = $3,
+             fecha_prueba_hasta = CURRENT_DATE + 7,
+             fecha_vencimiento_suscripcion = NULL
+           WHERE id = $4`,
+          [dto.plan_id, plan.max_prestamos_activos, dto.facturacion_anual ?? false, tenant.id],
+        );
+      }
 
       await em.query(
         `INSERT INTO tenant_settings (tenant_id, color_primario, color_secundario, color_acento, moneda, simbolo_moneda)
@@ -122,7 +143,9 @@ export class PlanesService {
         tenant_id: tenant.id,
         plan: plan.nombre,
         max_prestamos_activos: plan.max_prestamos_activos,
-        mensaje: `Empresa "${dto.nombre_empresa}" registrada en plan ${plan.nombre}. Ya puedes iniciar sesión.`,
+        mensaje: esPago
+          ? `Empresa "${dto.nombre_empresa}" registrada en plan ${plan.nombre}. Ya puedes iniciar sesión.`
+          : `Empresa "${dto.nombre_empresa}" registrada con 7 días de prueba gratis del plan ${plan.nombre}. Ya puedes iniciar sesión.`,
       };
     });
   }
@@ -162,7 +185,48 @@ export class PlanesService {
       );
     }
 
-    return this.registrarTenant(dto);
+    return this.registrarTenant(dto, true);
+  }
+
+  /**
+   * Activa/renueva la suscripción de un tenant YA EXISTENTE (típicamente uno
+   * cuya prueba de 7 días venció). A diferencia de registrarConGooglePay, no
+   * crea cuenta nueva — solo cobra y extiende fecha_vencimiento_suscripcion.
+   */
+  async suscribirTenant(tenantId: string, dto: SuscribirPlanDto) {
+    const planes = await this.ds.query(
+      `SELECT * FROM planes_saas WHERE id = $1 AND activo = TRUE`,
+      [dto.plan_id],
+    );
+    if (!planes.length) throw new NotFoundException('Plan no encontrado');
+    const plan = planes[0];
+
+    const precioUsd = dto.facturacion_anual
+      ? Number(plan.precio_anual_usd)
+      : Number(plan.precio_mensual_usd);
+
+    if (precioUsd > 0) {
+      const gpayEnv = this.config.get<string>('GOOGLE_PAY_ENV', 'TEST');
+      if (gpayEnv === 'PRODUCTION') {
+        await this.procesarPagoPlacetoPay(dto.googlePayToken, plan.nombre, precioUsd);
+      } else {
+        this.logger.log(
+          `[Google Pay TEST] Suscripción tenant=${tenantId} plan=${plan.nombre} $${precioUsd} USD.`,
+        );
+      }
+    }
+
+    const meses = dto.facturacion_anual ? 12 : 1;
+    await this.ds.query(
+      `UPDATE tenants SET plan_id = $1, max_prestamos_activos = $2, max_cobradores = $3,
+         facturacion_anual = $4, plan_suscripcion = $1,
+         fecha_prueba_hasta = NULL,
+         fecha_vencimiento_suscripcion = CURRENT_DATE + ($5 || ' months')::interval
+       WHERE id = $6`,
+      [dto.plan_id, plan.max_prestamos_activos, plan.max_cobradores, dto.facturacion_anual ?? false, meses, tenantId],
+    );
+
+    return { mensaje: `Suscripción activada: plan ${plan.nombre}.` };
   }
 
   /**
