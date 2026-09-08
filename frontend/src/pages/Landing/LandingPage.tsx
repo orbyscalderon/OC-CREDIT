@@ -355,7 +355,11 @@ export function LandingPage() {
             </button>
 
             <p className="text-center text-xs text-gray-400">
-              Al registrarte aceptas los términos de servicio de OCA HOLDING GROUP LLC.
+              Al registrarte aceptas los{' '}
+              <Link to="/legal#terminos" className="underline hover:text-gray-600">términos de servicio</Link>{' '}
+              y la{' '}
+              <Link to="/legal#privacidad" className="underline hover:text-gray-600">política de privacidad</Link>{' '}
+              de OCA HOLDING GROUP LLC.
             </p>
           </form>
         </div>
@@ -365,7 +369,11 @@ export function LandingPage() {
       <footer className="bg-gray-900 text-gray-400 py-8 px-6 text-center text-xs">
         <p className="font-semibold text-white mb-1">OC Credit — Sistema de Préstamos por Rutas</p>
         <p>© 2026 OCA HOLDING GROUP LLC. Todos los derechos reservados.</p>
-        <p className="mt-2">República Dominicana</p>
+        <p className="mt-3">
+          <Link to="/legal#terminos" className="underline hover:text-gray-200">Términos de servicio</Link>
+          {' · '}
+          <Link to="/legal#privacidad" className="underline hover:text-gray-200">Privacidad</Link>
+        </p>
       </footer>
     </div>
   );

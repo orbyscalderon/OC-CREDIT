@@ -30,6 +30,7 @@ import { FeriadosPage } from '@/pages/Config/FeriadosPage';
 import { PortalClientePage } from '@/pages/Portal/PortalClientePage';
 import { SuperAdminPage } from '@/pages/SuperAdmin/SuperAdminPage';
 import { SuscripcionVencidaPage } from '@/pages/SuscripcionVencida';
+import { LegalPage } from '@/pages/Legal';
 
 export default function App() {
   return (
@@ -41,6 +42,9 @@ export default function App() {
         <Route path="/portal" element={<PortalClientePage />} />
         <Route path="/super-admin" element={<SuperAdminPage />} />
         <Route path="/suscripcion-vencida" element={<SuscripcionVencidaPage />} />
+        <Route path="/legal" element={<LegalPage />} />
+        <Route path="/terminos" element={<LegalPage />} />
+        <Route path="/privacidad" element={<LegalPage />} />
 
         {/* Panel admin — requiere autenticación */}
         <Route element={<AppLayout />}>
