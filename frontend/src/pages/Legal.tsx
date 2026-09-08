@@ -82,7 +82,7 @@ export function LegalPage() {
 
         <h3 className="font-semibold text-gray-900 mt-6 mb-2">2.3 Con quién los compartimos</h3>
         <p>
-          Con procesadores de pago (Google Pay / PlacetoPay) únicamente para completar transacciones, y con
+          Con procesadores de pago (Google Pay / Stripe) únicamente para completar transacciones, y con
           proveedores de infraestructura (hosting, base de datos) necesarios para operar la plataforma —
           todos bajo obligaciones de confidencialidad.
         </p>

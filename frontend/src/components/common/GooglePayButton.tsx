@@ -1,13 +1,16 @@
 /**
- * Botón de Google Pay usando la Google Pay Web API.
+ * Botón de Google Pay usando la Google Pay Web API, con Stripe como
+ * procesador (gateway) detrás — el token que devuelve Google Pay es
+ * directamente un token de Stripe (tok_...), listo para cobrar en el backend.
  *
  * Configuración requerida (variables de entorno):
- *   VITE_GOOGLE_PAY_ENV          = TEST | PRODUCTION  (default: TEST)
- *   VITE_GOOGLE_PAY_MERCHANT_ID  = ID del comercio en Google Pay Business Console
- *   VITE_PLACETOPAY_MERCHANT_ID  = Gateway Merchant ID en PlacetoPay
+ *   VITE_GOOGLE_PAY_ENV           = TEST | PRODUCTION  (default: TEST)
+ *   VITE_GOOGLE_PAY_MERCHANT_ID   = ID del comercio en Google Pay Business Console
+ *   VITE_STRIPE_PUBLISHABLE_KEY   = Publishable key de Stripe (pk_test_... / pk_live_...)
  *
  * En TEST, el botón aparece con una tarjeta de prueba y no cobra.
- * En PRODUCTION, se requieren credenciales reales de PlacetoPay.
+ * En PRODUCTION, se requiere una publishable key real de Stripe y que el
+ * backend tenga STRIPE_SECRET_KEY configurada.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -53,7 +56,7 @@ interface GooglePayButtonProps {
 
 const GPAY_ENV = (import.meta.env.VITE_GOOGLE_PAY_ENV ?? 'TEST') as 'TEST' | 'PRODUCTION';
 const MERCHANT_ID = import.meta.env.VITE_GOOGLE_PAY_MERCHANT_ID ?? 'BCR2DN4TZHFHWT6I';
-const GATEWAY_MERCHANT_ID = import.meta.env.VITE_PLACETOPAY_MERCHANT_ID ?? '';
+const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ?? '';
 
 const ALLOWED_PAYMENT_METHODS = [
   {
@@ -65,8 +68,9 @@ const ALLOWED_PAYMENT_METHODS = [
     tokenizationSpecification: {
       type: 'PAYMENT_GATEWAY',
       parameters: {
-        gateway: 'placetopay',
-        gatewayMerchantId: GATEWAY_MERCHANT_ID,
+        gateway: 'stripe',
+        'stripe:version': '2024-06-20',
+        'stripe:publishableKey': STRIPE_PUBLISHABLE_KEY,
       },
     },
   },

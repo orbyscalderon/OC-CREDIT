@@ -5,9 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { DataSource, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import * as crypto from 'crypto';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
+import Stripe from 'stripe';
 import { RegistrarTenantDto } from './dto/registrar-tenant.dto';
 import { GooglePayRegistroDto } from './dto/google-pay-registro.dto';
 import { SuscribirPlanDto } from './dto/suscribir-plan.dto';
@@ -21,7 +19,6 @@ export class PlanesService {
   constructor(
     private readonly ds: DataSource,
     private readonly config: ConfigService,
-    private readonly http: HttpService,
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
     @InjectRepository(Usuario) private readonly usuarioRepo: Repository<Usuario>,
   ) {}
@@ -152,7 +149,7 @@ export class PlanesService {
 
   /**
    * Procesa un registro de tenant con pago vía Google Pay.
-   * En entorno TEST (GOOGLE_PAY_ENV=TEST) omite la llamada real a PlacetoPay y
+   * En entorno TEST (GOOGLE_PAY_ENV=TEST) omite la llamada real a Stripe y
    * registra el token recibido para auditoría. En PRODUCTION, procesa el cobro
    * antes de crear la cuenta.
    */
@@ -176,7 +173,7 @@ export class PlanesService {
     const gpayEnv = this.config.get<string>('GOOGLE_PAY_ENV', 'TEST');
 
     if (gpayEnv === 'PRODUCTION') {
-      await this.procesarPagoPlacetoPay(dto.googlePayToken, plan.nombre, precioUsd);
+      await this.procesarPagoStripe(dto.googlePayToken, plan.nombre, precioUsd);
     } else {
       // TEST — registra el token recibido pero no cobra
       this.logger.log(
@@ -208,7 +205,7 @@ export class PlanesService {
     if (precioUsd > 0) {
       const gpayEnv = this.config.get<string>('GOOGLE_PAY_ENV', 'TEST');
       if (gpayEnv === 'PRODUCTION') {
-        await this.procesarPagoPlacetoPay(dto.googlePayToken, plan.nombre, precioUsd);
+        await this.procesarPagoStripe(dto.googlePayToken, plan.nombre, precioUsd);
       } else {
         this.logger.log(
           `[Google Pay TEST] Suscripción tenant=${tenantId} plan=${plan.nombre} $${precioUsd} USD.`,
@@ -230,56 +227,36 @@ export class PlanesService {
   }
 
   /**
-   * Envía el token de Google Pay a PlacetoPay para procesar el cobro.
-   * Requiere las variables PLACETOPAY_LOGIN y PLACETOPAY_SECRET_KEY.
+   * Envía el token de Google Pay a Stripe para procesar el cobro.
+   * El botón de Google Pay del frontend usa "gateway": "stripe" en su
+   * tokenizationSpecification, así que el token recibido YA es un token de
+   * Stripe (tok_...), listo para usarse directamente como `source`.
+   * Requiere la variable STRIPE_SECRET_KEY.
    */
-  private async procesarPagoPlacetoPay(
+  private async procesarPagoStripe(
     googlePayToken: string,
     planNombre: string,
     montoUsd: number,
   ): Promise<void> {
-    const login = this.config.get<string>('PLACETOPAY_LOGIN');
-    const secretKey = this.config.get<string>('PLACETOPAY_SECRET_KEY');
-    const baseUrl = this.config.get<string>(
-      'PLACETOPAY_API_URL',
-      'https://checkout.redirection.test',
-    );
-
-    if (!login || !secretKey) {
+    const secretKey = this.config.get<string>('STRIPE_SECRET_KEY');
+    if (!secretKey) {
       throw new BadRequestException('Pasarela de pago no configurada. Contacte al soporte.');
     }
 
-    const seed = new Date().toISOString();
-    const nonce = crypto.randomBytes(16).toString('base64');
-    const tranKey = crypto
-      .createHash('sha256')
-      .update(`${nonce}${seed}${secretKey}`)
-      .digest('base64');
-
-    const body = {
-      auth: { login, tranKey, nonce, seed },
-      instrument: {
-        token: { token: googlePayToken },
-      },
-      payment: {
-        reference: `OC-${Date.now()}`,
-        description: `Plan ${planNombre} — OC Credit`,
-        amount: { currency: 'USD', total: montoUsd },
-      },
-    };
-
+    const stripe = new Stripe(secretKey);
     try {
-      const { data } = await firstValueFrom(
-        this.http.post(`${baseUrl}/api/collect`, body),
-      );
-      if (data?.status?.status !== 'APPROVED') {
-        throw new BadRequestException(
-          `Pago rechazado: ${data?.status?.message ?? 'Error desconocido'}`,
-        );
+      const charge = await stripe.charges.create({
+        amount: Math.round(montoUsd * 100),
+        currency: 'usd',
+        source: googlePayToken,
+        description: `Plan ${planNombre} — OC Credit`,
+      });
+      if (charge.status !== 'succeeded') {
+        throw new BadRequestException(`Pago rechazado: ${charge.status}`);
       }
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { status?: { message?: string } } } })
-        ?.response?.data?.status?.message;
+      if (err instanceof BadRequestException) throw err;
+      const msg = (err as Stripe.errors.StripeError)?.message;
       throw new BadRequestException(`Error procesando pago: ${msg ?? 'Intente nuevamente'}`);
     }
   }
