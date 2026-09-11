@@ -71,15 +71,15 @@ export function LandingPage() {
 
       {/* ── NAV ──────────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <span className="text-xl font-extrabold text-brand-600">OC Credit</span>
-          <div className="flex items-center gap-4">
-            <Link to="/login" className="text-sm font-medium text-gray-600 hover:text-gray-900">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
+          <span className="text-lg sm:text-xl font-extrabold text-brand-600 whitespace-nowrap">OC Credit</span>
+          <div className="flex items-center gap-2 sm:gap-4">
+            <Link to="/login" className="text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-900 whitespace-nowrap">
               Iniciar sesión
             </Link>
             <button
               onClick={() => document.getElementById('precios')?.scrollIntoView({ behavior: 'smooth' })}
-              className="btn-primary"
+              className="btn-primary whitespace-nowrap !px-3 !py-2 text-xs sm:!px-4 sm:!py-2.5 sm:text-sm"
             >
               Comenzar gratis
             </button>
