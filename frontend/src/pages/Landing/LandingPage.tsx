@@ -72,7 +72,7 @@ export function LandingPage() {
       {/* ── NAV ──────────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
-          <span className="text-lg sm:text-xl font-extrabold text-brand-600 whitespace-nowrap">OC Credit</span>
+          <span className="text-lg sm:text-xl font-extrabold text-brand-600 whitespace-nowrap">OCA Credit</span>
           <div className="flex items-center gap-2 sm:gap-4">
             <Link to="/login" className="text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-900 whitespace-nowrap">
               Iniciar sesión
@@ -367,7 +367,7 @@ export function LandingPage() {
 
       {/* ── FOOTER ───────────────────────────────────────────────── */}
       <footer className="bg-gray-900 text-gray-400 py-8 px-6 text-center text-xs">
-        <p className="font-semibold text-white mb-1">OC Credit — Sistema de Préstamos por Rutas</p>
+        <p className="font-semibold text-white mb-1">OCA Credit — Sistema de Préstamos por Rutas</p>
         <p>© 2026 OCA HOLDING GROUP LLC. Todos los derechos reservados.</p>
         <p className="mt-3">
           <Link to="/legal#terminos" className="underline hover:text-gray-200">Términos de servicio</Link>

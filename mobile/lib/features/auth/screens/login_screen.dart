@@ -55,7 +55,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('OC Credit',
+                    const Text('OCA Credit',
                         style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
                     const SizedBox(height: 4),
                     Text('App de Cobradores',
@@ -94,7 +94,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      '© 2026 OC HOLDING GROUP LLC.\nTodos los derechos reservados.',
+                      '© 2026 OCA HOLDING GROUP LLC.\nTodos los derechos reservados.',
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
                     ),

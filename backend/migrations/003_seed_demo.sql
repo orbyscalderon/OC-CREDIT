@@ -1,5 +1,5 @@
 -- ============================================================
--- SEED v2: Datos de demostración para OC Credit
+-- SEED v2: Datos de demostración para OCA Credit
 -- Ejecutar DESPUÉS de 001 y 002
 -- ============================================================
 
@@ -29,7 +29,7 @@ VALUES (
   NULL,
   '#2563EB', '#1D4ED8', '#FF6F00',
   'DOP', 'RD$',
-  'Gracias por su pago. OC Credit — Soluciones financieras.',
+  'Gracias por su pago. OCA Credit — Soluciones financieras.',
   'Prestamos Demo S.R.L.'
 )
 ON CONFLICT (tenant_id) DO NOTHING;

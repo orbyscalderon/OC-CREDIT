@@ -141,7 +141,7 @@ export function GooglePayButton({ amountUsd, onPaymentToken, onError, disabled }
       allowedPaymentMethods: ALLOWED_PAYMENT_METHODS,
       merchantInfo: {
         merchantId: MERCHANT_ID,
-        merchantName: 'OC Credit — OCA HOLDING GROUP LLC',
+        merchantName: 'OCA Credit — OCA HOLDING GROUP LLC',
       },
       transactionInfo: {
         totalPriceStatus: 'FINAL',

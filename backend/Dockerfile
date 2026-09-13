@@ -11,8 +11,8 @@ RUN npm run build
 # ── Production stage ─────────────────────────────────────────────────────────
 FROM node:20-alpine AS production
 
-LABEL maintainer="OC HOLDING GROUP LLC"
-LABEL description="OC Credit API - © 2026 OC HOLDING GROUP LLC"
+LABEL maintainer="OCA HOLDING GROUP LLC"
+LABEL description="OCA Credit API - © 2026 OCA HOLDING GROUP LLC"
 
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 

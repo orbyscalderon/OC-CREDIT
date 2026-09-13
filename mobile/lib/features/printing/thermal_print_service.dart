@@ -35,7 +35,7 @@ class ThermalPrintService {
     // writeString (no hay forma de concatenar varios tamaños en un envío).
     final lines = <PrintTextSize>[
       PrintTextSize(size: 1, text: '${_center('================================')}\n'),
-      PrintTextSize(size: 2, text: '${_center('OC Credit')}\n'),
+      PrintTextSize(size: 2, text: '${_center('OCA Credit')}\n'),
       PrintTextSize(size: 1, text: '${_center('Recibo de Cobro')}\n'),
       PrintTextSize(size: 1, text: '${_center('================================')}\n'),
       PrintTextSize(size: 1, text: 'Fecha: $fechaStr\n'),

@@ -1,5 +1,5 @@
-# OC Credit — Estructura del Proyecto
-## © 2026 OC HOLDING GROUP LLC. Todos los derechos reservados.
+# OCA Credit — Estructura del Proyecto
+## © 2026 OCA HOLDING GROUP LLC. Todos los derechos reservados.
 
 ```
 OC CREDIT/

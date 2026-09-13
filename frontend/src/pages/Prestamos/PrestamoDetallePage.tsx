@@ -204,7 +204,7 @@ export function PrestamoDetallePage() {
               <button
                 onClick={() => generarPagarePDF({
                   prestamo,
-                  tenantNombre: settings?.nombre_comercial ?? 'OC Credit',
+                  tenantNombre: settings?.nombre_comercial ?? 'OCA Credit',
                   simboloMoneda: settings?.simbolo_moneda ?? 'RD$',
                   firmaClienteDataUrl: firmaUrl,
                 })}

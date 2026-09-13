@@ -6,7 +6,7 @@ export function LegalPage() {
   return (
     <div className="min-h-screen bg-white">
       <header className="border-b border-gray-100 py-4 px-6">
-        <Link to="/" className="text-xl font-extrabold text-brand-600">OC Credit</Link>
+        <Link to="/" className="text-xl font-extrabold text-brand-600">OCA Credit</Link>
       </header>
 
       <div className="max-w-3xl mx-auto px-6 py-12 text-sm text-gray-600 leading-relaxed">
@@ -15,8 +15,8 @@ export function LegalPage() {
 
         <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 mb-10">
           <p>
-            <strong>OC Credit</strong> es un nombre comercial (DBA — "doing business as") operado por{' '}
-            <strong>OCA HOLDING GROUP LLC</strong>, en adelante "la Compañía". Toda referencia a "OC Credit"
+            <strong>OCA Credit</strong> es un nombre comercial (DBA — "doing business as") operado por{' '}
+            <strong>OCA HOLDING GROUP LLC</strong>, en adelante "la Compañía". Toda referencia a "OCA Credit"
             en este documento, en la aplicación o en cualquier comunicación se entiende como una referencia
             a OCA HOLDING GROUP LLC actuando bajo ese nombre comercial.
           </p>
@@ -26,7 +26,7 @@ export function LegalPage() {
 
         <h3 className="font-semibold text-gray-900 mt-6 mb-2">1.1 Descripción del servicio</h3>
         <p>
-          OC Credit es un software como servicio (SaaS) para la gestión de préstamos, cobranza en ruta,
+          OCA Credit es un software como servicio (SaaS) para la gestión de préstamos, cobranza en ruta,
           buró de crédito y operaciones relacionadas, dirigido a prestamistas y financieras. El acceso se
           otorga por suscripción, bajo los planes publicados en la aplicación.
         </p>
@@ -107,7 +107,7 @@ export function LegalPage() {
         </p>
 
         <p className="mt-10 text-xs text-gray-400">
-          © {new Date().getFullYear()} OCA HOLDING GROUP LLC, operando como "OC Credit". Todos los derechos reservados.
+          © {new Date().getFullYear()} OCA HOLDING GROUP LLC, operando como "OCA Credit". Todos los derechos reservados.
         </p>
 
         <Link to="/" className="inline-block mt-8 text-brand-600 font-medium text-sm">← Volver al inicio</Link>

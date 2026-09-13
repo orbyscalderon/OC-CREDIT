@@ -43,7 +43,7 @@ export function LoginPage() {
           <div className="w-9 h-9 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center">
             <span className="text-white text-sm font-extrabold">OC</span>
           </div>
-          <span className="text-white font-bold text-lg">OC Credit</span>
+          <span className="text-white font-bold text-lg">OCA Credit</span>
         </div>
 
         {/* Feature highlights */}
@@ -79,7 +79,7 @@ export function LoginPage() {
             <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center">
               <span className="text-white text-xs font-extrabold">OC</span>
             </div>
-            <span className="font-bold text-gray-900">OC Credit</span>
+            <span className="font-bold text-gray-900">OCA Credit</span>
           </div>
 
           <div className="mb-8">

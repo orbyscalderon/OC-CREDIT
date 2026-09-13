@@ -59,7 +59,7 @@ export function HistorialPagosPage() {
       montoCobrado: Number(t.monto),
       distribucion: t.distribucion_pago,
       cobrador: t.cobrador,
-      tenantNombre: settings?.nombre_comercial ?? 'OC Credit',
+      tenantNombre: settings?.nombre_comercial ?? 'OCA Credit',
       piePagina: settings?.texto_pie_recibo ?? undefined,
       simboloMoneda: settings?.simbolo_moneda ?? 'RD$',
       fecha: t.created_at,
