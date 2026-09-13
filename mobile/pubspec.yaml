@@ -43,8 +43,9 @@ dependencies:
   # Connectivity
   connectivity_plus: ^6.0.3
 
-  # Root / emulator detection
-  flutter_jailbreak_detection: ^1.10.0
+  # Root / emulator detection (flutter_jailbreak_detection esta abandonado
+  # desde 2023 y no soporta el toolchain Android actual)
+  safe_device: ^1.4.1
 
   # Image / logo
   cached_network_image: ^3.3.1

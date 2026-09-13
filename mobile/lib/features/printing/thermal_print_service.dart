@@ -30,34 +30,35 @@ class ThermalPrintService {
         '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}  '
         '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
 
-    final lines = [
-      ...PrintTextSize.size1(_center('================================')),
-      ...PrintTextSize.size2(_center('OC Credit')),
-      ...PrintTextSize.size1(_center('Recibo de Cobro')),
-      ...PrintTextSize.size1(_center('================================')),
-      ...PrintTextSize.size1('Fecha: $fechaStr'),
-      ...PrintTextSize.size1('Cliente: $clienteNombre'),
-      ...PrintTextSize.size1('Cedula:  ${prestamo.clienteCedula}'),
-      ...PrintTextSize.size1('--------------------------------'),
-      ...PrintTextSize.size1('Cuota:   RD\$ ${prestamo.cuotaMonto.toStringAsFixed(2)}'),
+    // print_bluetooth_thermal 1.2.4: PrintTextSize es un dato simple
+    // {size, text} — cada línea se envía con su propia llamada a
+    // writeString (no hay forma de concatenar varios tamaños en un envío).
+    final lines = <PrintTextSize>[
+      PrintTextSize(size: 1, text: '${_center('================================')}\n'),
+      PrintTextSize(size: 2, text: '${_center('OC Credit')}\n'),
+      PrintTextSize(size: 1, text: '${_center('Recibo de Cobro')}\n'),
+      PrintTextSize(size: 1, text: '${_center('================================')}\n'),
+      PrintTextSize(size: 1, text: 'Fecha: $fechaStr\n'),
+      PrintTextSize(size: 1, text: 'Cliente: $clienteNombre\n'),
+      PrintTextSize(size: 1, text: 'Cedula:  ${prestamo.clienteCedula}\n'),
+      PrintTextSize(size: 1, text: '--------------------------------\n'),
+      PrintTextSize(size: 1, text: 'Cuota:   RD\$ ${prestamo.cuotaMonto.toStringAsFixed(2)}\n'),
       if (prestamo.tieneMora && prestamo.montoMora > 0)
-        ...PrintTextSize.size1('Mora:    RD\$ ${prestamo.montoMora.toStringAsFixed(2)}'),
-      ...PrintTextSize.size1('--------------------------------'),
-      ...PrintTextSize.size2('TOTAL:   RD\$ ${montoCobrado.toStringAsFixed(2)}'),
-      ...PrintTextSize.size1('--------------------------------'),
-      ...PrintTextSize.size1(syncedOnline ? 'Estado: SINCRONIZADO' : 'Estado: PENDIENTE DE SYNC'),
-      ...PrintTextSize.size1('Ref: ${uuid.substring(0, 8).toUpperCase()}'),
-      ...PrintTextSize.size1('================================'),
-      ...PrintTextSize.size1(_center('© 2026 OC HOLDING GROUP LLC.')),
-      ...PrintTextSize.size1(_center('Todos los derechos reservados.')),
-      ...PrintTextSize.size1(''),
-      ...PrintTextSize.size1(''),
-      ...PrintTextSize.size1(''),
+        PrintTextSize(size: 1, text: 'Mora:    RD\$ ${prestamo.montoMora.toStringAsFixed(2)}\n'),
+      PrintTextSize(size: 1, text: '--------------------------------\n'),
+      PrintTextSize(size: 2, text: 'TOTAL:   RD\$ ${montoCobrado.toStringAsFixed(2)}\n'),
+      PrintTextSize(size: 1, text: '--------------------------------\n'),
+      PrintTextSize(size: 1, text: '${syncedOnline ? 'Estado: SINCRONIZADO' : 'Estado: PENDIENTE DE SYNC'}\n'),
+      PrintTextSize(size: 1, text: 'Ref: ${uuid.substring(0, 8).toUpperCase()}\n'),
+      PrintTextSize(size: 1, text: '================================\n'),
+      PrintTextSize(size: 1, text: '${_center('© 2026 OCA HOLDING GROUP LLC.')}\n'),
+      PrintTextSize(size: 1, text: '${_center('Todos los derechos reservados.')}\n'),
+      PrintTextSize(size: 1, text: '\n\n\n'),
     ];
 
-    await PrintBluetoothThermal.writeString(
-      printText: PrintTextSize.reset() + lines.join(),
-    );
+    for (final line in lines) {
+      await PrintBluetoothThermal.writeString(printText: line);
+    }
   }
 
   String _center(String text, {int width = 32}) {

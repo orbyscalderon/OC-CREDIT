@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_jailbreak_detection/flutter_jailbreak_detection.dart';
+import 'package:safe_device/safe_device.dart';
 
 import 'core/router.dart';
 import 'core/theme.dart';
@@ -10,8 +10,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Abort on rooted/emulated device
-  final bool jailbroken = await FlutterJailbreakDetection.jailbroken;
-  final bool developerMode = await FlutterJailbreakDetection.developerMode;
+  final bool jailbroken = await SafeDevice.isJailBroken;
+  final bool developerMode = await SafeDevice.isDevelopmentModeEnable;
   if (jailbroken || developerMode) {
     runApp(const _BlockedApp());
     return;

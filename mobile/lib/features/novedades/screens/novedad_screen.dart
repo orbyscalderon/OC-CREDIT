@@ -40,8 +40,8 @@ class _NovedadScreenState extends State<NovedadScreen> {
     Position? pos;
     try {
       pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-            accuracy: LocationAccuracy.high, timeLimit: Duration(seconds: 8)),
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 8),
       );
     } catch (_) {}
 
