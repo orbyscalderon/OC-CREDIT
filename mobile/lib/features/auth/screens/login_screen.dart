@@ -28,16 +28,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _submit() async {
     setState(() { _loading = true; _error = null; });
 
-    final ok = await ref.read(authStateProvider.notifier)
+    final error = await ref.read(authStateProvider.notifier)
         .login(_emailCtrl.text.trim(), _passCtrl.text.trim());
 
     if (!mounted) return;
-    if (ok) {
+    if (error == null) {
       await SyncService.instance.refreshCache();
       SyncService.instance.startListening();
       context.go('/home');
     } else {
-      setState(() { _loading = false; _error = 'Credenciales inválidas'; });
+      setState(() { _loading = false; _error = error; });
     }
   }
 

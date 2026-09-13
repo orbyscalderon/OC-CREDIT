@@ -3,6 +3,7 @@ import 'database_helper.dart';
 
 class PrestamoCache {
   final String id;
+  final String clienteId;
   final String clienteNombre;
   final String clienteCedula;
   final double capitalAprobado;
@@ -17,6 +18,7 @@ class PrestamoCache {
 
   const PrestamoCache({
     required this.id,
+    required this.clienteId,
     required this.clienteNombre,
     required this.clienteCedula,
     required this.capitalAprobado,
@@ -32,6 +34,7 @@ class PrestamoCache {
 
   factory PrestamoCache.fromMap(Map<String, dynamic> m) => PrestamoCache(
         id: m['id'] as String,
+        clienteId: m['cliente_id'] as String,
         clienteNombre: m['cliente_nombre'] as String,
         clienteCedula: m['cliente_cedula'] as String,
         capitalAprobado: (m['capital_aprobado'] as num).toDouble(),
@@ -47,6 +50,7 @@ class PrestamoCache {
 
   Map<String, dynamic> toMap() => {
         'id': id,
+        'cliente_id': clienteId,
         'cliente_nombre': clienteNombre,
         'cliente_cedula': clienteCedula,
         'capital_aprobado': capitalAprobado,

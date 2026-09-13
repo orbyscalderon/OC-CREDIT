@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/remote/api_client.dart';
 
@@ -21,19 +22,34 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<bool> login(String email, String password) async {
+  /// Devuelve `null` si el login fue exitoso, o un mensaje de error legible
+  /// para el usuario en caso contrario (distingue credenciales invalidas de
+  /// fallas de red/servidor en vez de mostrar siempre el mismo mensaje).
+  Future<String?> login(String email, String password) async {
     try {
       final resp = await ApiClient.instance.dio.post('/auth/login', data: {
         'email': email,
         'password': password,
       });
       final token = resp.data['access_token'] as String;
-      final rol = resp.data['rol'] as String;
+      final rol = resp.data['usuario']['rol'] as String;
       await ApiClient.instance.saveToken(token);
       state = AuthState(token: token, rol: rol, isAuthenticated: true);
-      return true;
+      return null;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        final data = e.response?.data;
+        if (data is Map && data['error'] is String) return data['error'] as String;
+        return 'Credenciales inválidas';
+      }
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout ||
+          e.type == DioExceptionType.connectionError) {
+        return 'No se pudo conectar al servidor. Verifica tu conexión.';
+      }
+      return 'Ocurrió un error inesperado. Intenta de nuevo.';
     } catch (_) {
-      return false;
+      return 'Ocurrió un error inesperado. Intenta de nuevo.';
     }
   }
 

@@ -116,24 +116,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             p.clienteCedula.contains(_q))
                         .toList();
 
-                if (filtrada.isEmpty) {
-                  return const Center(child: Text('Sin resultados'));
-                }
-
                 return RefreshIndicator(
                   onRefresh: () async {
                     ref.invalidate(prestamosProvider);
                     await _loadPendingCount();
                   },
-                  child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
-                    itemCount: filtrada.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (_, i) => PrestamoCard(
-                      prestamo: filtrada[i],
-                      onTap: () => context.push('/cobro/${filtrada[i].id}'),
-                    ),
-                  ),
+                  child: filtrada.isEmpty
+                      ? LayoutBuilder(
+                          builder: (_, constraints) => SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                              child: const Center(child: Text('Sin resultados')),
+                            ),
+                          ),
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
+                          itemCount: filtrada.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 8),
+                          itemBuilder: (_, i) => PrestamoCard(
+                            prestamo: filtrada[i],
+                            onTap: () => context.push('/cobro/${filtrada[i].id}'),
+                          ),
+                        ),
                 );
               },
             ),

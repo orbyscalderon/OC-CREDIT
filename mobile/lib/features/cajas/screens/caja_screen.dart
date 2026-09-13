@@ -1,7 +1,21 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/caja_provider.dart';
 import '../../../core/theme.dart';
+
+String _mensajeError(Object e) {
+  if (e is DioException) {
+    final data = e.response?.data;
+    if (data is Map && data['error'] != null) {
+      final err = data['error'];
+      if (err is List && err.isNotEmpty) return err.first.toString();
+      if (err is String) return err;
+    }
+    return 'No se pudo completar la operación. Verifica tu conexión.';
+  }
+  return e.toString().replaceFirst('Exception: ', '');
+}
 
 class CajaScreen extends ConsumerStatefulWidget {
   const CajaScreen({super.key});
@@ -50,8 +64,17 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
               ? null
               : () async {
                   setState(() => _loading = true);
-                  await ref.read(cajaActivaProvider.notifier).abrir();
-                  if (mounted) setState(() => _loading = false);
+                  try {
+                    await ref.read(cajaActivaProvider.notifier).abrir();
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(_mensajeError(e))),
+                      );
+                    }
+                  } finally {
+                    if (mounted) setState(() => _loading = false);
+                  }
                 },
           icon: const Icon(Icons.open_in_new),
           label: const Text('Abrir caja'),
@@ -113,12 +136,21 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
                   final monto = double.tryParse(_montoCtrl.text.trim());
                   if (monto == null) return;
                   setState(() => _loading = true);
-                  await ref.read(cajaActivaProvider.notifier).cerrar(monto);
-                  if (mounted) {
-                    setState(() => _loading = false);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Caja cerrada correctamente')),
-                    );
+                  try {
+                    await ref.read(cajaActivaProvider.notifier).cerrar(monto);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Caja cerrada correctamente')),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(_mensajeError(e))),
+                      );
+                    }
+                  } finally {
+                    if (mounted) setState(() => _loading = false);
                   }
                 },
           icon: const Icon(Icons.lock_outline),

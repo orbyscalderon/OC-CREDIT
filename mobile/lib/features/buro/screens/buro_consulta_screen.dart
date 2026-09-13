@@ -29,7 +29,6 @@ class _BuroConsultaScreenState extends State<BuroConsultaScreen> {
     try {
       final resp = await ApiClient.instance.dio.post('/buro/consultar', data: {
         'cedula': cedula,
-        'motivo_consulta': 'Verificación antes de préstamo (app móvil)',
       });
       setState(() {
         _perfil = resp.data as Map<String, dynamic>;
@@ -52,6 +51,7 @@ class _BuroConsultaScreenState extends State<BuroConsultaScreen> {
         child: Column(
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: TextField(
@@ -66,6 +66,13 @@ class _BuroConsultaScreenState extends State<BuroConsultaScreen> {
                 ),
                 const SizedBox(width: 12),
                 ElevatedButton(
+                  // El tema global fuerza minimumSize a ancho infinito
+                  // (pensado para botones de pantalla completa); dentro de
+                  // este Row, compitiendo con el Expanded del campo de
+                  // cédula, eso rompe el layout de todo el Row en silencio
+                  // (pantalla en blanco, sin excepción visible). Se fija un
+                  // ancho acotado solo para este botón.
+                  style: ElevatedButton.styleFrom(minimumSize: const Size(64, 56)),
                   onPressed: _loading ? null : _consultar,
                   child: _loading
                       ? const SizedBox(
@@ -166,10 +173,10 @@ class _PerfilWidget extends StatelessWidget {
                   children: [
                     Text(reporte['tenant_nombre'] as String? ?? '',
                         style: const TextStyle(fontWeight: FontWeight.w600)),
-                    Text(reporte['motivo_reporte'] as String? ?? '',
+                    Text((reporte['motivo'] as String? ?? '').replaceAll('_', ' '),
                         style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                     Text(
-                      'RD\$ ${((reporte['deuda_original'] as num?) ?? 0).toStringAsFixed(2)}',
+                      'RD\$ ${((reporte['saldo_impagado'] as num?) ?? 0).toStringAsFixed(2)}',
                       style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,

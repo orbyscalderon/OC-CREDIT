@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import '../local/sync_queue_dao.dart';
 import '../local/prestamos_cache_dao.dart';
@@ -71,6 +72,7 @@ class SyncService {
       final items = (response.data['data'] as List)
           .map((json) => PrestamoCache(
                 id: json['id'] as String,
+                clienteId: json['cliente_id'] as String,
                 clienteNombre: '${json['cliente']?['nombre'] ?? ''} ${json['cliente']?['apellido'] ?? ''}'.trim(),
                 clienteCedula: json['cliente']?['cedula'] as String? ?? '',
                 capitalAprobado: (json['capital_aprobado'] as num).toDouble(),
@@ -85,8 +87,10 @@ class SyncService {
               ))
           .toList();
       await _cacheDao.upsertAll(items);
-    } catch (_) {
-      // Red sin disponibilidad — usamos cache existente
+    } catch (e) {
+      // Sin conexión u otro error — se sigue mostrando el cache existente,
+      // pero se deja registro para no ocultar bugs reales en desarrollo.
+      debugPrint('SyncService.refreshCache() falló: $e');
     }
   }
 

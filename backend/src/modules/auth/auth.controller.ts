@@ -39,8 +39,10 @@ export class AuthController {
       maxAge: COOKIE_MAX_AGE_MS,
     });
 
-    // El token NO va en el body — vive solo en la cookie HttpOnly
-    return { usuario, tenant_config };
+    // El panel web usa la cookie HttpOnly (nunca lee access_token del body).
+    // La app móvil no puede depender de cookies entre sesiones, así que
+    // también recibe el token en el body para guardarlo como Bearer.
+    return { access_token, usuario, tenant_config };
   }
 
   @Public()

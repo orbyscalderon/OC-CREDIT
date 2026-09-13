@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/remote/api_client.dart';
 
@@ -20,13 +21,24 @@ class CajaNotifier extends StateNotifier<CajaActiva?> {
   CajaNotifier() : super(null);
 
   Future<void> abrir() async {
-    final resp = await ApiClient.instance.dio.post('/cajas/abrir', data: {'monto_apertura': 0});
+    final rutas = await ApiClient.instance.dio.get('/rutas/mis-rutas');
+    final lista = rutas.data as List;
+    if (lista.isEmpty) {
+      throw Exception('No tienes una ruta activa asignada. Contacta a tu administrador.');
+    }
+    final rutaId = (lista.first as Map<String, dynamic>)['id'] as String;
+
+    final resp = await ApiClient.instance.dio.post('/cajas/abrir', data: {
+      'ruta_id': rutaId,
+      'monto_apertura': 0,
+    });
     state = CajaActiva.fromJson(resp.data as Map<String, dynamic>);
   }
 
   Future<void> cerrar(double montoDeclarado) async {
     if (state == null) return;
-    await ApiClient.instance.dio.post('/cajas/${state!.id}/cerrar', data: {
+    await ApiClient.instance.dio.post('/cajas/cerrar', data: {
+      'caja_id': state!.id,
       'monto_cierre_declarado': montoDeclarado,
     });
     state = null;
@@ -34,7 +46,7 @@ class CajaNotifier extends StateNotifier<CajaActiva?> {
 
   Future<void> loadActiva() async {
     try {
-      final resp = await ApiClient.instance.dio.get('/cajas/hoy');
+      final resp = await ApiClient.instance.dio.get('/cajas/activa');
       final list = resp.data as List;
       final abierta = list.firstWhere(
         (c) => (c as Map<String, dynamic>)['estado'] == 'Abierta',
@@ -43,7 +55,9 @@ class CajaNotifier extends StateNotifier<CajaActiva?> {
       if (abierta != null) {
         state = CajaActiva.fromJson(abierta as Map<String, dynamic>);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('CajaNotifier.loadActiva() falló: $e');
+    }
   }
 }
 

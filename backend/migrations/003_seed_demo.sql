@@ -68,7 +68,7 @@ VALUES (
   'bbbbbbbb-0000-0000-0000-000000000002',
   'aaaaaaaa-0000-0000-0000-000000000001',
   'cobrador@demo.oc',
-  '$2b$12$uh928k/0SetajY3a6nvl2eBzoqdAw6p0jGH6209shl/Q0xfbFGuWW',
+  '$2b$12$TrF7THYDgNFY90vk5GDGU.62.RI.GOsnWUGkjadZZlb3XQuheE.Ne',
   'cobrador_tenant',
   TRUE
 )

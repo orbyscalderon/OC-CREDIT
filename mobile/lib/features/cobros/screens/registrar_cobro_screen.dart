@@ -88,8 +88,8 @@ class _RegistrarCobroScreenState extends ConsumerState<RegistrarCobroScreen> {
       'prestamo_id': widget.prestamoId,
       'monto_cobrado': monto,
       'caja_id': cajaId,
-      if (pos != null) 'lat': pos.latitude,
-      if (pos != null) 'lng': pos.longitude,
+      if (pos != null) 'latitud': pos.latitude,
+      if (pos != null) 'longitud': pos.longitude,
     };
 
     bool syncedOnline = false;
