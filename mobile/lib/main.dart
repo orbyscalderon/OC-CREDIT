@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:safe_device/safe_device.dart';
@@ -9,12 +10,17 @@ import 'data/local/database_helper.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Abort on rooted/emulated device
-  final bool jailbroken = await SafeDevice.isJailBroken;
-  final bool developerMode = await SafeDevice.isDevelopmentModeEnable;
-  if (jailbroken || developerMode) {
-    runApp(const _BlockedApp());
-    return;
+  // Abort on rooted/emulated device — solo en release: el modo desarrollador
+  // (developerMode) tiene que estar activado para poder instalar builds de
+  // debug via USB/Android Studio, asi que este chequeo bloquearia CUALQUIER
+  // prueba en desarrollo si tambien corriera en debug.
+  if (kReleaseMode) {
+    final bool jailbroken = await SafeDevice.isJailBroken;
+    final bool developerMode = await SafeDevice.isDevelopmentModeEnable;
+    if (jailbroken || developerMode) {
+      runApp(const _BlockedApp());
+      return;
+    }
   }
 
   await DatabaseHelper.instance.database; // warm up SQLite
