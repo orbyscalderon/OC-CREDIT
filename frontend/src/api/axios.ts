@@ -1,7 +1,12 @@
 import axios, { AxiosError } from 'axios';
 
+// En dev, el proxy de vite.config.ts hace /api same-origin -> VITE_API_URL
+// no hace falta. En producción, frontend (Cloudflare) y backend (Railway)
+// viven en dominios distintos, así que se necesita la URL absoluta.
+const API_BASE_URL = `${import.meta.env.VITE_API_URL ?? ''}/api/v1`;
+
 export const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL: API_BASE_URL,
   timeout: 30_000,
   headers: { 'Content-Type': 'application/json' },
   // Cookie HttpOnly enviada automáticamente en cada request al mismo origen

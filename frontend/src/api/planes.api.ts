@@ -59,7 +59,7 @@ export interface SuscribirPlanDto {
 }
 
 // Llamada pública sin JWT
-const publicApi = axios.create({ baseURL: '/api/v1', timeout: 15_000 });
+const publicApi = axios.create({ baseURL: `${import.meta.env.VITE_API_URL ?? ''}/api/v1`, timeout: 15_000 });
 
 export const planesApi = {
   listar: () =>

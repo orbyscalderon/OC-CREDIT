@@ -12,6 +12,21 @@ import { Public } from '../../common/decorators/public.decorator';
 const COOKIE_NAME = 'oc_token';
 const COOKIE_MAX_AGE_MS = 8 * 60 * 60 * 1000; // 8 h — igual que JWT_EXPIRATION
 
+// Frontend (Cloudflare) y backend (Railway) viven en dominios distintos en
+// producción -> la cookie es cross-site, así que necesita SameSite=None
+// (que a su vez exige Secure) para que el navegador la reenvíe. En
+// desarrollo local el proxy de Vite hace que sea same-origin, así que Lax
+// basta y no requiere HTTPS.
+function cookieOptions(isProd: boolean) {
+  return {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: (isProd ? 'none' : 'lax') as 'none' | 'lax',
+    path: '/api',
+    maxAge: COOKIE_MAX_AGE_MS,
+  };
+}
+
 @ApiTags('Auth')
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
@@ -31,13 +46,7 @@ export class AuthController {
   ) {
     const { access_token, usuario, tenant_config } = await this.authService.login(dto);
 
-    res.cookie(COOKIE_NAME, access_token, {
-      httpOnly: true,
-      secure: this.config.get('NODE_ENV') === 'production',
-      sameSite: 'strict',
-      path: '/api',
-      maxAge: COOKIE_MAX_AGE_MS,
-    });
+    res.cookie(COOKIE_NAME, access_token, cookieOptions(this.config.get('NODE_ENV') === 'production'));
 
     // El panel web usa la cookie HttpOnly (nunca lee access_token del body).
     // La app móvil no puede depender de cookies entre sesiones, así que
@@ -56,13 +65,7 @@ export class AuthController {
   ) {
     const { access_token, usuario, tenant_config } = await this.authService.loginWithGoogle(body.credential);
 
-    res.cookie(COOKIE_NAME, access_token, {
-      httpOnly: true,
-      secure: this.config.get('NODE_ENV') === 'production',
-      sameSite: 'strict',
-      path: '/api',
-      maxAge: COOKIE_MAX_AGE_MS,
-    });
+    res.cookie(COOKIE_NAME, access_token, cookieOptions(this.config.get('NODE_ENV') === 'production'));
 
     // Igual que /auth/login: el panel web usa solo la cookie, pero la app
     // móvil (sin cookies entre sesiones) necesita el token en el body para
