@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/local/prestamos_cache_dao.dart';
 import '../../../core/theme.dart';
+import '../../../providers/auth_provider.dart';
 
-class PrestamoCard extends StatelessWidget {
+class PrestamoCard extends ConsumerWidget {
   final PrestamoCache prestamo;
   final VoidCallback onTap;
 
   const PrestamoCard({super.key, required this.prestamo, required this.onTap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final hasMora = prestamo.tieneMora && prestamo.montoMora > 0;
+    final simbolo = ref.watch(authStateProvider).tenantConfig.simboloMoneda;
 
     return Card(
       child: InkWell(
@@ -47,7 +50,7 @@ class PrestamoCard extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          'RD\$ ${prestamo.cuotaMonto.toStringAsFixed(2)}',
+                          '$simbolo ${prestamo.cuotaMonto.toStringAsFixed(2)}',
                           style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
@@ -64,7 +67,7 @@ class PrestamoCard extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(top: 3),
                         child: Text(
-                          'Mora: RD\$ ${prestamo.montoMora.toStringAsFixed(2)}',
+                          'Mora: $simbolo ${prestamo.montoMora.toStringAsFixed(2)}',
                           style: const TextStyle(
                               fontSize: 12,
                               color: AppTheme.danger,

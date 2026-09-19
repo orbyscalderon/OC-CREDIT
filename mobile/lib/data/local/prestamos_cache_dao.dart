@@ -15,6 +15,7 @@ class PrestamoCache {
   final bool tieneMora;
   final double montoMora;
   final String? rutaId;
+  final int? ordenVisita;
 
   const PrestamoCache({
     required this.id,
@@ -30,6 +31,7 @@ class PrestamoCache {
     required this.tieneMora,
     required this.montoMora,
     this.rutaId,
+    this.ordenVisita,
   });
 
   factory PrestamoCache.fromMap(Map<String, dynamic> m) => PrestamoCache(
@@ -46,6 +48,7 @@ class PrestamoCache {
         tieneMora: (m['tiene_mora'] as int) == 1,
         montoMora: (m['monto_mora'] as num).toDouble(),
         rutaId: m['ruta_id'] as String?,
+        ordenVisita: m['orden_visita'] as int?,
       );
 
   Map<String, dynamic> toMap() => {
@@ -62,6 +65,7 @@ class PrestamoCache {
         'tiene_mora': tieneMora ? 1 : 0,
         'monto_mora': montoMora,
         'ruta_id': rutaId,
+        'orden_visita': ordenVisita,
         'synced_at': DateTime.now().toIso8601String(),
       };
 }
@@ -85,7 +89,10 @@ class PrestamoCacheDao {
       'prestamos_cache',
       where: rutaId != null ? 'ruta_id = ?' : null,
       whereArgs: rutaId != null ? [rutaId] : null,
-      orderBy: 'cliente_nombre ASC',
+      // El admin define el orden de visita desde el panel (arrastrar u
+      // ordenar por cercanía); los clientes sin orden asignado quedan al
+      // final, igual que en el backend (obtenerPorRuta).
+      orderBy: 'orden_visita IS NULL, orden_visita ASC, cliente_nombre ASC',
     );
     return rows.map(PrestamoCache.fromMap).toList();
   }

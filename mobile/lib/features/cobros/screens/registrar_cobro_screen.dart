@@ -1,7 +1,11 @@
+import 'dart:io';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../data/local/prestamos_cache_dao.dart';
@@ -11,6 +15,8 @@ import '../../../data/services/sync_service.dart';
 import '../../../core/theme.dart';
 import '../../cajas/providers/caja_provider.dart';
 import '../../printing/thermal_print_service.dart';
+import '../../../providers/auth_provider.dart';
+import '../../../l10n/app_localizations.dart';
 
 class RegistrarCobroScreen extends ConsumerStatefulWidget {
   final String prestamoId;
@@ -26,6 +32,7 @@ class _RegistrarCobroScreenState extends ConsumerState<RegistrarCobroScreen> {
   bool _loading = false;
   String? _error;
   PrestamoCache? _prestamo;
+  File? _foto;
 
   @override
   void initState() {
@@ -50,6 +57,46 @@ class _RegistrarCobroScreenState extends ConsumerState<RegistrarCobroScreen> {
     }
   }
 
+  Future<void> _tomarFoto() async {
+    try {
+      final imagen = await ImagePicker().pickImage(
+        source: ImageSource.camera,
+        imageQuality: 70,
+        maxWidth: 1600,
+      );
+      if (imagen != null && mounted) {
+        setState(() => _foto = File(imagen.path));
+      }
+    } catch (_) {
+      // Cámara no disponible/denegada — la foto es evidencia opcional, no
+      // debe bloquear el cobro en efectivo (eso sí es obligatorio).
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(AppLocalizations.of(context)!.errorNoSePudoAbrirCamara),
+        ));
+      }
+    }
+  }
+
+  /// Sube la foto de evidencia DESPUÉS de que el cobro ya quedó registrado.
+  /// Best-effort: si falla (o el cobro se encoló offline y no hay
+  /// transaccionId todavía), no reintenta ni bloquea nada — el dinero ya
+  /// quedó registrado y auditado por GPS+idempotencia, que es lo crítico.
+  /// Subir la evidencia offline requeriría una cola de adjuntos binarios
+  /// aparte (SyncQueueDao hoy solo encola JSON), fuera de alcance de esta
+  /// función puntual.
+  Future<void> _subirFotoEvidencia(String transaccionId) async {
+    if (_foto == null) return;
+    try {
+      final formData = FormData.fromMap({
+        'foto': await MultipartFile.fromFile(_foto!.path),
+      });
+      await ApiClient.instance.dio.post('/cobros/$transaccionId/foto', data: formData);
+    } catch (_) {
+      // Silencioso a propósito — ver comentario del método.
+    }
+  }
+
   Future<Position?> _getLocation() async {
     try {
       final perm = await Geolocator.checkPermission();
@@ -66,15 +113,16 @@ class _RegistrarCobroScreenState extends ConsumerState<RegistrarCobroScreen> {
   }
 
   Future<void> _registrarCobro() async {
+    final l10n = AppLocalizations.of(context)!;
     final monto = double.tryParse(_montoCtrl.text.trim());
     if (monto == null || monto <= 0) {
-      setState(() => _error = 'Ingresa un monto válido');
+      setState(() => _error = l10n.errorIngresaMontoValido);
       return;
     }
 
     final cajaId = ref.read(cajaActivaProvider)?.id;
     if (cajaId == null) {
-      setState(() => _error = 'Debes abrir una caja primero');
+      setState(() => _error = l10n.errorDebesAbrirCajaPrimero);
       return;
     }
 
@@ -83,20 +131,37 @@ class _RegistrarCobroScreenState extends ConsumerState<RegistrarCobroScreen> {
     final uuid = const Uuid().v4();
     final pos = await _getLocation();
 
+    // El GPS es obligatorio (geocerca antifraude del lado del servidor) — sin
+    // coordenadas el backend rechazaría el cobro igual, mejor avisar aquí de
+    // una vez que reintentar sin decir por qué falló.
+    if (pos == null) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = l10n.errorGpsObligatorio;
+        });
+      }
+      return;
+    }
+
     final payload = {
       'uuid_idempotencia': uuid,
       'prestamo_id': widget.prestamoId,
       'monto_cobrado': monto,
       'caja_id': cajaId,
-      if (pos != null) 'latitud': pos.latitude,
-      if (pos != null) 'longitud': pos.longitude,
+      'latitud': pos.latitude,
+      'longitud': pos.longitude,
     };
 
     bool syncedOnline = false;
 
     try {
-      await ApiClient.instance.dio.post('/cobros/registrar', data: payload);
+      final resp = await ApiClient.instance.dio.post('/cobros/registrar', data: payload);
       syncedOnline = true;
+      final transaccionId = resp.data?['transaccion_id'] as String?;
+      if (transaccionId != null) {
+        await _subirFotoEvidencia(transaccionId);
+      }
     } catch (_) {
       // Sin red: encolar para sync posterior
       await SyncQueueDao().enqueue(uuid, '/cobros/registrar', payload);
@@ -111,12 +176,13 @@ class _RegistrarCobroScreenState extends ConsumerState<RegistrarCobroScreen> {
       montoCobrado: monto,
       uuid: uuid,
       syncedOnline: syncedOnline,
+      simboloMoneda: ref.read(authStateProvider).tenantConfig.simboloMoneda,
     );
 
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(syncedOnline
-          ? 'Cobro registrado correctamente'
-          : 'Sin red — cobro guardado y se enviará automáticamente'),
+          ? l10n.cobroRegistradoCorrectamente
+          : l10n.sinRedCobroGuardado),
       backgroundColor: syncedOnline ? AppTheme.success : AppTheme.warning,
     ));
 
@@ -125,10 +191,12 @@ class _RegistrarCobroScreenState extends ConsumerState<RegistrarCobroScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final p = _prestamo;
+    final simbolo = ref.watch(authStateProvider).tenantConfig.simboloMoneda;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Registrar cobro')),
+      appBar: AppBar(title: Text(l10n.registrarCoboTitulo)),
       body: p == null
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -149,13 +217,13 @@ class _RegistrarCobroScreenState extends ConsumerState<RegistrarCobroScreen> {
                           Text(p.clienteCedula,
                               style: TextStyle(color: Colors.grey.shade500)),
                           const SizedBox(height: 10),
-                          _InfoRow('Modalidad', p.modalidad),
-                          _InfoRow('Cuotas', '${p.cuotasPagadas}/${p.numCuotas}'),
-                          _InfoRow('Cuota', 'RD\$ ${p.cuotaMonto.toStringAsFixed(2)}'),
+                          _InfoRow(l10n.modalidadLabel, p.modalidad),
+                          _InfoRow(l10n.cuotasLabel, '${p.cuotasPagadas}/${p.numCuotas}'),
+                          _InfoRow(l10n.cuotaLabel, '$simbolo ${p.cuotaMonto.toStringAsFixed(2)}'),
                           if (p.tieneMora && p.montoMora > 0)
                             _InfoRow(
-                              'Mora pendiente',
-                              'RD\$ ${p.montoMora.toStringAsFixed(2)}',
+                              l10n.moraPendienteLabel,
+                              '$simbolo ${p.montoMora.toStringAsFixed(2)}',
                               valueColor: AppTheme.danger,
                             ),
                         ],
@@ -163,16 +231,49 @@ class _RegistrarCobroScreenState extends ConsumerState<RegistrarCobroScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const Text('Monto a cobrar',
-                      style: TextStyle(fontWeight: FontWeight.w600)),
+                  Text(l10n.montoACobrar,
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   TextField(
                     controller: _montoCtrl,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(
-                      prefixText: 'RD\$ ',
+                    decoration: InputDecoration(
+                      prefixText: '$simbolo ',
                     ),
                   ),
+                  const SizedBox(height: 20),
+                  Text(l10n.fotoDeEvidenciaOpcional,
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  if (_foto != null) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.file(_foto!, height: 160, fit: BoxFit.cover, width: double.infinity),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _tomarFoto,
+                            icon: const Icon(Icons.camera_alt_outlined, size: 18),
+                            label: Text(l10n.repetirFoto),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          onPressed: () => setState(() => _foto = null),
+                          icon: const Icon(Icons.delete_outline, color: AppTheme.danger),
+                          tooltip: l10n.quitarFoto,
+                        ),
+                      ],
+                    ),
+                  ] else
+                    OutlinedButton.icon(
+                      onPressed: _tomarFoto,
+                      icon: const Icon(Icons.camera_alt_outlined, size: 18),
+                      label: Text(l10n.tomarFoto),
+                    ),
                   if (_error != null) ...[
                     const SizedBox(height: 8),
                     Text(_error!, style: const TextStyle(color: AppTheme.danger)),
@@ -185,11 +286,11 @@ class _RegistrarCobroScreenState extends ConsumerState<RegistrarCobroScreen> {
                             height: 18, width: 18,
                             child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                         : const Icon(Icons.check_circle_outline),
-                    label: const Text('Confirmar cobro'),
+                    label: Text(l10n.confirmarCobro),
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'El GPS se captura automáticamente como auditoría.\nSi no hay red, el cobro se sincroniza al recuperar conexión.',
+                    l10n.notaGpsAuditoriaYSync,
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                     textAlign: TextAlign.center,
                   ),

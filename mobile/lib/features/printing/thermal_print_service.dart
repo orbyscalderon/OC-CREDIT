@@ -21,6 +21,7 @@ class ThermalPrintService {
     required double montoCobrado,
     required String uuid,
     required bool syncedOnline,
+    String simboloMoneda = 'RD\$',
   }) async {
     final connected = await PrintBluetoothThermal.connectionStatus;
     if (!connected) return; // Sin impresora conectada, continúa silenciosamente
@@ -42,11 +43,11 @@ class ThermalPrintService {
       PrintTextSize(size: 1, text: 'Cliente: $clienteNombre\n'),
       PrintTextSize(size: 1, text: 'Cedula:  ${prestamo.clienteCedula}\n'),
       PrintTextSize(size: 1, text: '--------------------------------\n'),
-      PrintTextSize(size: 1, text: 'Cuota:   RD\$ ${prestamo.cuotaMonto.toStringAsFixed(2)}\n'),
+      PrintTextSize(size: 1, text: 'Cuota:   $simboloMoneda ${prestamo.cuotaMonto.toStringAsFixed(2)}\n'),
       if (prestamo.tieneMora && prestamo.montoMora > 0)
-        PrintTextSize(size: 1, text: 'Mora:    RD\$ ${prestamo.montoMora.toStringAsFixed(2)}\n'),
+        PrintTextSize(size: 1, text: 'Mora:    $simboloMoneda ${prestamo.montoMora.toStringAsFixed(2)}\n'),
       PrintTextSize(size: 1, text: '--------------------------------\n'),
-      PrintTextSize(size: 2, text: 'TOTAL:   RD\$ ${montoCobrado.toStringAsFixed(2)}\n'),
+      PrintTextSize(size: 2, text: 'TOTAL:   $simboloMoneda ${montoCobrado.toStringAsFixed(2)}\n'),
       PrintTextSize(size: 1, text: '--------------------------------\n'),
       PrintTextSize(size: 1, text: '${syncedOnline ? 'Estado: SINCRONIZADO' : 'Estado: PENDIENTE DE SYNC'}\n'),
       PrintTextSize(size: 1, text: 'Ref: ${uuid.substring(0, 8).toUpperCase()}\n'),

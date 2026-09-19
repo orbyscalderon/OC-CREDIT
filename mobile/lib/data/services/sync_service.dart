@@ -84,6 +84,7 @@ class SyncService {
                 tieneMora: (json['tiene_mora'] as bool?) ?? false,
                 montoMora: (json['monto_mora'] as num? ?? 0).toDouble(),
                 rutaId: json['ruta_id'] as String?,
+                ordenVisita: json['orden_visita'] as int?,
               ))
           .toList();
       await _cacheDao.upsertAll(items);

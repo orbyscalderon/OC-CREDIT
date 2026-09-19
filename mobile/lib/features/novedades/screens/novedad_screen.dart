@@ -8,6 +8,7 @@ import '../../../data/local/sync_queue_dao.dart';
 import '../../../data/remote/api_client.dart';
 import '../../../core/theme.dart';
 import '../../cajas/providers/caja_provider.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// Debe coincidir exactamente con el enum TipoNovedad del backend
 /// (backend/src/common/constants/roles.enum.ts).
@@ -54,16 +55,17 @@ class _NovedadScreenState extends ConsumerState<NovedadScreen> {
   }
 
   Future<void> _enviar() async {
+    final l10n = AppLocalizations.of(context)!;
     final caja = ref.read(cajaActivaProvider);
     if (caja == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Debes abrir tu caja antes de registrar una novedad.')),
+        SnackBar(content: Text(l10n.errorDebesAbrirCajaAntesNovedad)),
       );
       return;
     }
     if (_seleccionado == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selecciona el cliente de la novedad.')),
+        SnackBar(content: Text(l10n.errorSeleccionaClienteNovedad)),
       );
       return;
     }
@@ -83,9 +85,7 @@ class _NovedadScreenState extends ConsumerState<NovedadScreen> {
       if (mounted) {
         setState(() => _loading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(
-            'No se pudo obtener el GPS. Actívalo e intenta de nuevo — es obligatorio para registrar la visita.',
-          )),
+          SnackBar(content: Text(l10n.errorGpsObligatorioVisita)),
         );
       }
       return;
@@ -114,16 +114,17 @@ class _NovedadScreenState extends ConsumerState<NovedadScreen> {
     setState(() => _loading = false);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(sincronizado
-          ? 'Novedad registrada'
-          : 'Sin conexión — la novedad se enviará al recuperar la señal')),
+          ? l10n.novedadRegistrada
+          : l10n.sinConexionNovedadSeEnviara)),
     );
     Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Registrar novedad')),
+      appBar: AppBar(title: Text(l10n.registrarNovedad)),
       body: _loadingClientes
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -131,10 +132,10 @@ class _NovedadScreenState extends ConsumerState<NovedadScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Cliente', style: TextStyle(fontWeight: FontWeight.w600)),
+                  Text(l10n.clienteLabel, style: const TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   if (_prestamos.isEmpty)
-                    Text('No hay clientes cargados en tu ruta del día.',
+                    Text(l10n.sinClientesEnRutaDelDia,
                         style: TextStyle(color: Colors.grey.shade600))
                   else
                     DropdownButtonFormField<PrestamoCache>(
@@ -151,7 +152,7 @@ class _NovedadScreenState extends ConsumerState<NovedadScreen> {
                       decoration: const InputDecoration(),
                     ),
                   const SizedBox(height: 16),
-                  const Text('Tipo de novedad', style: TextStyle(fontWeight: FontWeight.w600)),
+                  Text(l10n.tipoDeNovedad, style: const TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
                     value: _tipo,
@@ -162,13 +163,13 @@ class _NovedadScreenState extends ConsumerState<NovedadScreen> {
                     decoration: const InputDecoration(),
                   ),
                   const SizedBox(height: 16),
-                  const Text('Descripción (opcional)', style: TextStyle(fontWeight: FontWeight.w600)),
+                  Text(l10n.descripcionOpcional, style: const TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   TextField(
                     controller: _descCtrl,
                     maxLines: 4,
-                    decoration: const InputDecoration(
-                      hintText: 'Describe la novedad…',
+                    decoration: InputDecoration(
+                      hintText: l10n.hintDescribeNovedad,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -176,7 +177,7 @@ class _NovedadScreenState extends ConsumerState<NovedadScreen> {
                     children: [
                       const Icon(Icons.location_on, size: 14, color: AppTheme.primary),
                       const SizedBox(width: 4),
-                      Text('El GPS se captura automáticamente (obligatorio)',
+                      Text(l10n.notaGpsObligatorioVisita,
                           style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
                     ],
                   ),
@@ -184,7 +185,7 @@ class _NovedadScreenState extends ConsumerState<NovedadScreen> {
                   ElevatedButton.icon(
                     onPressed: (_loading || _prestamos.isEmpty) ? null : _enviar,
                     icon: const Icon(Icons.send),
-                    label: Text(_loading ? 'Enviando…' : 'Enviar novedad'),
+                    label: Text(_loading ? l10n.enviando : l10n.enviarNovedad),
                   ),
                 ],
               ),

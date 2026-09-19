@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/caja_provider.dart';
 import '../../../core/theme.dart';
+import '../../../providers/auth_provider.dart';
+import '../../../l10n/app_localizations.dart';
 
-String _mensajeError(Object e) {
+String _mensajeError(BuildContext context, Object e) {
   if (e is DioException) {
     final data = e.response?.data;
     if (data is Map && data['error'] != null) {
@@ -12,7 +14,7 @@ String _mensajeError(Object e) {
       if (err is List && err.isNotEmpty) return err.first.toString();
       if (err is String) return err;
     }
-    return 'No se pudo completar la operación. Verifica tu conexión.';
+    return AppLocalizations.of(context)!.errorNoSePudoCompletarOperacion;
   }
   return e.toString().replaceFirst('Exception: ', '');
 }
@@ -35,27 +37,28 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final caja = ref.watch(cajaActivaProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Mi caja')),
+      appBar: AppBar(title: Text(l10n.miCaja)),
       body: Padding(
         padding: const EdgeInsets.all(20),
-        child: caja == null ? _buildSinCaja() : _buildCajaAbierta(caja),
+        child: caja == null ? _buildSinCaja(l10n) : _buildCajaAbierta(l10n, caja),
       ),
     );
   }
 
-  Widget _buildSinCaja() {
+  Widget _buildSinCaja(AppLocalizations l10n) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const Icon(Icons.point_of_sale_outlined, size: 64, color: Colors.grey),
         const SizedBox(height: 16),
-        const Text('No tienes una caja abierta',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+        Text(l10n.sinCajaAbierta,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
         const SizedBox(height: 8),
-        Text('Abre tu caja para comenzar a registrar cobros.',
+        Text(l10n.abreTuCajaParaComenzar,
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey.shade500)),
         const SizedBox(height: 24),
@@ -69,7 +72,7 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
                   } catch (e) {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(_mensajeError(e))),
+                        SnackBar(content: Text(_mensajeError(context, e))),
                       );
                     }
                   } finally {
@@ -77,13 +80,14 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
                   }
                 },
           icon: const Icon(Icons.open_in_new),
-          label: const Text('Abrir caja'),
+          label: Text(l10n.abrirCaja),
         ),
       ],
     );
   }
 
-  Widget _buildCajaAbierta(CajaActiva caja) {
+  Widget _buildCajaAbierta(AppLocalizations l10n, CajaActiva caja) {
+    final simbolo = ref.watch(authStateProvider).tenantConfig.simboloMoneda;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -97,34 +101,34 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
                 Row(children: [
                   const Icon(Icons.circle, size: 10, color: AppTheme.success),
                   const SizedBox(width: 6),
-                  const Text('Caja abierta',
-                      style: TextStyle(
+                  Text(l10n.cajaAbierta,
+                      style: const TextStyle(
                           fontWeight: FontWeight.w600, color: AppTheme.success)),
                 ]),
                 const SizedBox(height: 12),
-                _Row('Total cobros', 'RD\$ ${caja.totalCobros.toStringAsFixed(2)}',
+                _Row(l10n.totalCobros, '$simbolo ${caja.totalCobros.toStringAsFixed(2)}',
                     AppTheme.success),
-                _Row('Total gastos', 'RD\$ ${caja.totalGastos.toStringAsFixed(2)}',
+                _Row(l10n.totalGastos, '$simbolo ${caja.totalGastos.toStringAsFixed(2)}',
                     AppTheme.danger),
               ],
             ),
           ),
         ),
         const SizedBox(height: 28),
-        const Text('Cerrar caja',
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+        Text(l10n.cerrarCaja,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
         const SizedBox(height: 6),
         Text(
-          'Ingresa el monto en efectivo que tienes físicamente ahora.',
+          l10n.ingresaMontoEfectivoFisico,
           style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
         ),
         const SizedBox(height: 12),
         TextField(
           controller: _montoCtrl,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(
-            labelText: 'Monto declarado',
-            prefixText: 'RD\$ ',
+          decoration: InputDecoration(
+            labelText: l10n.montoDeclarado,
+            prefixText: '$simbolo ',
           ),
         ),
         const SizedBox(height: 16),
@@ -140,13 +144,13 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
                     await ref.read(cajaActivaProvider.notifier).cerrar(monto);
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Caja cerrada correctamente')),
+                        SnackBar(content: Text(l10n.cajaCerradaCorrectamente)),
                       );
                     }
                   } catch (e) {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(_mensajeError(e))),
+                        SnackBar(content: Text(_mensajeError(context, e))),
                       );
                     }
                   } finally {
@@ -154,11 +158,11 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
                   }
                 },
           icon: const Icon(Icons.lock_outline),
-          label: const Text('Cerrar caja'),
+          label: Text(l10n.cerrarCaja),
         ),
         const Spacer(),
         Text(
-          '© 2026 OCA HOLDING GROUP LLC. Todos los derechos reservados.',
+          l10n.copyrightOcaHoldingCorto,
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 10, color: Colors.grey.shade400),
         ),

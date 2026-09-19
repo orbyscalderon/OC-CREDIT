@@ -2,12 +2,42 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/remote/api_client.dart';
 
+class TenantConfig {
+  final String pais;
+  final String moneda;
+  final String simboloMoneda;
+  final String zonaHoraria;
+  final String formatoFecha;
+
+  const TenantConfig({
+    this.pais = 'DO',
+    this.moneda = 'DOP',
+    this.simboloMoneda = 'RD\$',
+    this.zonaHoraria = 'America/Santo_Domingo',
+    this.formatoFecha = 'DD/MM/YYYY',
+  });
+
+  factory TenantConfig.fromJson(Map<String, dynamic> json) => TenantConfig(
+        pais: json['pais'] as String? ?? 'DO',
+        moneda: json['moneda'] as String? ?? 'DOP',
+        simboloMoneda: json['simbolo_moneda'] as String? ?? 'RD\$',
+        zonaHoraria: json['zona_horaria'] as String? ?? 'America/Santo_Domingo',
+        formatoFecha: json['formato_fecha'] as String? ?? 'DD/MM/YYYY',
+      );
+}
+
 class AuthState {
   final String? token;
   final String? rol;
   final bool isAuthenticated;
+  final TenantConfig tenantConfig;
 
-  const AuthState({this.token, this.rol, this.isAuthenticated = false});
+  const AuthState({
+    this.token,
+    this.rol,
+    this.isAuthenticated = false,
+    this.tenantConfig = const TenantConfig(),
+  });
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
@@ -17,8 +47,28 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> _restoreSession() async {
     final token = await ApiClient.instance.getToken();
-    if (token != null && token.isNotEmpty) {
-      state = AuthState(token: token, isAuthenticated: true);
+    if (token == null || token.isEmpty) return;
+
+    // rol/tenantConfig no se persisten localmente — sin esto, reabrir la app
+    // (en vez de hacer login de nuevo) dejaba rol=null y ocultaba en
+    // silencio todo el menú condicionado por rol (Dashboard, Solicitudes,
+    // Empleados, Cajas del día para admin/supervisor).
+    state = AuthState(token: token, isAuthenticated: true);
+    try {
+      final resp = await ApiClient.instance.dio.get('/auth/me');
+      final data = resp.data as Map<String, dynamic>;
+      final rol = data['usuario']['rol'] as String?;
+      final tenantConfigJson = data['tenant_config'] as Map<String, dynamic>?;
+      state = AuthState(
+        token: token,
+        rol: rol,
+        isAuthenticated: true,
+        tenantConfig: tenantConfigJson != null ? TenantConfig.fromJson(tenantConfigJson) : const TenantConfig(),
+      );
+    } catch (_) {
+      // Sin red al abrir la app: se sigue con isAuthenticated=true y
+      // rol=null (el home offline con cache funciona igual; el menú de
+      // administración simplemente no aparece hasta recuperar conexión).
     }
   }
 
@@ -31,11 +81,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         'email': email,
         'password': password,
       });
-      final token = resp.data['access_token'] as String;
-      final rol = resp.data['usuario']['rol'] as String;
-      await ApiClient.instance.saveToken(token);
-      state = AuthState(token: token, rol: rol, isAuthenticated: true);
-      return null;
+      return await _aplicarRespuestaLogin(resp.data as Map<String, dynamic>);
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
         final data = e.response?.data;
@@ -51,6 +97,48 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (_) {
       return 'Ocurrió un error inesperado. Intenta de nuevo.';
     }
+  }
+
+  /// [idToken] es el ID token de Google (verificado por el backend contra
+  /// GOOGLE_CLIENT_ID) — el mismo flujo que usa el panel web.
+  Future<String?> loginWithGoogle(String idToken) async {
+    try {
+      final resp = await ApiClient.instance.dio.post('/auth/google', data: {
+        'credential': idToken,
+      });
+      return await _aplicarRespuestaLogin(resp.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      if (data is Map && data['error'] is String) return data['error'] as String;
+      if (data is Map && data['details'] is Map && data['details']['message'] is String) {
+        return data['details']['message'] as String;
+      }
+      return 'No se pudo iniciar sesión con Google.';
+    } catch (_) {
+      return 'No se pudo iniciar sesión con Google.';
+    }
+  }
+
+  /// Común a login() y loginWithGoogle(). Cualquier rol del tenant puede
+  /// entrar (admin/supervisor incluidos) — admin/supervisor ya pueden cobrar
+  /// en nombre de cualquier cobrador desde el panel web ("Cobro Manual"), así
+  /// que verlo también desde el móvil es consistente, no un caso roto.
+  Future<String?> _aplicarRespuestaLogin(Map<String, dynamic> data) async {
+    final token = data['access_token'] as String;
+    final rol = data['usuario']['rol'] as String;
+
+    final tenantConfigJson = data['tenant_config'] as Map<String, dynamic>?;
+    final tenantConfig = tenantConfigJson != null
+        ? TenantConfig.fromJson(tenantConfigJson)
+        : const TenantConfig();
+    await ApiClient.instance.saveToken(token);
+    state = AuthState(
+      token: token,
+      rol: rol,
+      isAuthenticated: true,
+      tenantConfig: tenantConfig,
+    );
+    return null;
   }
 
   Future<void> logout() async {

@@ -16,7 +16,7 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     return openDatabase(
       join(dbPath, 'oc_credit_local.db'),
-      version: 4,
+      version: 5,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -38,6 +38,7 @@ class DatabaseHelper {
         tiene_mora INTEGER NOT NULL DEFAULT 0,
         monto_mora REAL NOT NULL DEFAULT 0,
         ruta_id TEXT,
+        orden_visita INTEGER,
         synced_at TEXT NOT NULL
       )
     ''');
@@ -98,6 +99,9 @@ class DatabaseHelper {
     }
     if (oldVersion < 4) {
       await db.execute("ALTER TABLE prestamos_cache ADD COLUMN cliente_id TEXT NOT NULL DEFAULT ''");
+    }
+    if (oldVersion < 5) {
+      await db.execute('ALTER TABLE prestamos_cache ADD COLUMN orden_visita INTEGER');
     }
   }
 

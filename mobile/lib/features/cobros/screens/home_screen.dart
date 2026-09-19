@@ -6,6 +6,8 @@ import '../../../data/local/prestamos_cache_dao.dart';
 import '../../../data/services/sync_service.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../core/theme.dart';
+import '../../../core/constants/roles.dart';
+import '../../../l10n/app_localizations.dart';
 import '../widgets/prestamo_card.dart';
 
 final prestamosProvider = FutureProvider<List<PrestamoCache>>((ref) async {
@@ -37,10 +39,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final prestamosAsync = ref.watch(prestamosProvider);
+    final l10n = AppLocalizations.of(context)!;
+    final rol = ref.watch(authStateProvider).rol;
+    final rolEtiqueta = etiquetaRol(rol);
+    final esAdmin = rol == 'admin_tenant';
+    final esAdminOSupervisor = esAdmin || rol == 'supervisor_tenant';
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mis cobros del día'),
+        title: Text(l10n.misCobrosDelDia),
         actions: [
           if (_pendingSync > 0)
             Padding(
@@ -54,28 +61,119 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     await _loadPendingCount();
                     ref.invalidate(prestamosProvider);
                   },
-                  tooltip: 'Sincronizar pendientes',
+                  tooltip: l10n.sincronizarPendientes,
                 ),
               ),
             ),
-          PopupMenuButton<String>(
-            onSelected: (v) async {
-              if (v == 'caja') context.push('/caja');
-              if (v == 'buro') context.push('/buro');
-              if (v == 'novedad') context.push('/novedad');
-              if (v == 'logout') {
-                SyncService.instance.stopListening();
-                await ref.read(authStateProvider.notifier).logout();
-              }
-            },
-            itemBuilder: (_) => [
-              const PopupMenuItem(value: 'caja', child: Text('Mi caja')),
-              const PopupMenuItem(value: 'buro', child: Text('Buró de crédito')),
-              const PopupMenuItem(value: 'novedad', child: Text('Registrar novedad')),
-              const PopupMenuItem(value: 'logout', child: Text('Cerrar sesión')),
+        ],
+      ),
+      drawer: Drawer(
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              DrawerHeader(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    const Icon(Icons.account_circle, size: 48, color: AppTheme.primary),
+                    const SizedBox(height: 8),
+                    const Text('OCA Credit', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text(rolEtiqueta, style: const TextStyle(color: Colors.grey)),
+                  ],
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.point_of_sale_outlined),
+                title: Text(l10n.miCaja),
+                onTap: () {
+                  Navigator.pop(context);
+                  context.push('/caja');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.shield_outlined),
+                title: Text(l10n.buroCredito),
+                onTap: () {
+                  Navigator.pop(context);
+                  context.push('/buro');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.report_gmailerrorred_outlined),
+                title: Text(l10n.registrarNovedad),
+                onTap: () {
+                  Navigator.pop(context);
+                  context.push('/novedad');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.request_page_outlined),
+                title: Text(l10n.nuevaSolicitud),
+                onTap: () {
+                  Navigator.pop(context);
+                  context.push('/nueva-solicitud');
+                },
+              ),
+              if (esAdmin) ...[
+                ListTile(
+                  leading: const Icon(Icons.dashboard_outlined),
+                  title: Text(l10n.dashboardTitulo),
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/dashboard');
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.playlist_add_check_outlined),
+                  title: Text(l10n.solicitudesPendientes),
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/solicitudes');
+                  },
+                ),
+              ],
+              if (esAdminOSupervisor) ...[
+                ListTile(
+                  leading: const Icon(Icons.people_outline),
+                  title: Text(l10n.empleadosTitulo),
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/empleados');
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.point_of_sale),
+                  title: Text(l10n.cajasDelDia),
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/cajas-dia');
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.person_add_alt_outlined),
+                  title: Text(l10n.clienteNuevoTitulo),
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.push('/cliente-nuevo');
+                  },
+                ),
+              ],
+              const Spacer(),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.logout, color: AppTheme.danger),
+                title: Text(l10n.cerrarSesion, style: const TextStyle(color: AppTheme.danger)),
+                onTap: () async {
+                  Navigator.pop(context);
+                  SyncService.instance.stopListening();
+                  await ref.read(authStateProvider.notifier).logout();
+                },
+              ),
             ],
           ),
-        ],
+        ),
       ),
       body: Column(
         children: [
@@ -83,9 +181,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: TextField(
-              decoration: const InputDecoration(
-                hintText: 'Buscar cliente o cédula…',
-                prefixIcon: Icon(Icons.search),
+              decoration: InputDecoration(
+                hintText: l10n.buscarClienteCedula,
+                prefixIcon: const Icon(Icons.search),
                 isDense: true,
               ),
               onChanged: (v) => setState(() => _q = v.toLowerCase()),
@@ -102,7 +200,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   children: [
                     const Icon(Icons.wifi_off, size: 48, color: Colors.grey),
                     const SizedBox(height: 12),
-                    Text('Sin conexión — mostrando cache',
+                    Text(l10n.sinConexionCache,
                         style: TextStyle(color: Colors.grey.shade600)),
                   ],
                 ),
@@ -127,7 +225,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             physics: const AlwaysScrollableScrollPhysics(),
                             child: ConstrainedBox(
                               constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                              child: const Center(child: Text('Sin resultados')),
+                              child: Center(child: Text(l10n.sinResultados)),
                             ),
                           ),
                         )

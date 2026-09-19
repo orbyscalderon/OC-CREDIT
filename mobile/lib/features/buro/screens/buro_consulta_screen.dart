@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/remote/api_client.dart';
 import '../../../core/theme.dart';
+import '../../../core/constants/documentos_identidad.dart';
+import '../../../providers/auth_provider.dart';
+import '../../../l10n/app_localizations.dart';
 
-class BuroConsultaScreen extends StatefulWidget {
+class BuroConsultaScreen extends ConsumerStatefulWidget {
   const BuroConsultaScreen({super.key});
   @override
-  State<BuroConsultaScreen> createState() => _BuroConsultaScreenState();
+  ConsumerState<BuroConsultaScreen> createState() => _BuroConsultaScreenState();
 }
 
-class _BuroConsultaScreenState extends State<BuroConsultaScreen> {
+class _BuroConsultaScreenState extends ConsumerState<BuroConsultaScreen> {
   final _cedulaCtrl = TextEditingController();
   bool _loading = false;
   Map<String, dynamic>? _perfil;
@@ -20,7 +24,7 @@ class _BuroConsultaScreenState extends State<BuroConsultaScreen> {
     super.dispose();
   }
 
-  Future<void> _consultar() async {
+  Future<void> _consultar(String tipoDocumento) async {
     final cedula = _cedulaCtrl.text.trim();
     if (cedula.isEmpty) return;
 
@@ -29,6 +33,7 @@ class _BuroConsultaScreenState extends State<BuroConsultaScreen> {
     try {
       final resp = await ApiClient.instance.dio.post('/buro/consultar', data: {
         'cedula': cedula,
+        'tipo_documento': tipoDocumento,
       });
       setState(() {
         _perfil = resp.data as Map<String, dynamic>;
@@ -36,7 +41,7 @@ class _BuroConsultaScreenState extends State<BuroConsultaScreen> {
       });
     } catch (e) {
       setState(() {
-        _error = 'No se pudo consultar. Verifica conexión.';
+        _error = AppLocalizations.of(context)!.errorNoSePudoConsultarVerificaConexion;
         _loading = false;
       });
     }
@@ -44,8 +49,11 @@ class _BuroConsultaScreenState extends State<BuroConsultaScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final tenantConfig = ref.watch(authStateProvider).tenantConfig;
+    final tipoDoc = tipoDocumentoPorPais(tenantConfig.pais);
     return Scaffold(
-      appBar: AppBar(title: const Text('Buró de Crédito')),
+      appBar: AppBar(title: Text(l10n.buroCreditoTitulo)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -57,11 +65,11 @@ class _BuroConsultaScreenState extends State<BuroConsultaScreen> {
                   child: TextField(
                     controller: _cedulaCtrl,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      hintText: '000-0000000-0',
-                      labelText: 'Cédula del cliente',
+                    decoration: InputDecoration(
+                      hintText: l10n.hintCedulaFormato,
+                      labelText: l10n.documentoDelCliente(tipoDoc.etiqueta),
                     ),
-                    onSubmitted: (_) => _consultar(),
+                    onSubmitted: (_) => _consultar(tipoDoc.codigo),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -73,12 +81,12 @@ class _BuroConsultaScreenState extends State<BuroConsultaScreen> {
                   // (pantalla en blanco, sin excepción visible). Se fija un
                   // ancho acotado solo para este botón.
                   style: ElevatedButton.styleFrom(minimumSize: const Size(64, 56)),
-                  onPressed: _loading ? null : _consultar,
+                  onPressed: _loading ? null : () => _consultar(tipoDoc.codigo),
                   child: _loading
                       ? const SizedBox(
                           height: 18, width: 18,
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Text('Consultar'),
+                      : Text(l10n.consultar),
                 ),
               ],
             ),
@@ -88,7 +96,7 @@ class _BuroConsultaScreenState extends State<BuroConsultaScreen> {
             ],
             if (_perfil != null) ...[
               const SizedBox(height: 20),
-              _PerfilWidget(perfil: _perfil!),
+              _PerfilWidget(perfil: _perfil!, simboloMoneda: tenantConfig.simboloMoneda),
             ],
           ],
         ),
@@ -99,10 +107,12 @@ class _BuroConsultaScreenState extends State<BuroConsultaScreen> {
 
 class _PerfilWidget extends StatelessWidget {
   final Map<String, dynamic> perfil;
-  const _PerfilWidget({required this.perfil});
+  final String simboloMoneda;
+  const _PerfilWidget({required this.perfil, required this.simboloMoneda});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final rec = perfil['recomendacion'] as String? ?? '';
     final nivel = perfil['nivel_riesgo_consolidado'] as String? ?? 'Bajo';
     final isNoPrestable = rec == 'NO_PRESTAR';
@@ -145,7 +155,7 @@ class _PerfilWidget extends StatelessWidget {
                       style: const TextStyle(fontSize: 13),
                     ),
                     Text(
-                      'Riesgo: $nivel  |  Reportes: ${perfil['total_reportes']}',
+                      l10n.riesgoReportesLinea(nivel, '${perfil['total_reportes']}'),
                       style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                     ),
                   ],
@@ -156,10 +166,10 @@ class _PerfilWidget extends StatelessWidget {
         ),
         if ((perfil['reportes'] as List?)?.isNotEmpty == true) ...[
           const SizedBox(height: 16),
-          const Align(
+          Align(
             alignment: Alignment.centerLeft,
-            child: Text('Historial de reportes',
-                style: TextStyle(fontWeight: FontWeight.w600)),
+            child: Text(l10n.historialDeReportes,
+                style: const TextStyle(fontWeight: FontWeight.w600)),
           ),
           const SizedBox(height: 8),
           ...(perfil['reportes'] as List).map((r) {
@@ -176,7 +186,7 @@ class _PerfilWidget extends StatelessWidget {
                     Text((reporte['motivo'] as String? ?? '').replaceAll('_', ' '),
                         style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                     Text(
-                      'RD\$ ${((reporte['saldo_impagado'] as num?) ?? 0).toStringAsFixed(2)}',
+                      '$simboloMoneda ${((reporte['saldo_impagado'] as num?) ?? 0).toStringAsFixed(2)}',
                       style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
