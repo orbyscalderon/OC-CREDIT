@@ -179,7 +179,7 @@ export function CajasPage() {
 
       {/* Modal Abrir caja */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl p-6 space-y-5 animate-fade-in overflow-y-auto max-h-[90vh]">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900">{t('cajas.modal_abrir_titulo')}</h2>

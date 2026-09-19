@@ -354,7 +354,7 @@ export function PrestamoDetallePage() {
 
       {/* Modal: Aprobar préstamo */}
       {showAprobar && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl p-6 space-y-5 animate-fade-in overflow-y-auto max-h-[90vh]">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900">{t('prestamos.modal_aprobar_titulo')}</h2>
@@ -447,7 +447,7 @@ export function PrestamoDetallePage() {
 
       {/* Modal: Rechazar préstamo */}
       {showRechazar && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 backdrop-blur-sm p-4">
           <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 space-y-4 animate-fade-in overflow-y-auto max-h-[90vh]">
             <h2 className="text-lg font-bold text-gray-900">{t('prestamos.modal_rechazar_titulo')}</h2>
             <textarea
@@ -475,7 +475,7 @@ export function PrestamoDetallePage() {
 
       {/* Modal: Marcar préstamo como vencido */}
       {showVencido && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 backdrop-blur-sm p-4">
           <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 space-y-4 animate-fade-in overflow-y-auto max-h-[90vh]">
             <h2 className="text-lg font-bold text-gray-900">{t('prestamos.modal_vencido_titulo')}</h2>
             <p className="text-sm text-gray-500">
