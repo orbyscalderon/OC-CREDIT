@@ -1,8 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { IsBoolean, IsDateString, IsNotEmpty, IsOptional, IsString, Length, Matches } from 'class-validator';
+import { IsBoolean, IsDateString, IsIn, IsNotEmpty, IsOptional, IsString, Length, Matches } from 'class-validator';
 import { TenantSettings } from './entities/tenant-settings.entity';
+import { ZONAS_HORARIAS_VALIDAS, FORMATOS_FECHA_VALIDOS } from '../../common/constants/zonas-horarias';
+import { ZonaHorariaService } from '../../common/services/zona-horaria.service';
 
 /* ── DTOs ───────────────────────────────────────────────────────────────── */
 
@@ -32,6 +34,12 @@ export class UpdateSettingsDto {
 
   @IsOptional() @IsBoolean()
   whatsapp_activo?: boolean;
+
+  @IsOptional() @IsIn(ZONAS_HORARIAS_VALIDAS)
+  zona_horaria?: string;
+
+  @IsOptional() @IsIn(FORMATOS_FECHA_VALIDOS)
+  formato_fecha?: string;
 }
 
 export class CrearFeriadoDto {
@@ -51,6 +59,7 @@ export class TenantsService {
     @InjectRepository(TenantSettings)
     private readonly settingsRepo: Repository<TenantSettings>,
     private readonly dataSource: DataSource,
+    private readonly zonaHorariaService: ZonaHorariaService,
   ) {}
 
   async getSettings(tenantId: string): Promise<TenantSettings> {
@@ -65,7 +74,9 @@ export class TenantsService {
       settings = this.settingsRepo.create({ tenant_id: tenantId });
     }
     Object.assign(settings, dto);
-    return this.settingsRepo.save(settings);
+    const guardado = await this.settingsRepo.save(settings);
+    if (dto.zona_horaria) this.zonaHorariaService.invalidar(tenantId);
+    return guardado;
   }
 
   /* ── Feriados ──────────────────────────────────────────────────────────── */

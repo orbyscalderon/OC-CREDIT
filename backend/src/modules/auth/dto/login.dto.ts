@@ -31,6 +31,7 @@ export class LoginResponseDto {
   tenant_config: {
     tenant_id: string;
     nombre_empresa: string;
+    pais: string;
     url_logo: string;
     color_primario: string;
     color_secundario: string;

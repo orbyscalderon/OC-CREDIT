@@ -66,7 +66,14 @@ export class RutasController {
     @Param('id', ParseUUIDPipe) id: string,
     @Param('cobradorId', ParseUUIDPipe) cobradorId: string,
   ) {
-    return this.service.asignarCobrador(user.tenantId, id, cobradorId);
+    return this.service.asignarCobrador(user.tenantId, id, cobradorId, user);
+  }
+
+  @Get(':id/historial-cobrador')
+  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT)
+  @ApiOperation({ summary: 'Historial de reasignaciones de cobrador de una ruta (auditoría)' })
+  historialCobrador(@CurrentUser() user: JwtPayload, @Param('id', ParseUUIDPipe) id: string) {
+    return this.service.historialCobrador(user.tenantId, id);
   }
 
   @Post('novedades')

@@ -98,6 +98,7 @@ export class AuthService {
       tenant_config: {
         tenant_id: tenant.id,
         nombre_empresa: tenant.nombre_empresa,
+        pais: tenant.pais ?? 'DO',
         url_logo: settings?.url_logo ?? null,
         color_primario: settings?.color_primario ?? '#1976D2',
         color_secundario: settings?.color_secundario ?? '#424242',
@@ -176,6 +177,7 @@ export class AuthService {
       tenant_config: {
         tenant_id: tenant.id,
         nombre_empresa: tenant.nombre_empresa,
+        pais: tenant.pais ?? 'DO',
         url_logo: settings?.url_logo ?? null,
         color_primario: settings?.color_primario ?? '#1976D2',
         color_secundario: settings?.color_secundario ?? '#424242',
@@ -210,6 +212,7 @@ export class AuthService {
       tenant_config: {
         tenant_id: tenant.id,
         nombre_empresa: tenant.nombre_empresa,
+        pais: tenant.pais ?? 'DO',
         url_logo: settings?.url_logo ?? null,
         color_primario: settings?.color_primario ?? '#1976D2',
         color_secundario: settings?.color_secundario ?? '#424242',

@@ -64,7 +64,11 @@ export class AuthController {
       maxAge: COOKIE_MAX_AGE_MS,
     });
 
-    return { usuario, tenant_config };
+    // Igual que /auth/login: el panel web usa solo la cookie, pero la app
+    // móvil (sin cookies entre sesiones) necesita el token en el body para
+    // guardarlo como Bearer — antes solo /auth/login lo hacía, dejando el
+    // login con Google inutilizable desde mobile.
+    return { access_token, usuario, tenant_config };
   }
 
   @UseGuards(JwtAuthGuard)

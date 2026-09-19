@@ -10,7 +10,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { Response as ExpressResponse } from 'express';
 import { ClientesService } from './clientes.service';
-import { CrearClienteDto, ActualizarClienteDto } from './dto/cliente.dto';
+import { CrearClienteDto, ActualizarClienteDto, ReordenarClientesDto } from './dto/cliente.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -82,6 +82,27 @@ export class ClientesController {
     @Param('rutaId', ParseUUIDPipe) rutaId: string,
   ) {
     return this.service.obtenerPorRuta(user.tenantId, rutaId);
+  }
+
+  @Put('ruta/:rutaId/orden')
+  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT)
+  @ApiOperation({ summary: 'Guardar el orden de visita de todos los clientes de una ruta (drag-and-drop)' })
+  reordenar(
+    @CurrentUser() user: JwtPayload,
+    @Param('rutaId', ParseUUIDPipe) rutaId: string,
+    @Body() dto: ReordenarClientesDto,
+  ) {
+    return this.service.reordenar(user.tenantId, rutaId, dto.orden);
+  }
+
+  @Post('ruta/:rutaId/orden/auto')
+  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT)
+  @ApiOperation({ summary: 'Reordenar automáticamente los clientes de una ruta por cercanía geográfica' })
+  ordenarAutomatico(
+    @CurrentUser() user: JwtPayload,
+    @Param('rutaId', ParseUUIDPipe) rutaId: string,
+  ) {
+    return this.service.ordenarAutomatico(user.tenantId, rutaId);
   }
 
   @Get(':id')

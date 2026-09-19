@@ -1,6 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe, VersioningType } from '@nestjs/common';
+import { getEntityManagerToken } from '@nestjs/typeorm';
+import { EntityManager } from 'typeorm';
 import * as request from 'supertest';
+import { HttpExceptionFilter } from '../../src/common/filters/http-exception.filter';
+import { TransformInterceptor } from '../../src/common/interceptors/transform.interceptor';
 import { AppModule } from '../../src/app.module';
 
 /**
@@ -17,30 +21,37 @@ import { AppModule } from '../../src/app.module';
 
 describe('Buró de Crédito E2E', () => {
   let app: INestApplication;
+  let moduleRef: TestingModule;
   let adminToken: string;
   let cobradorToken: string;
   const cedula = '001-1234567-9';
   let historialId: string;
 
   beforeAll(async () => {
-    const moduleRef: TestingModule = await Test.createTestingModule({
+    moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
 
     app = moduleRef.createNestApplication();
     app.enableVersioning({ type: VersioningType.URI });
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.setGlobalPrefix('api');
+    app.useGlobalPipes(new ValidationPipe({
+      whitelist: true, forbidNonWhitelisted: true, transform: true,
+      transformOptions: { enableImplicitConversion: true },
+    }));
+    app.useGlobalFilters(new HttpExceptionFilter());
+    app.useGlobalInterceptors(new TransformInterceptor());
     await app.init();
 
     const a = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
-      .send({ email: 'admin@test.oc', password: 'Test1234!' })
+      .send({ email: 'admin@demo.oc', password: 'Admin1234!' })
       .expect(200);
     adminToken = a.body.data.access_token;
 
     const c = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
-      .send({ email: 'cobrador@test.oc', password: 'Test1234!' })
+      .send({ email: 'cobrador@demo.oc', password: 'Cobrador1234!' })
       .expect(200);
     cobradorToken = c.body.data.access_token;
   });
@@ -57,9 +68,10 @@ describe('Buró de Crédito E2E', () => {
           nombre: 'Juan',
           apellido: 'Pérez',
           nivel_riesgo: 'Alto',
-          motivo_reporte: 'ImpagoTotal',
-          descripcion: 'No pagó en 90 días',
-          deuda_original: 25000,
+          motivo: 'ImpagoTotal',
+          descripcion_detallada: 'No pagó en 90 días',
+          capital_original: 25000,
+          saldo_impagado: 25000,
         })
         .expect(201);
 
@@ -82,7 +94,7 @@ describe('Buró de Crédito E2E', () => {
       const resp = await request(app.getHttpServer())
         .post('/api/v1/buro/consultar')
         .set('Authorization', `Bearer ${cobradorToken}`)
-        .send({ cedula, motivo_consulta: 'Test E2E' })
+        .send({ cedula })
         .expect(200);
 
       const perfil = resp.body.data;
@@ -94,13 +106,23 @@ describe('Buró de Crédito E2E', () => {
     });
 
     it('La consulta queda registrada en el log de auditoría', async () => {
-      // Realizamos una segunda consulta y verificamos que el conteo de consultas aumenta
-      const resp1 = await request(app.getHttpServer())
+      const em = moduleRef.get<EntityManager>(getEntityManagerToken());
+      const antes = await em.query(
+        'SELECT COUNT(*)::int AS n FROM consultas_buro WHERE cedula_consultada = $1',
+        [cedula],
+      );
+
+      await request(app.getHttpServer())
         .post('/api/v1/buro/consultar')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ cedula, motivo_consulta: 'Segunda consulta' })
+        .send({ cedula })
         .expect(200);
-      expect(resp1.body.data.consulta_id).toBeDefined();
+
+      const despues = await em.query(
+        'SELECT COUNT(*)::int AS n FROM consultas_buro WHERE cedula_consultada = $1',
+        [cedula],
+      );
+      expect(despues[0].n).toBe(antes[0].n + 1);
     });
   });
 
@@ -109,7 +131,7 @@ describe('Buró de Crédito E2E', () => {
       const resp = await request(app.getHttpServer())
         .post('/api/v1/buro/marcar-saldada')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ historial_id: historialId, observacion: 'Pagó el 100%' })
+        .send({ reporte_id: historialId, fecha_saldo: new Date().toISOString().slice(0, 10) })
         .expect(200);
 
       expect(resp.body.data.deuda_saldada).toBe(true);

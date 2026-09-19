@@ -1,16 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { InjectEntityManager } from '@nestjs/typeorm';
 import { EntityManager } from 'typeorm';
-import { fechaHoyRD } from '../../common/utils/fecha-negocio.util';
+import { fechaEnZona, fechaHoyEnZona } from '../../common/utils/fecha-negocio.util';
+import { ZonaHorariaService } from '../../common/services/zona-horaria.service';
 
 @Injectable()
 export class ReportesService {
-  constructor(@InjectEntityManager() private readonly em: EntityManager) {}
+  constructor(
+    @InjectEntityManager() private readonly em: EntityManager,
+    private readonly zonaHorariaService: ZonaHorariaService,
+  ) {}
 
   // ─── DASHBOARD PRINCIPAL (Admin) ──────────────────────────────────────────
 
   async dashboardAdmin(tenantId: string) {
-    const hoy = fechaHoyRD();
+    const tz = await this.zonaHorariaService.obtener(tenantId);
+    const hoy = fechaHoyEnZona(tz);
 
     const [cartera, recaudoDia, cajas, mora, vencidos] = await Promise.all([
       // Cartera activa total
@@ -38,8 +43,8 @@ export class ReportesService {
         FROM transacciones t
         WHERE t.tenant_id = $1
           AND t.tipo = 'Cobro'
-          AND DATE(t.created_at) = $2
-      `, [tenantId, hoy]),
+          AND (t.created_at AT TIME ZONE $3)::date = $2::date
+      `, [tenantId, hoy, tz]),
 
       // Estado de cajas hoy
       this.em.query<any[]>(`
@@ -94,13 +99,14 @@ export class ReportesService {
   // ─── REPORTE DE AGING (Antigüedad de cartera) ─────────────────────────────
 
   async aging(tenantId: string) {
+    const hoy = fechaHoyEnZona(await this.zonaHorariaService.obtener(tenantId));
     return this.em.query<any[]>(`
       SELECT
         CASE
-          WHEN CURRENT_DATE - ca.fecha_vencimiento <= 0  THEN 'Al_Dia'
-          WHEN CURRENT_DATE - ca.fecha_vencimiento <= 30 THEN '1_a_30_dias'
-          WHEN CURRENT_DATE - ca.fecha_vencimiento <= 60 THEN '31_a_60_dias'
-          WHEN CURRENT_DATE - ca.fecha_vencimiento <= 90 THEN '61_a_90_dias'
+          WHEN $2::date - ca.fecha_vencimiento <= 0  THEN 'Al_Dia'
+          WHEN $2::date - ca.fecha_vencimiento <= 30 THEN '1_a_30_dias'
+          WHEN $2::date - ca.fecha_vencimiento <= 60 THEN '31_a_60_dias'
+          WHEN $2::date - ca.fecha_vencimiento <= 90 THEN '61_a_90_dias'
           ELSE 'Mas_de_90_dias'
         END                                          AS rango,
         COUNT(DISTINCT ca.prestamo_id)               AS prestamos,
@@ -111,16 +117,17 @@ export class ReportesService {
         AND ca.estado IN ('Pendiente','Abonado','Vencida')
         AND p.estado = 'Activo'
       GROUP BY 1
-      ORDER BY MIN(CURRENT_DATE - ca.fecha_vencimiento)
-    `, [tenantId]);
+      ORDER BY MIN($2::date - ca.fecha_vencimiento)
+    `, [tenantId, hoy]);
   }
 
   // ─── REPORTE POR COBRADOR ─────────────────────────────────────────────────
 
   async reporteCobrador(tenantId: string, cobradorId: string, desde: string, hasta: string) {
+    const tz = await this.zonaHorariaService.obtener(tenantId);
     return this.em.query<any[]>(`
       SELECT
-        DATE(t.created_at)                       AS fecha,
+        (t.created_at AT TIME ZONE $5)::date     AS fecha,
         emp.nombre || ' ' || emp.apellido        AS cobrador,
         COUNT(t.id) FILTER (WHERE t.tipo = 'Cobro')  AS total_cobros,
         SUM(t.monto) FILTER (WHERE t.tipo = 'Cobro') AS monto_cobrado,
@@ -130,10 +137,10 @@ export class ReportesService {
       JOIN empleados emp ON emp.id = t.cobrador_id
       WHERE t.tenant_id = $1
         AND t.cobrador_id = $2
-        AND DATE(t.created_at) BETWEEN $3 AND $4
+        AND (t.created_at AT TIME ZONE $5)::date BETWEEN $3 AND $4
       GROUP BY 1, 2
       ORDER BY 1 ASC
-    `, [tenantId, cobradorId, desde, hasta]);
+    `, [tenantId, cobradorId, desde, hasta, tz]);
   }
 
   // ─── HISTORIAL DE COBROS DE UN PRÉSTAMO ───────────────────────────────────
@@ -145,6 +152,7 @@ export class ReportesService {
         t.distribucion_pago,
         t.latitud_transaccion, t.longitud_transaccion,
         t.sincronizado_offline,
+        t.foto_comprobante_url,
         emp.nombre || ' ' || emp.apellido AS cobrador
       FROM transacciones t
       JOIN empleados emp ON emp.id = t.cobrador_id
@@ -176,6 +184,7 @@ export class ReportesService {
   // ─── CUENTAS POR COBRAR ───────────────────────────────────────────────────
 
   async cuentasCobrar(tenantId: string, soloVencidos = false) {
+    const hoy = fechaHoyEnZona(await this.zonaHorariaService.obtener(tenantId));
     const estadoFiltro = soloVencidos ? `AND p.estado = 'Vencido'` : `AND p.estado IN ('Activo','Vencido')`;
     // cuotas_amortizacion y cargos_mora son DOS tablas hijas independientes
     // de prestamos (1:N cada una). Unirlas ambas directamente en la misma
@@ -194,7 +203,7 @@ export class ReportesService {
         COALESCE(cu.saldo_pendiente, 0)   AS saldo_pendiente,
         cu.proxima_fecha_vencimiento,
         COALESCE(mo.mora_total, 0)        AS mora_total,
-        COALESCE(CURRENT_DATE - cu.proxima_fecha_vencimiento, 0) AS dias_atraso
+        COALESCE($2::date - cu.proxima_fecha_vencimiento, 0) AS dias_atraso
       FROM prestamos p
       JOIN clientes cl ON cl.id = p.cliente_id
       LEFT JOIN rutas r ON r.id = p.ruta_id
@@ -218,14 +227,15 @@ export class ReportesService {
         ${estadoFiltro}
         AND COALESCE(cu.saldo_pendiente, 0) > 0
       ORDER BY mora_total DESC NULLS LAST, dias_atraso DESC NULLS LAST
-    `, [tenantId]);
+    `, [tenantId, hoy]);
   }
 
   // ─── NOTIFICACIONES IN-APP ────────────────────────────────────────────────
 
   async notificaciones(tenantId: string) {
-    const hoy = fechaHoyRD();
-    const manana = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+    const tz = await this.zonaHorariaService.obtener(tenantId);
+    const hoy = fechaHoyEnZona(tz);
+    const manana = fechaEnZona(tz, 1);
 
     const [vencidas, proximasHoy, proximasManana, moraNueva] = await Promise.all([
       // Cuotas ya vencidas (sin pagar)
@@ -286,9 +296,10 @@ export class ReportesService {
   // ─── INGRESOS MENSUALES ───────────────────────────────────────────────────
 
   async ingresosMensuales(tenantId: string) {
+    const tz = await this.zonaHorariaService.obtener(tenantId);
     return this.em.query<any[]>(`
       SELECT
-        TO_CHAR(DATE_TRUNC('month', t.created_at), 'YYYY-MM') AS mes,
+        TO_CHAR(DATE_TRUNC('month', t.created_at AT TIME ZONE $2), 'YYYY-MM') AS mes,
         COALESCE(SUM(COALESCE((t.distribucion_pago->>'capital_pagado')::numeric, 0)), 0) AS capital,
         COALESCE(SUM(COALESCE((t.distribucion_pago->>'interes_pagado')::numeric, 0)), 0) AS interes,
         COALESCE(SUM(COALESCE((t.distribucion_pago->>'mora_pagada')::numeric, 0)), 0)    AS mora,
@@ -297,9 +308,9 @@ export class ReportesService {
       WHERE t.tenant_id = $1
         AND t.tipo = 'Cobro'
         AND t.created_at >= NOW() - INTERVAL '12 months'
-      GROUP BY DATE_TRUNC('month', t.created_at)
+      GROUP BY DATE_TRUNC('month', t.created_at AT TIME ZONE $2)
       ORDER BY mes ASC
-    `, [tenantId]);
+    `, [tenantId, tz]);
   }
 
   // ─── COPIA DE SEGURIDAD ────────────────────────────────────────────────────
@@ -339,7 +350,7 @@ export class ReportesService {
   // ─── ARQUEOS CONSOLIDADOS DEL DÍA ─────────────────────────────────────────
 
   async arqueosDia(tenantId: string, fecha?: string) {
-    const f = fecha ?? fechaHoyRD();
+    const f = fecha ?? fechaHoyEnZona(await this.zonaHorariaService.obtener(tenantId));
     return this.em.query<any[]>(`
       SELECT
         c.id, c.fecha, c.estado,

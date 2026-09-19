@@ -7,11 +7,20 @@ import { MotivoBuro, NivelRiesgoBuro } from '../entities/historial-credito.entit
 import { IsUuidLike } from '../../../common/decorators/is-uuid-like.decorator';
 
 export class ConsultarBuroDto {
-  @ApiProperty({ description: 'Cédula del cliente a consultar', example: '001-1234567-8' })
+  @ApiProperty({ description: 'Documento de identidad del cliente a consultar', example: '001-1234567-8' })
   @IsString()
   @IsNotEmpty()
   @Length(1, 20)
   cedula: string;
+
+  @ApiPropertyOptional({
+    description: 'Tipo de documento (ver documentos-identidad.ts). Default "cedula" por compatibilidad.',
+    example: 'cedula',
+  })
+  @IsOptional()
+  @IsString()
+  @Length(1, 30)
+  tipo_documento?: string;
 
   @ApiPropertyOptional({ description: 'Monto del préstamo que se planea otorgar (se registra en el log)' })
   @IsOptional()
@@ -21,11 +30,17 @@ export class ConsultarBuroDto {
 }
 
 export class ReportarDeudorDto {
-  @ApiProperty({ description: 'Cédula del deudor', example: '001-1234567-8' })
+  @ApiProperty({ description: 'Documento de identidad del deudor', example: '001-1234567-8' })
   @IsString()
   @IsNotEmpty()
   @Length(1, 20)
   cedula: string;
+
+  @ApiPropertyOptional({ description: 'Tipo de documento. Default "cedula".', example: 'cedula' })
+  @IsOptional()
+  @IsString()
+  @Length(1, 30)
+  tipo_documento?: string;
 
   @ApiProperty({ example: 'Juan' })
   @IsString()

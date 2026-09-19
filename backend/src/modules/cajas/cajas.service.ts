@@ -9,7 +9,8 @@ import { Transaccion } from './entities/transaccion.entity';
 import { AbrirCajaDto, ArqueoCajaResponseDto, CerrarCajaDto, RegistrarGastoDto } from './dto/cajas.dto';
 import { EstadoCaja, Rol, TipoTransaccion } from '../../common/constants/roles.enum';
 import { JwtPayload } from '../../common/decorators/current-user.decorator';
-import { fechaHoyRD } from '../../common/utils/fecha-negocio.util';
+import { fechaHoyEnZona } from '../../common/utils/fecha-negocio.util';
+import { ZonaHorariaService } from '../../common/services/zona-horaria.service';
 
 @Injectable()
 export class CajasService {
@@ -19,6 +20,7 @@ export class CajasService {
     @InjectEntityManager() private readonly em: EntityManager,
     @InjectRepository(Caja) private readonly cajaRepo: Repository<Caja>,
     @InjectRepository(Transaccion) private readonly txRepo: Repository<Transaccion>,
+    private readonly zonaHorariaService: ZonaHorariaService,
   ) {}
 
   // ─── APERTURA ──────────────────────────────────────────────────────────────
@@ -28,7 +30,7 @@ export class CajasService {
     cobradorId: string,
     dto: AbrirCajaDto,
   ): Promise<Caja> {
-    const hoy = fechaHoyRD();
+    const hoy = fechaHoyEnZona(await this.zonaHorariaService.obtener(tenantId));
 
     // Verificar que no existe caja abierta hoy PARA ESTA RUTA. Un cobrador
     // que atiende varias rutas el mismo día puede tener varias cajas
@@ -270,7 +272,7 @@ export class CajasService {
   }
 
   async listarCajasDia(tenantId: string, fecha?: string): Promise<Caja[]> {
-    const f = fecha ?? fechaHoyRD();
+    const f = fecha ?? fechaHoyEnZona(await this.zonaHorariaService.obtener(tenantId));
     return this.cajaRepo.find({
       where: { tenant_id: tenantId, fecha: f },
       relations: ['cobrador', 'ruta'],

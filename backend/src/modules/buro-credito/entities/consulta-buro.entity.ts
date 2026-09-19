@@ -22,6 +22,9 @@ export class ConsultaBuro {
   @Column({ length: 20 })
   cedula_consultada: string;
 
+  @Column({ length: 30, default: 'cedula' })
+  tipo_documento_consultado: string;
+
   @Column({ length: 200, nullable: true })
   nombre_consultado: string;
 

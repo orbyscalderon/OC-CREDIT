@@ -13,6 +13,8 @@ import {
 } from './dto/buro.dto';
 import { JwtPayload } from '../../common/decorators/current-user.decorator';
 import { Rol } from '../../common/constants/roles.enum';
+import { fechaHoyEnZona } from '../../common/utils/fecha-negocio.util';
+import { ZonaHorariaService } from '../../common/services/zona-horaria.service';
 
 interface ReporteAutomaticoInput {
   cedula: string;
@@ -44,6 +46,7 @@ export class BuroCreditoService {
     private readonly consultaRepo: Repository<ConsultaBuro>,
     @InjectEntityManager()
     private readonly em: EntityManager,
+    private readonly zonaHorariaService: ZonaHorariaService,
   ) {}
 
   // ─── CONSULTA CROSS-TENANT ─────────────────────────────────────────────────
@@ -54,16 +57,19 @@ export class BuroCreditoService {
     tenantNombre: string,
   ): Promise<PerfilBuroResponseDto> {
     const cedulaNorm = dto.cedula.trim().replace(/\s/g, '');
+    const tipoDocumento = dto.tipo_documento?.trim() || 'cedula';
 
-    // Obtener perfil agregado desde la vista
+    // Obtener perfil agregado desde la vista — filtrado también por tipo de
+    // documento: dos documentos iguales de países/tipos distintos no deben
+    // mezclarse en el mismo perfil cross-tenant.
     const perfil = await this.em.query<any[]>(
-      `SELECT * FROM v_perfil_buro WHERE cedula = $1`,
-      [cedulaNorm],
+      `SELECT * FROM v_perfil_buro WHERE cedula = $1 AND tipo_documento = $2`,
+      [cedulaNorm, tipoDocumento],
     );
 
     // Obtener reportes individuales (todos los tenants)
     const reportes = await this.buroRepo.find({
-      where: { cedula: cedulaNorm, activo: true },
+      where: { cedula: cedulaNorm, tipo_documento: tipoDocumento, activo: true },
       order: { fecha_reporte: 'DESC' },
       select: [
         'id', 'fecha_reporte', 'motivo', 'nivel_riesgo',
@@ -80,6 +86,7 @@ export class BuroCreditoService {
         tenant_nombre: tenantNombre,
         consultado_por_id: user.empleadoId,
         cedula_consultada: cedulaNorm,
+        tipo_documento_consultado: tipoDocumento,
         nombre_consultado: reportes[0]
           ? `${reportes[0].nombre ?? ''} ${reportes[0].apellido ?? ''}`.trim()
           : undefined,
@@ -129,9 +136,12 @@ export class BuroCreditoService {
     tenantNombre: string,
     empleadoNombre: string,
   ): Promise<HistorialCredito> {
+    const fechaReporte = fechaHoyEnZona(await this.zonaHorariaService.obtener(user.tenantId));
     const registro = this.buroRepo.create({
       cedula: dto.cedula.trim(),
+      tipo_documento: dto.tipo_documento?.trim() || 'cedula',
       nombre: dto.nombre.trim(),
+      fecha_reporte: fechaReporte,
       apellido: dto.apellido.trim(),
       telefono: dto.telefono ?? null,
       tenant_id: user.tenantId,
@@ -163,6 +173,7 @@ export class BuroCreditoService {
    */
   async reportarAutomatico(input: ReporteAutomaticoInput): Promise<void> {
     try {
+      const fechaReporte = fechaHoyEnZona(await this.zonaHorariaService.obtener(input.tenantId));
       await this.buroRepo.save(
         this.buroRepo.create({
           cedula: input.cedula.trim(),
@@ -171,6 +182,7 @@ export class BuroCreditoService {
           telefono: input.telefono ?? null,
           tenant_id: input.tenantId,
           tenant_nombre: input.tenantNombre,
+          fecha_reporte: fechaReporte,
           empleado_reporta_id: input.empleadoId ?? null,
           empleado_reporta_nombre: input.empleadoNombre ?? null,
           prestamo_id: input.prestamoId ?? null,
@@ -192,14 +204,6 @@ export class BuroCreditoService {
       // No propagamos el error para no interrumpir el flujo principal
       this.logger.error(`Error en reporte automático buró: ${(err as Error).message}`);
     }
-  }
-
-  /** true solo el último día calendario del mes, en la zona horaria de Postgres (RD). */
-  async esUltimoDiaDelMes(): Promise<boolean> {
-    const r = await this.em.query<{ es_ultimo: boolean }[]>(`
-      SELECT CURRENT_DATE = (date_trunc('month', CURRENT_DATE) + interval '1 month - 1 day')::date AS es_ultimo
-    `);
-    return r[0].es_ultimo;
   }
 
   // ─── REPORTE MENSUAL DE ATRASADOS (control, no cierra el préstamo) ─────────
@@ -225,6 +229,7 @@ export class BuroCreditoService {
     let reportesCreados = 0;
 
     for (const tenant of tenants) {
+      const fechaHoyTenant = fechaHoyEnZona(await this.zonaHorariaService.obtener(tenant.id));
       const atrasados = await this.em.query<any[]>(`
         SELECT
           cl.cedula, cl.nombre, cl.apellido, cl.telefono,
@@ -248,9 +253,9 @@ export class BuroCreditoService {
         const yaReportadoEsteMes = await this.em.query<any[]>(`
           SELECT 1 FROM buro_credito
           WHERE prestamo_id = $1 AND motivo = 'MoraExtendida'
-            AND date_trunc('month', fecha_reporte) = date_trunc('month', CURRENT_DATE)
+            AND date_trunc('month', fecha_reporte) = date_trunc('month', $2::date)
           LIMIT 1
-        `, [row.prestamo_id]);
+        `, [row.prestamo_id, fechaHoyTenant]);
         if (yaReportadoEsteMes.length > 0) continue;
 
         const diasMora = parseInt(row.dias_mora, 10);

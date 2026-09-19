@@ -3,15 +3,22 @@ import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { Ruta } from './entities/ruta.entity';
 import { NovedadRuta } from './entities/novedad-ruta.entity';
+import { HistorialCobradorRuta } from './entities/historial-cobrador-ruta.entity';
+import { Empleado } from '../usuarios/entities/empleado.entity';
 import { CrearRutaDto, RegistrarNovedadDto } from './dto/rutas.dto';
-import { fechaHoyRD } from '../../common/utils/fecha-negocio.util';
+import { fechaHoyEnZona } from '../../common/utils/fecha-negocio.util';
+import { ZonaHorariaService } from '../../common/services/zona-horaria.service';
+import { JwtPayload } from '../../common/decorators/current-user.decorator';
 
 @Injectable()
 export class RutasService {
   constructor(
     @InjectRepository(Ruta) private readonly rutaRepo: Repository<Ruta>,
     @InjectRepository(NovedadRuta) private readonly novedadRepo: Repository<NovedadRuta>,
+    @InjectRepository(HistorialCobradorRuta) private readonly historialRepo: Repository<HistorialCobradorRuta>,
+    @InjectRepository(Empleado) private readonly empleadoRepo: Repository<Empleado>,
     @InjectEntityManager() private readonly em: EntityManager,
+    private readonly zonaHorariaService: ZonaHorariaService,
   ) {}
 
   async crear(tenantId: string, dto: CrearRutaDto): Promise<Ruta> {
@@ -59,11 +66,52 @@ export class RutasService {
     });
   }
 
-  async asignarCobrador(tenantId: string, rutaId: string, cobradorId: string): Promise<void> {
+  async asignarCobrador(
+    tenantId: string,
+    rutaId: string,
+    cobradorId: string,
+    actor: JwtPayload,
+  ): Promise<void> {
     const ruta = await this.rutaRepo.findOne({ where: { id: rutaId, tenant_id: tenantId } });
     if (!ruta) throw new NotFoundException('Ruta no encontrada');
+
+    const cobradorNuevo = await this.empleadoRepo.findOne({ where: { id: cobradorId, tenant_id: tenantId } });
+    if (!cobradorNuevo) throw new NotFoundException('Cobrador no encontrado');
+
+    const cobradorAnterior = ruta.cobrador_id
+      ? await this.empleadoRepo.findOne({ where: { id: ruta.cobrador_id, tenant_id: tenantId } })
+      : null;
+    const actorEmpleado = await this.empleadoRepo.findOne({ where: { id: actor.empleadoId, tenant_id: tenantId } });
+
+    const cobradorAnteriorId = ruta.cobrador_id;
     ruta.cobrador_id = cobradorId;
-    await this.rutaRepo.save(ruta);
+
+    await this.em.transaction(async (manager) => {
+      await manager.save(Ruta, ruta);
+      await manager.save(HistorialCobradorRuta, manager.create(HistorialCobradorRuta, {
+        tenant_id: tenantId,
+        ruta_id: rutaId,
+        ruta_nombre: ruta.nombre,
+        cobrador_anterior_id: cobradorAnteriorId,
+        cobrador_anterior_nombre: cobradorAnterior
+          ? `${cobradorAnterior.nombre} ${cobradorAnterior.apellido}`
+          : null,
+        cobrador_nuevo_id: cobradorId,
+        cobrador_nuevo_nombre: `${cobradorNuevo.nombre} ${cobradorNuevo.apellido}`,
+        cambiado_por_id: actor.empleadoId,
+        cambiado_por_nombre: actorEmpleado
+          ? `${actorEmpleado.nombre} ${actorEmpleado.apellido}`
+          : actor.email,
+      }));
+    });
+  }
+
+  /** Historial de reasignaciones de cobrador de una ruta, más reciente primero. */
+  async historialCobrador(tenantId: string, rutaId: string): Promise<HistorialCobradorRuta[]> {
+    return this.historialRepo.find({
+      where: { tenant_id: tenantId, ruta_id: rutaId },
+      order: { created_at: 'DESC' },
+    });
   }
 
   /**
@@ -110,11 +158,12 @@ export class RutasService {
   }
 
   async novedadesDia(tenantId: string, fecha?: string) {
-    const f = fecha ?? fechaHoyRD();
+    const tz = await this.zonaHorariaService.obtener(tenantId);
+    const f = fecha ?? fechaHoyEnZona(tz);
     return this.em
       .createQueryBuilder(NovedadRuta, 'n')
       .where('n.tenant_id = :tid', { tid: tenantId })
-      .andWhere('DATE(n.created_at) = :f', { f })
+      .andWhere('(n.created_at AT TIME ZONE :tz)::date = :f', { tz, f })
       .orderBy('n.created_at', 'DESC')
       .getMany();
   }
@@ -127,15 +176,16 @@ export class RutasService {
    * filtrar por fecha, para que la ruta siempre muestre todos sus clientes).
    */
   async coordenadasGps(tenantId: string, fecha?: string, rutaId?: string) {
-    const f = fecha ?? fechaHoyRD();
-    const params: string[] = [tenantId, f];
+    const tz = await this.zonaHorariaService.obtener(tenantId);
+    const f = fecha ?? fechaHoyEnZona(tz);
+    const params: string[] = [tenantId, f, tz];
     let filtroRutaCobro = '';
     let filtroRutaNovedad = '';
 
     if (rutaId) {
       params.push(rutaId);
-      filtroRutaCobro = 'AND p.ruta_id = $3';
-      filtroRutaNovedad = 'AND cl.ruta_id = $3';
+      filtroRutaCobro = 'AND p.ruta_id = $4';
+      filtroRutaNovedad = 'AND cl.ruta_id = $4';
     }
 
     const eventos = await this.em.query<any[]>(`
@@ -148,7 +198,7 @@ export class RutasService {
       LEFT JOIN prestamos p ON p.id = t.prestamo_id
       WHERE t.tenant_id = $1
         AND t.tipo = 'Cobro'
-        AND DATE(t.created_at) = $2
+        AND (t.created_at AT TIME ZONE $3)::date = $2::date
         AND t.latitud_transaccion IS NOT NULL
         ${filtroRutaCobro}
       UNION ALL
@@ -160,7 +210,7 @@ export class RutasService {
       JOIN empleados emp ON emp.id = n.cobrador_id
       LEFT JOIN clientes cl ON cl.id = n.cliente_id
       WHERE n.tenant_id = $1
-        AND DATE(n.created_at) = $2
+        AND (n.created_at AT TIME ZONE $3)::date = $2::date
         ${filtroRutaNovedad}
       ORDER BY created_at ASC
     `, params);

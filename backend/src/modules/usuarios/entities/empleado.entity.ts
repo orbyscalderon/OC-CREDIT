@@ -34,6 +34,9 @@ export class Empleado {
   @Column({ length: 20, nullable: true })
   cedula: string;
 
+  @Column({ length: 30, default: 'cedula' })
+  tipo_documento: string;
+
   @Column({ length: 30, nullable: true })
   telefono: string;
 

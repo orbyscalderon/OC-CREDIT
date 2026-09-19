@@ -8,17 +8,23 @@ import {
 } from '@nestjs/common';
 import { InjectEntityManager } from '@nestjs/typeorm';
 import { EntityManager } from 'typeorm';
+import * as fs from 'fs';
+import * as path from 'path';
 import { RegistrarCobroDto, CobroResponseDto } from './dto/registrar-cobro.dto';
 import { Transaccion } from '../cajas/entities/transaccion.entity';
 import { Caja } from '../cajas/entities/caja.entity';
 import { CuotaAmortizacion } from '../prestamos/entities/cuota-amortizacion.entity';
 import { Prestamo } from '../prestamos/entities/prestamo.entity';
 import { CargoMora } from '../mora/entities/cargo-mora.entity';
+import { Cliente } from '../clientes/entities/cliente.entity';
+import { TenantSettings } from '../tenants/entities/tenant-settings.entity';
 import {
   EstadoCaja, EstadoCuota, EstadoPrestamo,
   EstadoCargoMora, TipoTransaccion,
 } from '../../common/constants/roles.enum';
-import { fechaHoyRD } from '../../common/utils/fecha-negocio.util';
+import { fechaHoyEnZona } from '../../common/utils/fecha-negocio.util';
+import { ZonaHorariaService } from '../../common/services/zona-horaria.service';
+import { haversineKm } from '../../common/utils/geo.util';
 
 // ─── Tipos internos ───────────────────────────────────────────────────────────
 
@@ -59,6 +65,7 @@ export class CobrosService {
 
   constructor(
     @InjectEntityManager() private readonly em: EntityManager,
+    private readonly zonaHorariaService: ZonaHorariaService,
   ) {}
 
   /**
@@ -144,6 +151,39 @@ export class CobrosService {
         );
       }
 
+      // ── 4b. GEOCERCA ANTIFRAUDE ──────────────────────────────────────────
+      // El GPS del cobro (obligatorio desde el DTO) debe estar dentro del
+      // radio configurado por el tenant respecto a la casa del cliente. Si
+      // el cliente no tiene coordenadas registradas, no hay contra qué
+      // comparar — se deja pasar (el GPS igual queda guardado como auditoría).
+      const cliente = await tx.findOne(Cliente, {
+        where: { id: prestamo.cliente_id, tenant_id: tenantId },
+        select: ['id', 'latitud_casa', 'longitud_casa'],
+      });
+
+      if (cliente?.latitud_casa != null && cliente?.longitud_casa != null) {
+        const settings = await tx.findOne(TenantSettings, {
+          where: { tenant_id: tenantId },
+          select: ['radio_geocerca_metros'],
+        });
+        const radioMetros = settings?.radio_geocerca_metros ?? 150;
+
+        const distanciaMetros = haversineKm(
+          dto.latitud, dto.longitud,
+          cliente.latitud_casa, cliente.longitud_casa,
+        ) * 1000;
+
+        if (distanciaMetros > radioMetros) {
+          throw new BadRequestException({
+            code: 'FUERA_DE_GEOCERCA',
+            message: `El cobro se registró a ${Math.round(distanciaMetros)}m de la casa del cliente ` +
+              `(máximo permitido: ${radioMetros}m). Acércate a la ubicación registrada antes de cobrar.`,
+            distancia_metros: Math.round(distanciaMetros),
+            radio_permitido_metros: radioMetros,
+          });
+        }
+      }
+
       // ── 5. OBTENER MORAS PENDIENTES (más antigua primero, con lock) ──────
       const morasPendientes = await tx
         .createQueryBuilder(CargoMora, 'cm')
@@ -173,11 +213,13 @@ export class CobrosService {
       }
 
       // ── 7. ALGORITMO DE DISTRIBUCIÓN EN CASCADA ─────────────────────────
+      const hoyCobro = fechaHoyEnZona(await this.zonaHorariaService.obtener(tenantId));
       const distribucion = await this.aplicarCascada(
         tx,
         dto.monto_cobrado,
         morasPendientes,
         cuotasPendientes,
+        hoyCobro,
       );
 
       // ── 8. EVALUAR SI EL PRÉSTAMO QUEDÓ COMPLETAMENTE PAGADO ────────────
@@ -217,8 +259,8 @@ export class CobrosService {
           moras_pagadas: distribucion.moras_pagadas,
         },
         descripcion: dto.descripcion ?? null,
-        latitud_transaccion: dto.latitud ?? null,
-        longitud_transaccion: dto.longitud ?? null,
+        latitud_transaccion: dto.latitud,
+        longitud_transaccion: dto.longitud,
         precision_gps: dto.precision_gps ?? null,
         sincronizado_offline: dto.sincronizado_offline ?? false,
         timestamp_dispositivo: dto.timestamp_dispositivo
@@ -295,6 +337,7 @@ export class CobrosService {
     montoTotal: number,
     moras: CargoMora[],
     cuotas: CuotaAmortizacion[],
+    hoy: string,
   ): Promise<PaymentDistribution> {
     let saldoCents = toCents(montoTotal);
 
@@ -325,7 +368,7 @@ export class CobrosService {
 
       if (toCents(mora.monto_pagado) >= toCents(mora.monto_mora)) {
         mora.estado = EstadoCargoMora.PAGADO;
-        mora.fecha_pago = fechaHoyRD();
+        mora.fecha_pago = hoy;
         resultado.moras_pagadas.push(mora.id);
       }
 
@@ -377,7 +420,7 @@ export class CobrosService {
 
         if (montoPagadoCents >= montoTotalCents) {
           cuota.estado     = EstadoCuota.PAGADO;
-          cuota.fecha_pago = fechaHoyRD();
+          cuota.fecha_pago = hoy;
         } else {
           cuota.estado = EstadoCuota.ABONADO;
         }
@@ -408,5 +451,53 @@ export class CobrosService {
       .andWhere('t.tipo = :tipo', { tipo: TipoTransaccion.COBRO })
       .orderBy('t.timestamp_dispositivo', 'ASC')
       .getMany();
+  }
+
+  /**
+   * Guarda la foto de evidencia de un cobro ya registrado (subida separada
+   * del registro atómico del cobro — la ruta del archivo ya la resolvió el
+   * controller vía multer). No se permite adjuntar fotos a transacciones de
+   * OTRO tipo (ej. gastos) ni de otro tenant.
+   */
+  async subirFotoEvidencia(
+    tenantId: string,
+    transaccionId: string,
+    buffer: Buffer,
+    originalname: string,
+    uploadsDir: string,
+  ): Promise<{ foto_evidencia_url: string }> {
+    const transaccion = await this.em.findOne(Transaccion, {
+      where: { id: transaccionId, tenant_id: tenantId, tipo: TipoTransaccion.COBRO },
+    });
+    if (!transaccion) {
+      throw new NotFoundException('Cobro no encontrado para este tenant');
+    }
+
+    // La validación de propiedad del cobro va ANTES de tocar el disco a
+    // propósito: con diskStorage de multer el archivo se escribe durante el
+    // parseo del request, antes de que el controller pueda verificar nada,
+    // dejando carpetas huérfanas en disco para IDs inexistentes o ajenos.
+    const ext = path.extname(originalname).toLowerCase() || '.jpg';
+    const dir = path.join(uploadsDir, 'cobros', transaccionId);
+    await fs.promises.mkdir(dir, { recursive: true });
+    const absPath = path.join(dir, `evidencia${ext}`);
+    await fs.promises.writeFile(absPath, buffer);
+
+    const relPath = path.relative(uploadsDir, absPath);
+
+    await this.em.update(Transaccion, { id: transaccionId }, {
+      foto_comprobante_url: relPath,
+    });
+
+    return { foto_evidencia_url: relPath };
+  }
+
+  async obtenerFotoEvidencia(tenantId: string, transaccionId: string): Promise<string | null> {
+    const transaccion = await this.em.findOne(Transaccion, {
+      where: { id: transaccionId, tenant_id: tenantId, tipo: TipoTransaccion.COBRO },
+      select: ['foto_comprobante_url'],
+    });
+    if (!transaccion) throw new NotFoundException('Cobro no encontrado');
+    return transaccion.foto_comprobante_url ?? null;
   }
 }

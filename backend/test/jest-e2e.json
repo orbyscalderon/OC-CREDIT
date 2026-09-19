@@ -4,6 +4,7 @@
   "testEnvironment": "node",
   "testRegex": ".e2e-spec.ts$",
   "transform": { "^.+\\.(t|j)s$": "ts-jest" },
+  "transformIgnorePatterns": ["node_modules/(?!(uuid)/)"],
   "testTimeout": 30000,
   "moduleNameMapper": {
     "^@/(.*)$": "<rootDir>/../src/$1"

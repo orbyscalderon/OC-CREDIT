@@ -11,6 +11,10 @@ import { GooglePayRegistroDto } from './dto/google-pay-registro.dto';
 import { SuscribirPlanDto } from './dto/suscribir-plan.dto';
 import { Tenant } from '../tenants/entities/tenant.entity';
 import { Usuario } from '../usuarios/entities/usuario.entity';
+import { monedaPorPais } from '../../common/constants/monedas-por-pais';
+import { zonaHorariaPorPais } from '../../common/constants/zona-horaria-por-pais';
+import { fechaHoyEnZona } from '../../common/utils/fecha-negocio.util';
+import { ZonaHorariaService } from '../../common/services/zona-horaria.service';
 
 @Injectable()
 export class PlanesService {
@@ -21,6 +25,7 @@ export class PlanesService {
     private readonly config: ConfigService,
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
     @InjectRepository(Usuario) private readonly usuarioRepo: Repository<Usuario>,
+    private readonly zonaHorariaService: ZonaHorariaService,
   ) {}
 
   async listarPlanes() {
@@ -83,12 +88,18 @@ export class PlanesService {
     if (!planes.length) throw new NotFoundException('Plan no encontrado');
     const plan = planes[0];
 
+    const pais = dto.pais?.toUpperCase() || 'DO';
+    const moneda = monedaPorPais(pais);
+    const zonaHoraria = zonaHorariaPorPais(pais);
+    const hoy = fechaHoyEnZona(zonaHoraria);
+
     return this.ds.transaction(async (em) => {
       const tenant = em.create(Tenant, {
         nombre_empresa: dto.nombre_empresa,
         ruc_cedula: dto.ruc_cedula || `TEMP-${Date.now()}`,
         email_contacto: dto.email_admin.toLowerCase(),
         telefono: dto.telefono,
+        pais,
         activo: true,
         plan_suscripcion: dto.plan_id,
         max_cobradores: plan.max_cobradores,
@@ -100,24 +111,24 @@ export class PlanesService {
         await em.query(
           `UPDATE tenants SET plan_id = $1, max_prestamos_activos = $2, facturacion_anual = $3,
              fecha_prueba_hasta = NULL,
-             fecha_vencimiento_suscripcion = CURRENT_DATE + ($4 || ' months')::interval
-           WHERE id = $5`,
-          [dto.plan_id, plan.max_prestamos_activos, dto.facturacion_anual ?? false, meses, tenant.id],
+             fecha_vencimiento_suscripcion = $4::date + ($5 || ' months')::interval
+           WHERE id = $6`,
+          [dto.plan_id, plan.max_prestamos_activos, dto.facturacion_anual ?? false, hoy, meses, tenant.id],
         );
       } else {
         await em.query(
           `UPDATE tenants SET plan_id = $1, max_prestamos_activos = $2, facturacion_anual = $3,
-             fecha_prueba_hasta = CURRENT_DATE + 7,
+             fecha_prueba_hasta = $4::date + 7,
              fecha_vencimiento_suscripcion = NULL
-           WHERE id = $4`,
-          [dto.plan_id, plan.max_prestamos_activos, dto.facturacion_anual ?? false, tenant.id],
+           WHERE id = $5`,
+          [dto.plan_id, plan.max_prestamos_activos, dto.facturacion_anual ?? false, hoy, tenant.id],
         );
       }
 
       await em.query(
-        `INSERT INTO tenant_settings (tenant_id, color_primario, color_secundario, color_acento, moneda, simbolo_moneda)
-         VALUES ($1, '#2563EB', '#1D4ED8', '#FF6F00', 'DOP', 'RD$')`,
-        [tenant.id],
+        `INSERT INTO tenant_settings (tenant_id, color_primario, color_secundario, color_acento, moneda, simbolo_moneda, zona_horaria)
+         VALUES ($1, '#2563EB', '#1D4ED8', '#FF6F00', $2, $3, $4)`,
+        [tenant.id, moneda.codigo, moneda.simbolo, zonaHoraria],
       );
 
       const hash = await bcrypt.hash(dto.password, 12);
@@ -214,13 +225,14 @@ export class PlanesService {
     }
 
     const meses = dto.facturacion_anual ? 12 : 1;
+    const hoy = fechaHoyEnZona(await this.zonaHorariaService.obtener(tenantId));
     await this.ds.query(
       `UPDATE tenants SET plan_id = $1, max_prestamos_activos = $2, max_cobradores = $3,
          facturacion_anual = $4, plan_suscripcion = $1,
          fecha_prueba_hasta = NULL,
-         fecha_vencimiento_suscripcion = CURRENT_DATE + ($5 || ' months')::interval
-       WHERE id = $6`,
-      [dto.plan_id, plan.max_prestamos_activos, plan.max_cobradores, dto.facturacion_anual ?? false, meses, tenantId],
+         fecha_vencimiento_suscripcion = $5::date + ($6 || ' months')::interval
+       WHERE id = $7`,
+      [dto.plan_id, plan.max_prestamos_activos, plan.max_cobradores, dto.facturacion_anual ?? false, hoy, meses, tenantId],
     );
 
     return { mensaje: `Suscripción activada: plan ${plan.nombre}.` };

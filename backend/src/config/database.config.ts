@@ -12,6 +12,7 @@ import { Caja } from '../modules/cajas/entities/caja.entity';
 import { Transaccion } from '../modules/cajas/entities/transaccion.entity';
 import { CargoMora } from '../modules/mora/entities/cargo-mora.entity';
 import { NovedadRuta } from '../modules/rutas/entities/novedad-ruta.entity';
+import { HistorialCobradorRuta } from '../modules/rutas/entities/historial-cobrador-ruta.entity';
 import { HistorialCredito } from '../modules/buro-credito/entities/historial-credito.entity';
 import { ConsultaBuro } from '../modules/buro-credito/entities/consulta-buro.entity';
 import { SuperAdmin } from '../modules/super-admin/entities/super-admin.entity';
@@ -31,7 +32,7 @@ export function getDatabaseConfig(config: ConfigService): TypeOrmModuleOptions {
     entities: [
       Tenant, TenantSettings,
       Usuario, Empleado,
-      Ruta, NovedadRuta,
+      Ruta, NovedadRuta, HistorialCobradorRuta,
       Cliente,
       Prestamo, CuotaAmortizacion,
       Caja, Transaccion,
@@ -46,10 +47,13 @@ export function getDatabaseConfig(config: ConfigService): TypeOrmModuleOptions {
     extra: {
       application_name: 'oc-credit-api',
       statement_timeout: 30000,
-      // La sesión de Postgres viene en GMT por defecto, independiente de la
-      // zona del proceso Node. Sin esto, CURRENT_DATE y DATE(timestamptz) en
-      // todo el SQL crudo (aging, cuentas por cobrar, fn_calcular_mora) se
-      // adelantan un día completo entre las 8pm y la medianoche hora RD.
+      // Zona horaria de RESPALDO de la sesión de Postgres — ya NO es la
+      // fuente de verdad para ningún cálculo de "hoy" del negocio (mora,
+      // aging, cierres): esos ahora reciben la fecha ya calculada en JS
+      // en la zona horaria de CADA tenant (ver ZonaHorariaService /
+      // fecha-negocio.util.ts) como parámetro explícito. Se deja este
+      // default solo para columnas con DEFAULT CURRENT_DATE que no reciben
+      // valor explícito, y para timestamps mostrados sin conversión.
       options: '-c timezone=America/Santo_Domingo',
     },
   };

@@ -1,8 +1,20 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe, VersioningType } from '@nestjs/common';
+import { getEntityManagerToken } from '@nestjs/typeorm';
+import { EntityManager } from 'typeorm';
 import * as request from 'supertest';
 import { v4 as uuidv4 } from 'uuid';
 import { AppModule } from '../../src/app.module';
+import { HttpExceptionFilter } from '../../src/common/filters/http-exception.filter';
+import { TransformInterceptor } from '../../src/common/interceptors/transform.interceptor';
+import { Ruta } from '../../src/modules/rutas/entities/ruta.entity';
+
+// Ruta dedicada a este archivo (no la comparte con cajas/cobros-foto): el
+// cierre de la caja del día es único por (tenant, cobrador, ruta, fecha), así
+// que reutilizar la misma ruta entre specs hace que una suite cierre la caja
+// que otra necesita abrir. Se crea vía upsert, no depende de ningún seed.
+const TENANT_ID_DEMO = 'aaaaaaaa-0000-0000-0000-000000000001';
+const RUTA_ID_ESTE_ARCHIVO = 'eeeeeeee-0000-0000-0000-000000000001';
 
 /**
  * E2E: POST /api/v1/cobros/registrar
@@ -29,20 +41,33 @@ describe('POST /api/v1/cobros/registrar (E2E)', () => {
 
     app = moduleRef.createNestApplication();
     app.enableVersioning({ type: VersioningType.URI });
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.setGlobalPrefix('api');
+    app.useGlobalPipes(new ValidationPipe({
+      whitelist: true, forbidNonWhitelisted: true, transform: true,
+      transformOptions: { enableImplicitConversion: true },
+    }));
+    app.useGlobalFilters(new HttpExceptionFilter());
+    app.useGlobalInterceptors(new TransformInterceptor());
     await app.init();
+
+    const em = moduleRef.get<EntityManager>(getEntityManagerToken());
+    await em.upsert(
+      Ruta,
+      { id: RUTA_ID_ESTE_ARCHIVO, tenant_id: TENANT_ID_DEMO, nombre: 'Ruta E2E — cobros.e2e-spec', activa: true },
+      ['id'],
+    );
 
     // 1. Login como admin para obtener IDs de setup
     const adminLogin = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
-      .send({ email: 'admin@test.oc', password: 'Test1234!' })
+      .send({ email: 'admin@demo.oc', password: 'Admin1234!' })
       .expect(200);
     adminToken = adminLogin.body.data.access_token;
 
     // 2. Login como cobrador
     const cobradorLogin = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
-      .send({ email: 'cobrador@test.oc', password: 'Test1234!' })
+      .send({ email: 'cobrador@demo.oc', password: 'Cobrador1234!' })
       .expect(200);
     cobradoreToken = cobradorLogin.body.data.access_token;
 
@@ -50,7 +75,7 @@ describe('POST /api/v1/cobros/registrar (E2E)', () => {
     const cajaResp = await request(app.getHttpServer())
       .post('/api/v1/cajas/abrir')
       .set('Authorization', `Bearer ${cobradoreToken}`)
-      .send({ monto_apertura: 0 })
+      .send({ ruta_id: RUTA_ID_ESTE_ARCHIVO, monto_apertura: 0 })
       .expect(201);
     cajaId = cajaResp.body.data.id;
 
@@ -82,6 +107,8 @@ describe('POST /api/v1/cobros/registrar (E2E)', () => {
         prestamo_id: prestamoActivoId,
         monto_cobrado: -100,
         caja_id: cajaId,
+        latitud: 18.4861,
+        longitud: -69.9312,
       })
       .expect(400));
 
@@ -93,6 +120,8 @@ describe('POST /api/v1/cobros/registrar (E2E)', () => {
         prestamo_id: prestamoActivoId,
         monto_cobrado: 500,
         caja_id: cajaId,
+        latitud: 18.4861,
+        longitud: -69.9312,
       })
       .expect(400));
 
@@ -105,6 +134,8 @@ describe('POST /api/v1/cobros/registrar (E2E)', () => {
         prestamo_id: uuidv4(), // UUID válido pero no existe
         monto_cobrado: 500,
         caja_id: cajaId,
+        latitud: 18.4861,
+        longitud: -69.9312,
       })
       .expect(404));
 
@@ -118,25 +149,32 @@ describe('POST /api/v1/cobros/registrar (E2E)', () => {
         prestamo_id: prestamoActivoId,
         monto_cobrado: 500,
         caja_id: cajaId,
+        latitud: 18.4861,
+        longitud: -69.9312,
       })
       .expect(201);
 
     const { data } = resp.body;
     expect(data).toHaveProperty('transaccion_id');
-    expect(data).toHaveProperty('monto_cobrado', 500);
-    expect(data).toHaveProperty('distribucion_pago');
+    expect(data).toHaveProperty('distribucion');
 
     // Cascada: mora → interés → capital
-    const dist = data.distribucion_pago;
-    expect(dist).toHaveProperty('mora_pagada');
-    expect(dist).toHaveProperty('interes_pagado');
-    expect(dist).toHaveProperty('capital_pagado');
+    const dist = data.distribucion;
+    expect(dist).toHaveProperty('mora_absorbida');
+    expect(dist).toHaveProperty('interes_absorbido');
+    expect(dist).toHaveProperty('capital_absorbido');
     expect(
-      dist.mora_pagada + dist.interes_pagado + dist.capital_pagado,
+      dist.mora_absorbida + dist.interes_absorbido + dist.capital_absorbido + dist.excedente,
     ).toBeCloseTo(500, 1);
   });
 
   it('409 idempotencia — mismo UUID → DUPLICATE_UUID', async () => {
+    // El endpoint tiene throttle de 5 req/seg (deliberado, ver auditoría de
+    // seguridad); los tests anteriores ya consumieron ese cupo en el mismo
+    // segundo, así que se espera a que se resetee antes de las 2 llamadas
+    // de este test para no confundir "429 por límite" con el 409 real que
+    // se está probando.
+    await new Promise((r) => setTimeout(r, 1100));
     const uuid = uuidv4();
 
     // Primera llamada OK
@@ -148,6 +186,8 @@ describe('POST /api/v1/cobros/registrar (E2E)', () => {
         prestamo_id: prestamoActivoId,
         monto_cobrado: 500,
         caja_id: cajaId,
+        latitud: 18.4861,
+        longitud: -69.9312,
       })
       .expect(201);
 
@@ -160,10 +200,12 @@ describe('POST /api/v1/cobros/registrar (E2E)', () => {
         prestamo_id: prestamoActivoId,
         monto_cobrado: 500,
         caja_id: cajaId,
+        latitud: 18.4861,
+        longitud: -69.9312,
       })
       .expect(409);
 
-    expect(resp.body.error.code).toBe('DUPLICATE_UUID');
-    expect(resp.body.error).toHaveProperty('transaccion_id');
+    expect(resp.body.details.code).toBe('DUPLICATE_UUID');
+    expect(resp.body.details).toHaveProperty('transaccion_id');
   });
 });

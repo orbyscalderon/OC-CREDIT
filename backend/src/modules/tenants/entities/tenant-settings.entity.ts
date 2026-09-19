@@ -47,6 +47,15 @@ export class TenantSettings {
   @Column({ default: false })
   permite_cobro_domingo: boolean;
 
+  /**
+   * Radio máximo (metros) entre el GPS del cobro y la casa registrada del
+   * cliente para aceptar el pago — geocerca antifraude. Si el cliente no
+   * tiene coordenadas registradas, la validación se omite (no se puede
+   * exigir contra un dato que no existe).
+   */
+  @Column({ default: 150 })
+  radio_geocerca_metros: number;
+
   @Column({ length: 50, default: 'America/Santo_Domingo' })
   zona_horaria: string;
 

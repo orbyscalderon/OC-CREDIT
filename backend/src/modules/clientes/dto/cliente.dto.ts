@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsInt, IsNumber, IsOptional, IsString,
+  ArrayMinSize, IsArray, IsInt, IsNumber, IsOptional, IsString,
   Length, Max, Min,
 } from 'class-validator';
 import { IsUuidLike } from '../../../common/decorators/is-uuid-like.decorator';
@@ -31,6 +31,12 @@ export class CrearClienteDto {
   @IsString()
   @Length(1, 20)
   cedula?: string;
+
+  @ApiPropertyOptional({ description: 'Tipo de documento (cedula, dni, ssn, curp…). Default "cedula".' })
+  @IsOptional()
+  @IsString()
+  @Length(1, 30)
+  tipo_documento?: string;
 
   @ApiPropertyOptional({ example: '809-555-1234' })
   @IsOptional()
@@ -76,3 +82,14 @@ export class CrearClienteDto {
 }
 
 export class ActualizarClienteDto extends CrearClienteDto {}
+
+export class ReordenarClientesDto {
+  @ApiProperty({
+    description: 'IDs de los clientes de la ruta en el orden de visita deseado (de principio a fin)',
+    type: [String],
+  })
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsUuidLike({ each: true })
+  orden: string[];
+}

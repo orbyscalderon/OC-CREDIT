@@ -3,6 +3,7 @@ import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { CargoMora } from './entities/cargo-mora.entity';
 import { EstadoCargoMora } from '../../common/constants/roles.enum';
+import { fechaHoyEnZona, horaActualEnZona, diaSemanaEnZona } from '../../common/utils/fecha-negocio.util';
 
 @Injectable()
 export class MoraService {
@@ -14,29 +15,39 @@ export class MoraService {
   ) {}
 
   /**
-   * Calcula y registra mora para todos los tenants activos.
-   * Usa la función PL/pgSQL fn_calcular_mora() definida en la migración.
-   * Se invoca desde el scheduler cada día a las 00:05.
+   * Calcula y registra mora para los tenants activos cuya hora local caiga
+   * ahora mismo en la ventana de proceso (medianoche, lunes a sábado — los
+   * domingos no se cobra). Se invoca desde el scheduler cada hora en punto;
+   * cada tenant solo procesa una vez al día, cuando su propia zona horaria
+   * marca las 00:xx (equivalente al antiguo "5 0 * * 1-6 hora RD", pero
+   * calculado por tenant en vez de globalmente fijo a RD).
    */
-  async calcularMoraTodosLosTenants(): Promise<void> {
-    const tenants = await this.em.query<{ id: string; nombre_empresa: string }[]>(
-      `SELECT id, nombre_empresa FROM tenants WHERE activo = TRUE`,
-    );
+  async calcularMoraTenantsEnVentana(): Promise<void> {
+    const tenants = await this.em.query<{ id: string; nombre_empresa: string; zona_horaria: string }[]>(`
+      SELECT t.id, t.nombre_empresa, COALESCE(ts.zona_horaria, 'America/Santo_Domingo') AS zona_horaria
+      FROM tenants t LEFT JOIN tenant_settings ts ON ts.tenant_id = t.id
+      WHERE t.activo = TRUE
+    `);
 
     let totalRegistros = 0;
 
     for (const tenant of tenants) {
+      const hora = horaActualEnZona(tenant.zona_horaria);
+      const diaSemana = diaSemanaEnZona(tenant.zona_horaria); // 0 = domingo
+      if (hora !== 0 || diaSemana === 0) continue;
+
+      const fechaHoy = fechaHoyEnZona(tenant.zona_horaria);
       try {
         const result = await this.em.query<{ fn_calcular_mora: string }[]>(
-          `SELECT fn_calcular_mora($1) AS fn_calcular_mora`,
-          [tenant.id],
+          `SELECT fn_calcular_mora($1, $2) AS fn_calcular_mora`,
+          [tenant.id, fechaHoy],
         );
         const count = parseInt(result[0]?.fn_calcular_mora ?? '0', 10);
         totalRegistros += count;
 
         if (count > 0) {
           this.logger.log(
-            `Mora calculada: tenant="${tenant.nombre_empresa}" → ${count} nuevos cargos`,
+            `Mora calculada: tenant="${tenant.nombre_empresa}" (${tenant.zona_horaria}) → ${count} nuevos cargos`,
           );
         }
       } catch (err) {
@@ -46,7 +57,9 @@ export class MoraService {
       }
     }
 
-    this.logger.log(`Cálculo de mora completado. Total cargos generados: ${totalRegistros}`);
+    if (totalRegistros > 0) {
+      this.logger.log(`Cálculo de mora completado. Total cargos generados: ${totalRegistros}`);
+    }
   }
 
   async obtenerMorasPrestamo(tenantId: string, prestamoId: string) {

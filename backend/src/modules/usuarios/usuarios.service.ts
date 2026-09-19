@@ -33,6 +33,9 @@ export class CrearEmpleadoDto {
   cedula?: string;
 
   @IsOptional() @IsString() @Length(0, 30)
+  tipo_documento?: string;
+
+  @IsOptional() @IsString() @Length(0, 30)
   telefono?: string;
 }
 
@@ -101,6 +104,7 @@ export class UsuariosService {
         nombre: dto.nombre,
         apellido: dto.apellido,
         cedula: dto.cedula,
+        tipo_documento: dto.tipo_documento || 'cedula',
         telefono: dto.telefono,
         activo: true,
       });

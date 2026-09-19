@@ -27,7 +27,8 @@ import {
 import {
   generarFechasVencimiento,
 } from './helpers/dias-habiles.helper';
-import { fechaHoyRD } from '../../common/utils/fecha-negocio.util';
+import { fechaHoyEnZona } from '../../common/utils/fecha-negocio.util';
+import { ZonaHorariaService } from '../../common/services/zona-horaria.service';
 
 const toCents = (n: number) => Math.round(n * 100);
 const fromCents = (c: number) => Math.round(c) / 100;
@@ -43,6 +44,7 @@ export class PrestamosService {
     @InjectRepository(Ruta) private readonly rutaRepo: Repository<Ruta>,
     private readonly buroCreditoService: BuroCreditoService,
     private readonly planesService: PlanesService,
+    private readonly zonaHorariaService: ZonaHorariaService,
   ) {}
 
   // ─── CREAR SOLICITUD ───────────────────────────────────────────────────────
@@ -88,6 +90,7 @@ export class PrestamosService {
       tasa_interes_pactada: dto.tasa_interes_propuesta ?? 0,  // Propuesta del supervisor; el admin la confirma o cambia al aprobar
       estado: EstadoPrestamo.PENDIENTE,
       notas: dto.notas ?? null,
+      fecha_solicitud: fechaHoyEnZona(await this.zonaHorariaService.obtener(tenantId)),
     });
 
     return this.prestamoRepo.save(prestamo);
@@ -108,7 +111,7 @@ export class PrestamosService {
       });
       if (!prestamo) throw new NotFoundException('Solicitud no encontrada o ya procesada');
 
-      const hoy = fechaHoyRD();
+      const hoy = fechaHoyEnZona(await this.zonaHorariaService.obtener(tenantId));
       const fechaInicio = new Date(dto.fecha_primer_pago);
 
       // Generar fechas de vencimiento respetando días hábiles
@@ -223,6 +226,8 @@ export class PrestamosService {
           .getRawOne<{ saldo: string }>(),
       ]);
 
+      const hoyRenovacion = fechaHoyEnZona(await this.zonaHorariaService.obtener(tenantId));
+
       const saldoTotalDeuda =
         parseFloat(saldoCuotas.saldo) + parseFloat(saldoMora.saldo);
 
@@ -245,7 +250,7 @@ export class PrestamosService {
         .update(CuotaAmortizacion)
         .set({
           estado: EstadoCuota.PAGADO,
-          fecha_pago: fechaHoyRD(),
+          fecha_pago: hoyRenovacion,
           monto_pagado: () => 'monto_total',
           capital_pagado: () => 'capital',
           interes_pagado: () => 'interes',
@@ -261,7 +266,7 @@ export class PrestamosService {
         .update(CargoMora)
         .set({
           estado: EstadoCargoMora.PAGADO,
-          fecha_pago: fechaHoyRD(),
+          fecha_pago: hoyRenovacion,
           monto_pagado: () => 'monto_mora',
         })
         .where('prestamo_id = :pid', { pid: prestamoViejo.id })
@@ -274,7 +279,7 @@ export class PrestamosService {
       });
 
       // 4. Generar el nuevo préstamo
-      const hoy = fechaHoyRD();
+      const hoy = hoyRenovacion;
       const fechaInicio = new Date(dto.fecha_primer_pago);
       const fechas = await generarFechasVencimiento(
         fechaInicio, dto.modalidad as any, dto.numero_cuotas, tenantId, tx,
@@ -359,6 +364,7 @@ export class PrestamosService {
       });
 
       const tenant = await tx.findOne(Tenant, { where: { id: tenantId } });
+      const hoyVencido = fechaHoyEnZona(await this.zonaHorariaService.obtener(tenantId));
 
       // Calcular saldo final pendiente
       const saldoResult = await tx
@@ -382,17 +388,18 @@ export class PrestamosService {
 
       const diasMora = await tx
         .createQueryBuilder(CuotaAmortizacion, 'ca')
-        .select('COALESCE(MAX(CURRENT_DATE - ca.fecha_vencimiento::date), 0)', 'dias')
+        .select('COALESCE(MAX(:hoy::date - ca.fecha_vencimiento::date), 0)', 'dias')
         .where('ca.prestamo_id = :pid', { pid: dto.prestamo_id })
-        .andWhere('ca.fecha_vencimiento < CURRENT_DATE')
+        .andWhere('ca.fecha_vencimiento < :hoy::date')
         .andWhere('ca.estado IN (:...e)', {
           e: [EstadoCuota.PENDIENTE, EstadoCuota.ABONADO, EstadoCuota.VENCIDA],
         })
+        .setParameter('hoy', hoyVencido)
         .getRawOne<{ dias: string }>();
 
       await tx.update(Prestamo, { id: dto.prestamo_id }, {
         estado: EstadoPrestamo.VENCIDO,
-        notas: `${prestamo.notas ?? ''}\n[VENCIDO ${fechaHoyRD()}]: ${dto.motivo}`,
+        notas: `${prestamo.notas ?? ''}\n[VENCIDO ${hoyVencido}]: ${dto.motivo}`,
       });
 
       // Reportar automáticamente al buró si hay deuda real
@@ -495,6 +502,21 @@ export class PrestamosService {
       take: limit,
     });
 
+    // La app móvil del cobrador (única consumidora de este endpoint con
+    // cobradorId fijo) necesita la lista en el orden de visita configurado
+    // por el admin para la ruta, no por fecha de creación del préstamo.
+    // Los sin orden asignado (orden_visita null) quedan al final.
+    if (cobradorId) {
+      data.sort((a, b) => {
+        const oa = a.cliente?.orden_visita;
+        const ob = b.cliente?.orden_visita;
+        if (oa == null && ob == null) return 0;
+        if (oa == null) return 1;
+        if (ob == null) return -1;
+        return oa - ob;
+      });
+    }
+
     return { data: data.map((p) => this.mapPrestamo(p)), total, page, limit };
   }
 
@@ -522,8 +544,9 @@ export class PrestamosService {
     });
     if (!prestamo) throw new NotFoundException('Solicitud no encontrada o ya procesada');
 
+    const hoyRechazo = fechaHoyEnZona(await this.zonaHorariaService.obtener(tenantId));
     prestamo.estado = EstadoPrestamo.RECHAZADO;
-    prestamo.notas = `${prestamo.notas ?? ''}\n[RECHAZADO ${fechaHoyRD()}]: ${dto.motivo}`.trim();
+    prestamo.notas = `${prestamo.notas ?? ''}\n[RECHAZADO ${hoyRechazo}]: ${dto.motivo}`.trim();
 
     const guardado = await this.prestamoRepo.save(prestamo);
     return this.mapPrestamo(guardado);
@@ -537,6 +560,7 @@ export class PrestamosService {
       cliente: p.cliente
         ? { nombre: p.cliente.nombre, apellido: p.cliente.apellido, cedula: p.cliente.cedula }
         : undefined,
+      orden_visita: p.cliente?.orden_visita ?? null,
       cobrador_id: p.cobrador_id,
       ruta_id: p.ruta_id,
       capital_aprobado: p.capital_aprobado ?? p.capital_solicitado,

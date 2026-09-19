@@ -2,12 +2,13 @@ import {
   BadRequestException, Injectable, NotFoundException,
 } from '@nestjs/common';
 import * as path from 'path';
-import { InjectRepository } from '@nestjs/typeorm';
-import { ILike, In, Repository } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, ILike, In, Repository } from 'typeorm';
 import { Cliente } from './entities/cliente.entity';
 import { Ruta } from '../rutas/entities/ruta.entity';
 import { BuroCreditoService } from '../buro-credito/buro-credito.service';
 import { CrearClienteDto, ActualizarClienteDto } from './dto/cliente.dto';
+import { ordenarPorCercania } from '../../common/utils/geo.util';
 
 export interface PaginatedClientes {
   data: Cliente[];
@@ -22,6 +23,7 @@ export class ClientesService {
     @InjectRepository(Cliente) private readonly repo: Repository<Cliente>,
     @InjectRepository(Ruta) private readonly rutaRepo: Repository<Ruta>,
     private readonly buroCreditoService: BuroCreditoService,
+    @InjectDataSource() private readonly dataSource: DataSource,
   ) {}
 
   /** Rutas asignadas a un cobrador — usado para acotar su búsqueda a sus propios clientes. */
@@ -113,7 +115,43 @@ export class ClientesService {
   async reasignarRuta(tenantId: string, clienteId: string, nuevaRutaId: string): Promise<void> {
     const c = await this.obtener(tenantId, clienteId);
     c.ruta_id = nuevaRutaId;
+    // El orden de visita es específico de cada ruta: al mover el cliente se
+    // reinicia para que no colisione con el orden ya definido en la ruta
+    // destino. Queda al final (orden_visita null) hasta que se reordene.
+    c.orden_visita = null;
     await this.repo.save(c);
+  }
+
+  /** Guarda el orden de visita completo de una ruta de una sola vez (drag-and-drop en el panel). */
+  async reordenar(tenantId: string, rutaId: string, orden: string[]): Promise<Cliente[]> {
+    const clientesRuta = await this.repo.find({
+      where: { tenant_id: tenantId, ruta_id: rutaId },
+      select: ['id'],
+    });
+    const idsValidos = new Set(clientesRuta.map((c) => c.id));
+    const idsInvalidos = orden.filter((id) => !idsValidos.has(id));
+    if (idsInvalidos.length > 0) {
+      throw new BadRequestException('Uno o más clientes no pertenecen a esta ruta');
+    }
+
+    await this.dataSource.transaction(async (manager) => {
+      await Promise.all(
+        orden.map((id, index) =>
+          manager.update(Cliente, { id, tenant_id: tenantId }, { orden_visita: index }),
+        ),
+      );
+    });
+
+    return this.obtenerPorRuta(tenantId, rutaId);
+  }
+
+  /** Reordena automáticamente los clientes de una ruta por cercanía geográfica (vecino más cercano). */
+  async ordenarAutomatico(tenantId: string, rutaId: string): Promise<Cliente[]> {
+    const clientes = await this.obtenerPorRuta(tenantId, rutaId);
+    const ordenados = ordenarPorCercania(
+      clientes.map((c) => ({ id: c.id, lat: c.latitud_casa, lng: c.longitud_casa })),
+    );
+    return this.reordenar(tenantId, rutaId, ordenados.map((p) => p.id));
   }
 
   async listar(tenantId: string, page = 1, limit = 30, q?: string): Promise<PaginatedClientes> {

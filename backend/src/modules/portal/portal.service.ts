@@ -20,6 +20,7 @@ export class PortalService {
     const clientes = await this.ds.query(`
       SELECT
         cl.id, cl.nombre, cl.apellido, cl.cedula, cl.telefono,
+        COALESCE(ts.simbolo_moneda, 'RD$') AS simbolo_moneda,
         json_agg(json_build_object(
           'prestamo_id',   pr.id,
           'capital',       pr.capital_aprobado,
@@ -42,8 +43,9 @@ export class PortalService {
         ) ORDER BY pr.created_at DESC) AS prestamos
       FROM clientes cl
       LEFT JOIN prestamos pr ON pr.cliente_id = cl.id AND pr.estado IN ('Activo','Vencido')
+      LEFT JOIN tenant_settings ts ON ts.tenant_id = cl.tenant_id
       WHERE cl.cedula = $1 AND cl.tenant_id = $2 AND cl.activo = TRUE
-      GROUP BY cl.id
+      GROUP BY cl.id, ts.simbolo_moneda
     `, [cedula, tenantId]);
 
     if (!clientes.length) throw new NotFoundException('No se encontró cliente con esa cédula');

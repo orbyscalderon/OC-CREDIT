@@ -38,6 +38,10 @@ export class Cliente {
   @Column({ length: 20, nullable: true })
   cedula: string;
 
+  /** Código del tipo de documento (ver `common/constants/documentos-identidad.ts`) — no el nombre legal del país, solo desambigua el buró cross-tenant. */
+  @Column({ length: 30, default: 'cedula' })
+  tipo_documento: string;
+
   @Column({ length: 30, nullable: true })
   telefono: string;
 

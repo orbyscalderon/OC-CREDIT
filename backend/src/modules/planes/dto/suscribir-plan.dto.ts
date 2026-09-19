@@ -1,6 +1,6 @@
 import { IsIn, IsOptional, IsString } from 'class-validator';
 
-const PLANES_VALIDOS = ['basico', 'pro'];
+const PLANES_VALIDOS = ['basico', 'growth', 'pro'];
 
 export class SuscribirPlanDto {
   @IsIn(PLANES_VALIDOS)

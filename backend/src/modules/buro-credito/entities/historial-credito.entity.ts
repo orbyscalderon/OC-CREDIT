@@ -23,8 +23,8 @@ const moneyTransformer = {
  * Solo un super_admin puede inactivar (activo=FALSE), nunca borrar.
  */
 @Entity('buro_credito')
-@Index(['cedula'])
-@Index(['cedula', 'activo'])
+@Index(['cedula', 'tipo_documento'])
+@Index(['cedula', 'tipo_documento', 'activo'])
 export class HistorialCredito {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -32,6 +32,9 @@ export class HistorialCredito {
   // ── Identificación permanente del deudor ─────────────────────────────────
   @Column({ length: 20 })
   cedula: string;
+
+  @Column({ length: 30, default: 'cedula' })
+  tipo_documento: string;
 
   @Column({ length: 100 })
   nombre: string;
