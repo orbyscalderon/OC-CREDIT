@@ -276,7 +276,18 @@ export function PrestamoNuevoPage() {
           </button>
           {showCalc && (
             <div className="mt-3 rounded-xl border border-gray-200 p-4 bg-gray-50">
-              <CalculadoraPrestamo simboloMoneda={user?.tenant_simbolo_moneda ?? 'RD$'} />
+              {/* key fuerza a re-sembrar la calculadora con los valores actuales
+                  del formulario cada vez que cambian -- antes siempre abría con
+                  los defaults hardcodeados (10000/20%/10/Diario), ignorando el
+                  préstamo que se está solicitando. */}
+              <CalculadoraPrestamo
+                key={`${capital}-${tasa}-${cuotas}-${modalidad}`}
+                simboloMoneda={user?.tenant_simbolo_moneda ?? 'RD$'}
+                capitalInicial={capital || undefined}
+                tasaInicial={tasa || undefined}
+                cuotasInicial={cuotas || undefined}
+                modalidadInicial={modalidad}
+              />
             </div>
           )}
         </div>

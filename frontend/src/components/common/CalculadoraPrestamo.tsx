@@ -39,13 +39,23 @@ function calcularPlan(capital: number, tasaPct: number, numCuotas: number): Cuot
 
 interface CalculadoraPrestamoProps {
   simboloMoneda?: string;
+  capitalInicial?: number;
+  tasaInicial?: number;
+  cuotasInicial?: number;
+  modalidadInicial?: typeof MODALIDADES[number];
 }
 
-export function CalculadoraPrestamo({ simboloMoneda = 'RD$' }: CalculadoraPrestamoProps) {
-  const [capital, setCapital] = useState(10000);
-  const [tasa, setTasa] = useState(20);
-  const [cuotas, setCuotas] = useState(10);
-  const [modalidad, setModalidad] = useState<typeof MODALIDADES[number]>('Diario');
+export function CalculadoraPrestamo({
+  simboloMoneda = 'RD$',
+  capitalInicial = 10000,
+  tasaInicial = 20,
+  cuotasInicial = 10,
+  modalidadInicial = 'Diario',
+}: CalculadoraPrestamoProps) {
+  const [capital, setCapital] = useState(capitalInicial);
+  const [tasa, setTasa] = useState(tasaInicial);
+  const [cuotas, setCuotas] = useState(cuotasInicial);
+  const [modalidad, setModalidad] = useState<typeof MODALIDADES[number]>(modalidadInicial);
 
   const plan = useMemo(
     () => (cuotas > 0 ? calcularPlan(capital, tasa, cuotas) : []),
