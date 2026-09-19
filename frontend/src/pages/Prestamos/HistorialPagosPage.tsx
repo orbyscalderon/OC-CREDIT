@@ -29,9 +29,16 @@ interface RenovacionInfo {
   saldo_liquidado: number;
 }
 
+interface ClienteInfo {
+  nombre: string;
+  apellido: string;
+  cedula: string | null;
+}
+
 interface HistorialResponse {
   transacciones: Transaccion[];
   renovacion: RenovacionInfo | null;
+  cliente: ClienteInfo | null;
 }
 
 export function HistorialPagosPage() {
@@ -48,6 +55,7 @@ export function HistorialPagosPage() {
 
   const historial = data?.transacciones ?? [];
   const renovacion = data?.renovacion ?? null;
+  const cliente = data?.cliente ?? null;
 
   const fmt = (n: number) => formatCurrency(n, settings);
 
@@ -57,8 +65,8 @@ export function HistorialPagosPage() {
     if (!t.distribucion_pago) return;
     generarReciboPDF({
       transaccionId: t.id,
-      clienteNombre: 'Cliente',
-      clienteCedula: '',
+      clienteNombre: cliente ? `${cliente.nombre} ${cliente.apellido}` : 'Cliente',
+      clienteCedula: cliente?.cedula ?? '',
       montoCobrado: Number(t.monto),
       distribucion: t.distribucion_pago,
       cobrador: t.cobrador,

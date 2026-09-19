@@ -178,7 +178,17 @@ export class ReportesService {
         }
       : null;
 
-    return { transacciones, renovacion };
+    const clienteRows = await this.em.query<any[]>(`
+      SELECT c.nombre, c.apellido, c.cedula
+      FROM prestamos p
+      JOIN clientes c ON c.id = p.cliente_id
+      WHERE p.id = $1 AND p.tenant_id = $2
+    `, [prestamoId, tenantId]);
+    const cliente = clienteRows[0]
+      ? { nombre: clienteRows[0].nombre, apellido: clienteRows[0].apellido, cedula: clienteRows[0].cedula }
+      : null;
+
+    return { transacciones, renovacion, cliente };
   }
 
   // ─── CUENTAS POR COBRAR ───────────────────────────────────────────────────
