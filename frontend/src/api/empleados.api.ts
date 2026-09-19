@@ -12,6 +12,7 @@ export const empleadosApi = {
     password: string;
     rol: string;
     cedula?: string;
+    tipo_documento?: string;
     telefono?: string;
   }) => api.post<Empleado>('/usuarios', dto).then((r) => r.data),
 

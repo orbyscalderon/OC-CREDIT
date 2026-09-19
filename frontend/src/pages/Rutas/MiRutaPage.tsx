@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Phone, MapPin, PiggyBank, Route as RouteIcon } from 'lucide-react';
@@ -6,6 +7,7 @@ import { rutasApi } from '@/api/rutas.api';
 import { clientesApi } from '@/api/clientes.api';
 
 export function MiRutaPage() {
+  const { t } = useTranslation();
   const { data: rutas = [], isLoading: cargandoRutas } = useQuery({
     queryKey: ['mis-rutas'],
     queryFn: rutasApi.misRutas,
@@ -23,15 +25,15 @@ export function MiRutaPage() {
   return (
     <div className="p-6 space-y-5 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Mi Ruta</h1>
-        <p className="text-sm text-gray-500">Clientes que debes visitar y cobrar hoy</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('rutas.mi_ruta_titulo')}</h1>
+        <p className="text-sm text-gray-500">{t('rutas.mi_ruta_subtitulo')}</p>
       </div>
 
       {cargandoRutas ? (
-        <p className="text-sm text-gray-400">Cargando rutas…</p>
+        <p className="text-sm text-gray-400">{t('rutas.cargando_rutas')}</p>
       ) : rutas.length === 0 ? (
         <div className="card p-6 text-center text-sm text-amber-600 bg-amber-50">
-          No tienes ninguna ruta asignada. Pide a tu administrador que te asigne una.
+          {t('rutas.sin_ruta_asignada')}
         </div>
       ) : (
         <>
@@ -55,10 +57,10 @@ export function MiRutaPage() {
           )}
 
           {cargandoClientes ? (
-            <p className="text-sm text-gray-400">Cargando clientes…</p>
+            <p className="text-sm text-gray-400">{t('rutas.cargando_clientes')}</p>
           ) : clientes.length === 0 ? (
             <div className="card p-8 text-center text-sm text-gray-400">
-              Esta ruta no tiene clientes asignados todavía.
+              {t('rutas.sin_clientes_ruta')}
             </div>
           ) : (
             <div className="space-y-2">
@@ -92,7 +94,7 @@ export function MiRutaPage() {
                     className="btn-primary flex-shrink-0 text-xs px-3 py-2"
                   >
                     <PiggyBank size={14} />
-                    Cobrar
+                    {t('rutas.cobrar')}
                   </Link>
                 </div>
               ))}

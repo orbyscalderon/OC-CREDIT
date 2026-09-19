@@ -37,7 +37,11 @@ function calcularPlan(capital: number, tasaPct: number, numCuotas: number): Cuot
   return plan;
 }
 
-export function CalculadoraPrestamo() {
+interface CalculadoraPrestamoProps {
+  simboloMoneda?: string;
+}
+
+export function CalculadoraPrestamo({ simboloMoneda = 'RD$' }: CalculadoraPrestamoProps) {
   const [capital, setCapital] = useState(10000);
   const [tasa, setTasa] = useState(20);
   const [cuotas, setCuotas] = useState(10);
@@ -53,7 +57,7 @@ export function CalculadoraPrestamo() {
   const cuotaMonto = plan[0]?.total ?? 0;
 
   const fmt = (n: number) =>
-    'RD$ ' + n.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    `${simboloMoneda} ` + n.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 max-w-md mx-auto">

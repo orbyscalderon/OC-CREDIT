@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { planesApi, type Plan } from '@/api/planes.api';
@@ -7,6 +8,7 @@ import { authStore } from '@/stores/auth.store';
 import { clsx } from 'clsx';
 
 export function SuscripcionVencidaPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [planSeleccionado, setPlanSeleccionado] = useState<string | null>(null);
   const [anual, setAnual] = useState(false);
@@ -29,9 +31,9 @@ export function SuscripcionVencidaPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6 py-12">
       <div className="max-w-lg w-full text-center mb-8">
-        <h1 className="text-2xl font-extrabold text-gray-900 mb-2">Tu período de prueba terminó</h1>
+        <h1 className="text-2xl font-extrabold text-gray-900 mb-2">{t('suscripcion.titulo')}</h1>
         <p className="text-gray-500">
-          Elige un plan para seguir usando tu cuenta. Tus datos siguen intactos.
+          {t('suscripcion.subtitulo')}
         </p>
       </div>
 
@@ -40,13 +42,13 @@ export function SuscripcionVencidaPage() {
           onClick={() => setAnual(false)}
           className={clsx('rounded-full px-4 py-1.5 text-sm font-medium', !anual ? 'bg-white shadow text-gray-900' : 'text-gray-500')}
         >
-          Mensual
+          {t('suscripcion.mensual')}
         </button>
         <button
           onClick={() => setAnual(true)}
           className={clsx('rounded-full px-4 py-1.5 text-sm font-medium', anual ? 'bg-white shadow text-gray-900' : 'text-gray-500')}
         >
-          Anual <span className="ml-1 text-xs text-green-600 font-bold">-15%</span>
+          {t('suscripcion.anual')} <span className="ml-1 text-xs text-green-600 font-bold">{t('suscripcion.descuento_anual')}</span>
         </button>
       </div>
 
@@ -73,7 +75,7 @@ export function SuscripcionVencidaPage() {
       {planSeleccionado && (
         <div className="max-w-sm w-full space-y-3">
           <p className="text-center text-xs font-medium text-gray-500">
-            Total: <strong className="text-gray-900">${precio.toFixed(2)} USD</strong>{anual ? ' / año' : ' / mes'}
+            {t('suscripcion.total')} <strong className="text-gray-900">${precio.toFixed(2)} USD</strong>{anual ? t('suscripcion.por_ano') : t('suscripcion.por_mes')}
           </p>
           <GooglePayButton
             amountUsd={precio}
@@ -84,7 +86,7 @@ export function SuscripcionVencidaPage() {
           {error && <p className="text-center text-sm text-red-600">{error}</p>}
           {suscribirMut.isError && (
             <p className="text-center text-sm text-red-600">
-              {(suscribirMut.error as { message?: string } | null)?.message ?? 'Error al procesar el pago'}
+              {(suscribirMut.error as { message?: string } | null)?.message ?? t('suscripcion.error_pago')}
             </p>
           )}
         </div>
@@ -94,7 +96,7 @@ export function SuscripcionVencidaPage() {
         onClick={() => { authStore.clearSession(); navigate('/login'); }}
         className="mt-10 text-sm text-gray-400 hover:text-gray-600"
       >
-        Cerrar sesión
+        {t('suscripcion.cerrar_sesion')}
       </button>
     </div>
   );

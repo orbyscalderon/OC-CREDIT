@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, CreditCard, Wallet,
+  LayoutDashboard, Users, UserPlus, CreditCard, Wallet,
   MapPin, ShieldAlert, BarChart3, Settings, LogOut,
   Globe, Crown, ClipboardList, HardDrive, ChevronRight,
   UserCog, PiggyBank, CalendarOff, Route as RouteIcon,
@@ -15,6 +15,7 @@ import { clsx } from 'clsx';
 const navItems = [
   { to: '/panel',          label: 'Dashboard',       icon: LayoutDashboard, roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT] },
   { to: '/clientes',       label: 'Clientes',         icon: Users,           roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT] },
+  { to: '/clientes/nuevo', label: 'Nuevo Cliente',    icon: UserPlus,        roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT] },
   { to: '/mi-ruta',        label: 'Mi Ruta',          icon: RouteIcon,       roles: [Rol.COBRADOR_TENANT] },
   { to: '/prestamos',      label: 'Préstamos',        icon: CreditCard,      roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT] },
   { to: '/cajas',          label: 'Cajas / Cobros',   icon: Wallet,          roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT] },
@@ -88,7 +89,7 @@ export function Sidebar() {
           <NavLink
             key={to}
             to={to}
-            end={to === '/panel'}
+            end={to === '/panel' || to === '/clientes'}
             style={({ isActive }) => ({
               animationDelay: `${i * 25}ms`,
               background: isActive ? SIDEBAR_ACTIVE_BG : 'transparent',

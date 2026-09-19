@@ -25,6 +25,7 @@ export interface RegistrarTenantDto {
   apellido_admin: string;
   telefono?: string;
   ruc_cedula?: string;
+  pais?: string;
   plan_id: string;
   facturacion_anual?: boolean;
 }

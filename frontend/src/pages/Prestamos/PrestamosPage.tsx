@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Eye, PlusCircle } from 'lucide-react';
 import { prestamosApi } from '@/api/prestamos.api';
@@ -8,10 +9,14 @@ import { Badge, estadoPrestamoVariant } from '@/components/common/Badge';
 import type { EstadoPrestamo, Prestamo } from '@/types';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useAuth } from '@/hooks/useAuth';
+import { formatCurrency } from '@/utils/format';
 
 const ESTADOS: EstadoPrestamo[] = ['Activo', 'Pendiente', 'Vencido', 'Pagado', 'Rechazado'];
 
 export function PrestamosPage() {
+  const { t } = useTranslation();
+  const { user } = useAuth();
   const [estado, setEstado] = useState<string>('');
   const [page, setPage]     = useState(1);
 
@@ -21,8 +26,7 @@ export function PrestamosPage() {
     placeholderData: (prev) => prev,
   });
 
-  const fmt = (n: number) =>
-    'RD$ ' + Number(n).toLocaleString('es-DO', { minimumFractionDigits: 2 });
+  const fmt = (n: number) => formatCurrency(n, user);
 
   const total      = data?.total ?? 0;
   const totalPages = Math.ceil(total / 20);
@@ -32,12 +36,12 @@ export function PrestamosPage() {
     <div className="p-6 space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Préstamos</h1>
-          <p className="text-sm text-gray-500">{total} en total</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('prestamos.titulo')}</h1>
+          <p className="text-sm text-gray-500">{t('prestamos.en_total', { count: total })}</p>
         </div>
         <Link to="/prestamos/nueva-solicitud" className="btn-primary">
           <PlusCircle size={15} />
-          Nueva solicitud
+          {t('prestamos.nueva_solicitud')}
         </Link>
       </div>
 
@@ -51,7 +55,7 @@ export function PrestamosPage() {
               : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
           }`}
         >
-          Todos
+          {t('prestamos.todos')}
         </button>
         {ESTADOS.map((e) => (
           <button
@@ -72,7 +76,7 @@ export function PrestamosPage() {
         columns={[
           {
             key: 'cliente',
-            header: 'Cliente',
+            header: t('prestamos.col_cliente'),
             render: (r) =>
               r.cliente
                 ? `${r.cliente.nombre} ${r.cliente.apellido}`
@@ -80,19 +84,19 @@ export function PrestamosPage() {
           },
           {
             key: 'capital_aprobado',
-            header: 'Capital',
+            header: t('prestamos.col_capital'),
             render: (r) => <span className="mono-nums">{fmt(r.capital_aprobado)}</span>,
           },
-          { key: 'modalidad', header: 'Modalidad' },
-          { key: 'num_cuotas', header: 'Cuotas' },
+          { key: 'modalidad', header: t('prestamos.col_modalidad') },
+          { key: 'num_cuotas', header: t('prestamos.col_cuotas') },
           {
             key: 'tasa_interes',
-            header: 'Tasa',
+            header: t('prestamos.col_tasa'),
             render: (r) => <span className="mono-nums">{r.tasa_interes}%</span>,
           },
           {
             key: 'fecha_aprobacion',
-            header: 'Fecha',
+            header: t('prestamos.col_fecha'),
             render: (r) =>
               r.fecha_aprobacion
                 ? format(new Date(r.fecha_aprobacion), 'dd/MM/yyyy', { locale: es })
@@ -100,7 +104,7 @@ export function PrestamosPage() {
           },
           {
             key: 'estado',
-            header: 'Estado',
+            header: t('prestamos.col_estado'),
             render: (r) => <Badge label={r.estado} variant={estadoPrestamoVariant(r.estado)} />,
           },
           {
@@ -112,7 +116,7 @@ export function PrestamosPage() {
                 className="inline-flex items-center gap-1 text-xs text-brand-600 hover:text-brand-800 font-medium transition-colors"
               >
                 <Eye size={13} />
-                Ver
+                {t('common.ver')}
               </Link>
             ),
           },
@@ -120,7 +124,7 @@ export function PrestamosPage() {
         data={data?.data ?? []}
         keyField="id"
         loading={isLoading}
-        emptyMessage="No hay préstamos"
+        emptyMessage={t('prestamos.sin_resultados')}
       />
 
       {/* S2-14: Página X de Y */}
@@ -131,17 +135,17 @@ export function PrestamosPage() {
             disabled={page === 1}
             className="btn-secondary px-3 py-1.5 text-xs disabled:opacity-40"
           >
-            Anterior
+            {t('common.anterior')}
           </button>
           <span className="text-gray-500 text-xs">
-            Página <span className="font-semibold text-gray-800">{page}</span> de <span className="font-semibold text-gray-800">{totalPages}</span>
+            {t('common.pagina')} <span className="font-semibold text-gray-800">{page}</span> {t('common.de')} <span className="font-semibold text-gray-800">{totalPages}</span>
           </span>
           <button
             onClick={() => setPage((p) => p + 1)}
             disabled={page >= totalPages}
             className="btn-secondary px-3 py-1.5 text-xs disabled:opacity-40"
           >
-            Siguiente
+            {t('common.siguiente')}
           </button>
         </div>
       )}

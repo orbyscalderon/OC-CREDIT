@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Map, PlusCircle, Eye, Power } from 'lucide-react';
 import { rutasApi } from '@/api/rutas.api';
@@ -6,6 +7,7 @@ import { Table } from '@/components/common/Table';
 import type { Ruta } from '@/types';
 
 export function RutasPage() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
 
   const { data: rutas, isLoading } = useQuery({
@@ -21,23 +23,23 @@ export function RutasPage() {
   return (
     <div className="p-6 space-y-5">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Rutas de Cobro</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('rutas.titulo')}</h1>
         <Link to="/rutas/nueva" className="btn-primary">
           <PlusCircle size={15} />
-          Nueva ruta
+          {t('rutas.nueva')}
         </Link>
       </div>
 
       <Table<Ruta>
         columns={[
-          { key: 'nombre', header: 'Nombre' },
-          { key: 'descripcion', header: 'Descripción', render: (r) => r.descripcion ?? '—' },
+          { key: 'nombre', header: t('rutas.col_nombre') },
+          { key: 'descripcion', header: t('rutas.col_descripcion'), render: (r) => r.descripcion ?? '—' },
           {
             key: 'activa',
-            header: 'Estado',
+            header: t('rutas.col_estado'),
             render: (r) => (
               <span className={`text-xs font-medium ${r.activa ? 'text-emerald-600' : 'text-gray-400'}`}>
-                {r.activa ? 'Activa' : 'Inactiva'}
+                {r.activa ? t('rutas.activa') : t('rutas.inactiva')}
               </span>
             ),
           },
@@ -51,14 +53,14 @@ export function RutasPage() {
                   className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 hover:underline"
                 >
                   <Eye size={13} />
-                  Detalle
+                  {t('rutas.detalle')}
                 </Link>
                 <Link
                   to={`/rutas/${r.id}/mapa`}
                   className="flex items-center gap-1 text-xs text-brand-600 hover:underline"
                 >
                   <Map size={13} />
-                  Mapa
+                  {t('rutas.mapa')}
                 </Link>
                 <button
                   onClick={() => toggleMut.mutate({ id: r.id, activa: !r.activa })}
@@ -68,7 +70,7 @@ export function RutasPage() {
                   }`}
                 >
                   <Power size={13} />
-                  {r.activa ? 'Desactivar' : 'Activar'}
+                  {r.activa ? t('rutas.desactivar') : t('rutas.activar')}
                 </button>
               </div>
             ),
@@ -77,7 +79,7 @@ export function RutasPage() {
         data={rutas ?? []}
         keyField="id"
         loading={isLoading}
-        emptyMessage="Sin rutas registradas"
+        emptyMessage={t('rutas.sin_registradas')}
       />
     </div>
   );

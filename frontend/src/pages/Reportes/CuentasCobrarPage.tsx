@@ -1,10 +1,13 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { api } from '@/api/axios';
 import { Badge } from '@/components/common/Badge';
 import { ArrowUpRight, Download } from 'lucide-react';
 import { exportarCSV } from '@/utils/export';
+import { useAuth } from '@/hooks/useAuth';
+import { formatCurrency } from '@/utils/format';
 
 interface CuentaCobrar {
   prestamo_id: string;
@@ -23,6 +26,8 @@ interface CuentaCobrar {
 }
 
 export function CuentasCobrarPage() {
+  const { t } = useTranslation();
+  const { user } = useAuth();
   const [soloVencidos, setSoloVencidos] = useState(false);
 
   const { data = [], isLoading } = useQuery<CuentaCobrar[]>({
@@ -32,8 +37,7 @@ export function CuentasCobrarPage() {
     refetchInterval: 60_000,
   });
 
-  const fmt = (n: number) =>
-    'RD$ ' + Number(n).toLocaleString('es-DO', { minimumFractionDigits: 2 });
+  const fmt = (n: number) => formatCurrency(n, user);
 
   const totalSaldo = data.reduce((s, r) => s + Number(r.saldo_pendiente), 0);
   const totalMora  = data.reduce((s, r) => s + Number(r.mora_total), 0);
@@ -42,8 +46,8 @@ export function CuentasCobrarPage() {
     <div className="p-6 space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Cuentas por Cobrar</h1>
-          <p className="text-sm text-gray-500">{data.length} préstamos con saldo pendiente</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('reportes.cuentas_cobrar_titulo')}</h1>
+          <p className="text-sm text-gray-500">{t('reportes.prestamos_saldo_pendiente', { count: data.length })}</p>
         </div>
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none">
@@ -53,30 +57,30 @@ export function CuentasCobrarPage() {
               onChange={(e) => setSoloVencidos(e.target.checked)}
               className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
             />
-            Solo vencidos
+            {t('reportes.solo_vencidos')}
           </label>
           {data.length > 0 && (
             <button
               onClick={() => exportarCSV(
                 data.map((r) => ({
-                  'Nombre':            `${r.nombre} ${r.apellido}`,
-                  'Cédula':            r.cedula,
-                  'Teléfono':          r.telefono,
-                  'Ruta':              r.ruta ?? '',
-                  'Capital aprobado':  r.capital_aprobado,
-                  'Cuotas pendientes': r.cuotas_pendientes,
-                  'Saldo pendiente':   r.saldo_pendiente,
-                  'Mora total':        r.mora_total,
-                  'Días de atraso':    r.dias_atraso,
-                  'Estado':            r.estado_prestamo,
-                  'Próx. vencimiento': r.proxima_fecha_vencimiento,
+                  [t('reportes.csv_nombre')]:              `${r.nombre} ${r.apellido}`,
+                  [t('reportes.col_cedula')]:               r.cedula,
+                  [t('reportes.csv_telefono')]:            r.telefono,
+                  [t('reportes.csv_ruta')]:                r.ruta ?? '',
+                  [t('reportes.csv_capital_aprobado')]:    r.capital_aprobado,
+                  [t('reportes.csv_cuotas_pendientes')]:   r.cuotas_pendientes,
+                  [t('reportes.csv_saldo_pendiente')]:     r.saldo_pendiente,
+                  [t('reportes.csv_mora_total')]:          r.mora_total,
+                  [t('reportes.csv_dias_atraso')]:         r.dias_atraso,
+                  [t('reportes.csv_estado')]:              r.estado_prestamo,
+                  [t('reportes.csv_proximo_vencimiento')]: r.proxima_fecha_vencimiento,
                 })),
                 `cuentas-cobrar-${new Date().toISOString().slice(0, 10)}`
               )}
               className="btn-secondary text-xs"
             >
               <Download size={13} />
-              Exportar Excel
+              {t('reportes.exportar_excel')}
             </button>
           )}
         </div>
@@ -85,11 +89,11 @@ export function CuentasCobrarPage() {
       {/* Totales */}
       <div className="grid grid-cols-2 gap-4">
         <div className="card p-4">
-          <p className="text-xs font-semibold text-blue-500 uppercase tracking-wide">Saldo total pendiente</p>
+          <p className="text-xs font-semibold text-blue-500 uppercase tracking-wide">{t('reportes.saldo_total_pendiente')}</p>
           <p className="text-xl font-extrabold text-blue-700 mt-1.5 mono-nums">{fmt(totalSaldo)}</p>
         </div>
         <div className="bg-white rounded-2xl border border-red-100 p-4 shadow-card">
-          <p className="text-xs font-semibold text-red-500 uppercase tracking-wide">Mora total acumulada</p>
+          <p className="text-xs font-semibold text-red-500 uppercase tracking-wide">{t('reportes.mora_total_acumulada')}</p>
           <p className="text-xl font-extrabold text-red-700 mt-1.5 mono-nums">{fmt(totalMora)}</p>
         </div>
       </div>
@@ -99,7 +103,7 @@ export function CuentasCobrarPage() {
         <table className="w-full text-sm">
           <thead style={{ background: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
             <tr>
-              {['Cliente', 'Cédula', 'Ruta', 'Cuotas', 'Saldo', 'Mora', 'Días atraso', 'Estado', ''].map((h) => (
+              {[t('reportes.col_cliente'), t('reportes.col_cedula'), t('reportes.col_ruta'), t('reportes.col_cuotas'), t('reportes.col_saldo'), t('reportes.col_mora'), t('reportes.col_dias_atraso'), t('reportes.csv_estado'), ''].map((h) => (
                 <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider whitespace-nowrap">
                   {h}
                 </th>
@@ -120,7 +124,7 @@ export function CuentasCobrarPage() {
             ) : data.length === 0 ? (
               <tr>
                 <td colSpan={9} className="py-12 text-center text-gray-400 text-sm">
-                  Sin cuentas pendientes
+                  {t('reportes.sin_cuentas_pendientes')}
                 </td>
               </tr>
             ) : (
@@ -140,7 +144,7 @@ export function CuentasCobrarPage() {
                         {r.dias_atraso}d
                       </span>
                     ) : (
-                      <span className="text-emerald-500 text-xs font-medium">Al día</span>
+                      <span className="text-emerald-500 text-xs font-medium">{t('reportes.al_dia')}</span>
                     )}
                   </td>
                   <td className="px-4 py-3.5">
@@ -151,7 +155,7 @@ export function CuentasCobrarPage() {
                       to={`/prestamos/${r.prestamo_id}`}
                       className="inline-flex items-center gap-1 text-xs text-brand-600 hover:text-brand-800 font-medium transition-colors"
                     >
-                      Ver <ArrowUpRight size={11} />
+                      {t('common.ver')} <ArrowUpRight size={11} />
                     </Link>
                   </td>
                 </tr>

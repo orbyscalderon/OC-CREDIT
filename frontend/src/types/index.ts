@@ -28,6 +28,8 @@ export interface TenantSettings {
   texto_pie_recibo: string | null;
   nombre_comercial: string | null;
   whatsapp_activo: boolean;
+  zona_horaria: string;
+  formato_fecha: string;
 }
 
 // ─── Cliente ─────────────────────────────────────────────────────────────────
@@ -35,6 +37,7 @@ export interface TenantSettings {
 export interface Cliente {
   id: string;
   cedula: string | null;
+  tipo_documento: string;
   nombre: string;
   apellido: string;
   telefono: string | null;
@@ -43,8 +46,22 @@ export interface Cliente {
   longitud_casa: number | null;
   activo: boolean;
   ruta_id: string | null;
+  orden_visita: number | null;
   foto_cedula_frontal_url: string | null;
   foto_cedula_trasera_url: string | null;
+  created_at: string;
+}
+
+export interface HistorialCobradorRuta {
+  id: string;
+  ruta_id: string;
+  ruta_nombre: string;
+  cobrador_anterior_id: string | null;
+  cobrador_anterior_nombre: string | null;
+  cobrador_nuevo_id: string;
+  cobrador_nuevo_nombre: string;
+  cambiado_por_id: string;
+  cambiado_por_nombre: string | null;
   created_at: string;
 }
 

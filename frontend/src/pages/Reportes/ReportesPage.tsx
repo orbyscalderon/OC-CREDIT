@@ -1,9 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { reportesApi } from '@/api/reportes.api';
 import { Badge } from '@/components/common/Badge';
 import { AlertTriangle, Download } from 'lucide-react';
 import { exportarCSV } from '@/utils/export';
+import { useAuth } from '@/hooks/useAuth';
+import { formatCurrency } from '@/utils/format';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, CartesianGrid,
@@ -23,55 +26,57 @@ function cuadreVariant(estado: string) {
 }
 
 export function ReportesPage() {
+  const { t } = useTranslation();
+  const { user } = useAuth();
   const { data: aging,           isLoading: loadingAging    } = useQuery({ queryKey: ['aging'],              queryFn: reportesApi.aging });
   const { data: arqueos,         isLoading: loadingArqueos  } = useQuery({ queryKey: ['arqueos-hoy'],        queryFn: () => reportesApi.arqueosDia() });
   const { data: moraSresumen,    isLoading: loadingMora     } = useQuery({ queryKey: ['mora-resumen'],        queryFn: reportesApi.moraSresumen });
   const { data: ingresosMens,    isLoading: loadingIngresos } = useQuery({ queryKey: ['ingresos-mensuales'], queryFn: reportesApi.ingresosMensuales });
 
-  const fmt = (n: number) =>
-    'RD$ ' + Number(n).toLocaleString('es-DO', { minimumFractionDigits: 2 });
+  const simbolo = user?.tenant_simbolo_moneda ?? 'RD$';
+  const fmt = (n: number) => formatCurrency(n, user);
 
   return (
     /* S1-6: animate-fade-in */
     <div className="p-6 space-y-8 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Reportes</h1>
-        <p className="text-sm text-gray-500">Análisis de cartera y arqueos del día</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('reportes.titulo')}</h1>
+        <p className="text-sm text-gray-500">{t('reportes.subtitulo')}</p>
       </div>
 
       {/* ── Aging de cartera ─────────────────────────────────────── */}
       <section>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-gray-800">Aging de Cartera</h2>
+          <h2 className="text-sm font-semibold text-gray-800">{t('reportes.aging_titulo')}</h2>
           {aging && aging.length > 0 && (
             <button
               onClick={() => exportarCSV(
                 aging.map((r: any) => ({
-                  'Banda': r.banda,
-                  'Cantidad préstamos': r.cantidad_prestamos,
-                  'Capital (RD$)': r.monto_capital,
-                  'Porcentaje': r.porcentaje + '%',
+                  [t('reportes.csv_banda')]: r.banda,
+                  [t('reportes.csv_cantidad_prestamos')]: r.cantidad_prestamos,
+                  [t('reportes.csv_capital', { simbolo })]: r.monto_capital,
+                  [t('reportes.csv_porcentaje')]: r.porcentaje + '%',
                 })),
                 `aging-cartera-${new Date().toISOString().slice(0, 10)}`
               )}
               className="btn-secondary text-xs"
             >
               <Download size={13} />
-              Exportar
+              {t('reportes.exportar')}
             </button>
           )}
         </div>
         {!loadingAging && aging && (
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div className="card p-5">
-              <p className="text-xs font-medium text-gray-500 mb-3">Capital por banda</p>
+              <p className="text-xs font-medium text-gray-500 mb-3">{t('reportes.capital_por_banda')}</p>
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={aging} barSize={36}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
                   <XAxis dataKey="banda" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip formatter={(v: number) => fmt(v)} />
-                  <Bar dataKey="monto_capital" name="Capital" radius={[4,4,0,0]}>
+                  <Bar dataKey="monto_capital" name={t('reportes.capital')} radius={[4,4,0,0]}>
                     {aging.map((_: any, idx: number) => (
                       <Cell key={idx} fill={AGING_COLORS[idx % AGING_COLORS.length]} />
                     ))}
@@ -81,7 +86,7 @@ export function ReportesPage() {
             </div>
 
             <div className="card p-5">
-              <p className="text-xs font-medium text-gray-500 mb-3">Distribución por # préstamos</p>
+              <p className="text-xs font-medium text-gray-500 mb-3">{t('reportes.distribucion_prestamos')}</p>
               <ResponsiveContainer width="100%" height={240}>
                 <PieChart>
                   <Pie
@@ -113,12 +118,12 @@ export function ReportesPage() {
 
       {/* ── Arqueos del día ──────────────────────────────────────── */}
       <section>
-        <h2 className="text-sm font-semibold text-gray-800 mb-4">Arqueos del Día</h2>
+        <h2 className="text-sm font-semibold text-gray-800 mb-4">{t('reportes.arqueos_titulo')}</h2>
         <div className="card overflow-x-auto">
           <table className="w-full text-sm">
             <thead style={{ background: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
               <tr>
-                {['Cobrador', 'Apertura', 'Cobros', 'Gastos', 'Declarado', 'Diferencia', 'Cuadre'].map((h) => (
+                {[t('reportes.col_cobrador'), t('reportes.col_apertura'), t('reportes.col_cobros'), t('reportes.col_gastos'), t('reportes.col_declarado'), t('reportes.col_diferencia'), t('reportes.col_cuadre')].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                     {h}
                   </th>
@@ -139,7 +144,7 @@ export function ReportesPage() {
               ) : !arqueos || arqueos.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-gray-400 text-sm">
-                    Sin arqueos hoy
+                    {t('reportes.sin_arqueos')}
                   </td>
                 </tr>
               ) : (
@@ -175,7 +180,7 @@ export function ReportesPage() {
       </section>
       {/* ── Ingresos mensuales ──────────────────────────────────── */}
       <section>
-        <h2 className="text-sm font-semibold text-gray-800 mb-4">Ingresos Mensuales</h2>
+        <h2 className="text-sm font-semibold text-gray-800 mb-4">{t('reportes.ingresos_mensuales')}</h2>
         {loadingIngresos ? (
           <div className="card p-5 h-52 skeleton" />
         ) : ingresosMens && ingresosMens.length > 0 ? (
@@ -185,30 +190,30 @@ export function ReportesPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
-                <Tooltip formatter={(v: number) => [fmt(v), 'Cobrado']} />
-                <Bar dataKey="total_cobrado" name="Total cobrado" fill="#10b981" radius={[4,4,0,0]} />
+                <Tooltip formatter={(v: number) => [fmt(v), t('reportes.cobrado_tooltip')]} />
+                <Bar dataKey="total_cobrado" name={t('reportes.total_cobrado_legend')} fill="#10b981" radius={[4,4,0,0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         ) : (
-          <div className="card p-6 text-center text-sm text-gray-400">Sin datos de ingresos</div>
+          <div className="card p-6 text-center text-sm text-gray-400">{t('reportes.sin_ingresos')}</div>
         )}
       </section>
 
       {/* ── Mora detallada ──────────────────────────────────────── */}
       <section>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-gray-800">Cartera en Mora</h2>
+          <h2 className="text-sm font-semibold text-gray-800">{t('reportes.cartera_mora')}</h2>
           {moraSresumen && (
             <div className="flex items-center gap-4 text-xs text-gray-500">
               <span>
-                <span className="font-bold text-red-600 mono-nums">{moraSresumen.total_prestamos_en_mora}</span> préstamos
+                <span className="font-bold text-red-600 mono-nums">{moraSresumen.total_prestamos_en_mora}</span> {t('reportes.prestamos_suffix')}
               </span>
               <span>
-                <span className="font-bold text-red-600 mono-nums">{fmt(moraSresumen.mora_total_pendiente)}</span> pendiente
+                <span className="font-bold text-red-600 mono-nums">{fmt(moraSresumen.mora_total_pendiente)}</span> {t('reportes.pendiente_suffix')}
               </span>
               <span>
-                Máx <span className="font-bold text-red-600 mono-nums">{moraSresumen.max_dias_mora}</span> días
+                {t('reportes.max_dias')} <span className="font-bold text-red-600 mono-nums">{moraSresumen.max_dias_mora}</span> {t('reportes.dias_suffix')}
               </span>
             </div>
           )}
@@ -220,14 +225,14 @@ export function ReportesPage() {
           </div>
         ) : !moraSresumen || moraSresumen.total_prestamos_en_mora === 0 ? (
           <div className="card p-6 text-center text-sm text-emerald-600 bg-emerald-50 border-emerald-200">
-            Sin mora activa
+            {t('reportes.sin_mora_activa')}
           </div>
         ) : (
           <div className="card overflow-x-auto">
             <table className="w-full text-sm">
               <thead style={{ background: '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
                 <tr>
-                  {['Cliente', 'Cédula', 'Días mora', 'Mora pendiente', ''].map((h) => (
+                  {[t('reportes.col_cliente'), t('reportes.col_cedula'), t('reportes.col_dias_mora'), t('reportes.col_mora_pendiente'), ''].map((h) => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                       {h}
                     </th>
@@ -250,7 +255,7 @@ export function ReportesPage() {
                         to={`/prestamos/${m.prestamo_id}`}
                         className="text-xs text-brand-600 hover:underline font-medium"
                       >
-                        Ver préstamo
+                        {t('reportes.ver_prestamo')}
                       </Link>
                     </td>
                   </tr>
@@ -263,7 +268,7 @@ export function ReportesPage() {
 
       {/* ── Alertas / Notificaciones ─────────────────────────────── */}
       <section>
-        <h2 className="text-sm font-semibold text-gray-800 mb-4">Alertas del Sistema</h2>
+        <h2 className="text-sm font-semibold text-gray-800 mb-4">{t('reportes.alertas_titulo')}</h2>
         <AlertasSection />
       </section>
     </div>
@@ -271,6 +276,7 @@ export function ReportesPage() {
 }
 
 function AlertasSection() {
+  const { t } = useTranslation();
   const { data } = useQuery({
     queryKey: ['notificaciones'],
     queryFn: reportesApi.notificaciones,
@@ -280,7 +286,7 @@ function AlertasSection() {
   if (alertas.length === 0) {
     return (
       <div className="card p-6 text-center text-sm text-emerald-600 bg-emerald-50 border-emerald-200">
-        Sin alertas activas
+        {t('reportes.sin_alertas')}
       </div>
     );
   }

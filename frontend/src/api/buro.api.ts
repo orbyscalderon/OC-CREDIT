@@ -2,7 +2,7 @@ import { api } from './axios';
 import type { PerfilBuro, HistorialCredito, PaginatedResponse } from '@/types';
 
 export const buroApi = {
-  consultar: (dto: { cedula: string; monto_prestamo_planificado?: number }) =>
+  consultar: (dto: { cedula: string; tipo_documento?: string; monto_prestamo_planificado?: number }) =>
     api.post<PerfilBuro>('/buro/consultar', dto).then((r) => r.data),
 
   reportar: (dto: {

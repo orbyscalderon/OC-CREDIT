@@ -1,5 +1,5 @@
 import { api } from './axios';
-import type { Ruta, CoordenadasRuta } from '@/types';
+import type { Ruta, CoordenadasRuta, HistorialCobradorRuta } from '@/types';
 
 export const rutasApi = {
   listar: (incluirInactivas = false) =>
@@ -14,7 +14,7 @@ export const rutasApi = {
   misRutas: () =>
     api.get<Ruta[]>('/rutas/mis-rutas').then((r) => r.data),
 
-  crear: (dto: { nombre: string; descripcion?: string; empleado_id?: string }) =>
+  crear: (dto: { nombre: string; descripcion?: string; cobrador_id?: string }) =>
     api.post<Ruta>('/rutas', dto).then((r) => r.data),
 
   coordenadas: (id: string, fecha?: string) =>
@@ -22,4 +22,7 @@ export const rutasApi = {
 
   asignarCobrador: (rutaId: string, cobradorId: string) =>
     api.put(`/rutas/${rutaId}/asignar-cobrador/${cobradorId}`).then((r) => r.data),
+
+  historialCobrador: (rutaId: string) =>
+    api.get<HistorialCobradorRuta[]>(`/rutas/${rutaId}/historial-cobrador`).then((r) => r.data),
 };

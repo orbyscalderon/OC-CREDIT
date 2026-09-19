@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -7,6 +8,7 @@ import {
 } from 'lucide-react';
 import { generarPagarePDF } from '@/utils/pagare.pdf';
 import { useTenantSettings } from '@/hooks/useTenantSettings';
+import { formatCurrency } from '@/utils/format';
 import { FirmaDigital } from '@/components/common/FirmaDigital';
 import { prestamosApi } from '@/api/prestamos.api';
 import { empleadosApi } from '@/api/empleados.api';
@@ -23,6 +25,7 @@ function mañana() {
 }
 
 export function PrestamoDetallePage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
   const settings = useTenantSettings();
@@ -92,18 +95,17 @@ export function PrestamoDetallePage() {
   });
 
   const aprobarErr = aprobarMut.isError
-    ? ((aprobarMut.error as any)?.response?.data?.message ?? 'Error al aprobar el préstamo')
+    ? ((aprobarMut.error as any)?.response?.data?.message ?? t('prestamos.error_aprobar'))
     : null;
 
   const vencidoErr = marcarVencidoMut.isError
-    ? ((marcarVencidoMut.error as any)?.response?.data?.message ?? 'Error al marcar el préstamo como vencido')
+    ? ((marcarVencidoMut.error as any)?.response?.data?.message ?? t('prestamos.error_marcar_vencido'))
     : null;
 
-  const fmt = (n: number) =>
-    'RD$ ' + n.toLocaleString('es-DO', { minimumFractionDigits: 2 });
+  const fmt = (n: number) => formatCurrency(n, settings);
 
-  if (isLoading) return <div className="p-6 text-gray-400">Cargando…</div>;
-  if (!prestamo) return <div className="p-6 text-red-500">Préstamo no encontrado</div>;
+  if (isLoading) return <div className="p-6 text-gray-400">{t('prestamos.cargando')}</div>;
+  if (!prestamo) return <div className="p-6 text-red-500">{t('prestamos.no_encontrado')}</div>;
 
   const totalesCuotas = (prestamo.cuotas ?? []).reduce(
     (acc, c) => ({
@@ -120,13 +122,13 @@ export function PrestamoDetallePage() {
     <div className="p-6 space-y-6">
       <Link to="/prestamos" className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900">
         <ArrowLeft size={16} />
-        Volver a préstamos
+        {t('prestamos.volver')}
       </Link>
 
       <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Préstamo #{prestamo.id.slice(-8).toUpperCase()}</h1>
+            <h1 className="text-xl font-bold text-gray-900">{t('prestamos.numero_prestamo', { id: prestamo.id.slice(-8).toUpperCase() })}</h1>
             {prestamo.cliente && (
               <Link
                 to={`/clientes/${prestamo.cliente_id}`}
@@ -141,19 +143,19 @@ export function PrestamoDetallePage() {
 
         <div className="mt-5 grid grid-cols-2 gap-4 text-sm text-gray-700 lg:grid-cols-4">
           <div>
-            <p className="text-gray-400 text-xs">Capital aprobado</p>
+            <p className="text-gray-400 text-xs">{t('prestamos.capital_aprobado')}</p>
             <p className="font-semibold">{fmt(prestamo.capital_aprobado)}</p>
           </div>
           <div>
-            <p className="text-gray-400 text-xs">Tasa de interés</p>
+            <p className="text-gray-400 text-xs">{t('prestamos.tasa_interes_simple')}</p>
             <p className="font-semibold">{prestamo.tasa_interes}%</p>
           </div>
           <div>
-            <p className="text-gray-400 text-xs">Cuotas / Modalidad</p>
+            <p className="text-gray-400 text-xs">{t('prestamos.cuotas_modalidad')}</p>
             <p className="font-semibold">{prestamo.num_cuotas} / {prestamo.modalidad}</p>
           </div>
           <div>
-            <p className="text-gray-400 text-xs">Primer vencimiento</p>
+            <p className="text-gray-400 text-xs">{t('prestamos.primer_vencimiento')}</p>
             <p className="font-semibold">
               {prestamo.fecha_primer_vencimiento
                 ? format(new Date(prestamo.fecha_primer_vencimiento), 'dd MMM yyyy', { locale: es })
@@ -174,14 +176,14 @@ export function PrestamoDetallePage() {
               className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
             >
               <CheckCircle size={15} />
-              Aprobar
+              {t('prestamos.aprobar')}
             </button>
             <button
               onClick={() => setShowRechazar(true)}
               className="flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
             >
               <XCircle size={15} />
-              Rechazar
+              {t('prestamos.rechazar')}
             </button>
           </div>
         )}
@@ -193,7 +195,7 @@ export function PrestamoDetallePage() {
             className="flex w-fit items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
             <History size={15} />
-            Ver historial de pagos
+            {t('prestamos.ver_historial_pagos')}
           </Link>
         </div>
 
@@ -211,7 +213,7 @@ export function PrestamoDetallePage() {
                 className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
                 <FileText size={15} />
-                {firmaUrl ? 'Descargar Pagaré con firma' : 'Descargar Pagaré PDF'}
+                {firmaUrl ? t('prestamos.descargar_pagare_firma') : t('prestamos.descargar_pagare')}
               </button>
               <button
                 onClick={() => setMostrarFirma(v => !v)}
@@ -222,14 +224,14 @@ export function PrestamoDetallePage() {
                 }`}
               >
                 <PenLine size={15} />
-                {firmaUrl ? 'Firma capturada ✓' : 'Capturar firma'}
+                {firmaUrl ? t('prestamos.firma_capturada') : t('prestamos.capturar_firma')}
               </button>
             </div>
 
             {mostrarFirma && !firmaUrl && (
               <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
                 <FirmaDigital
-                  label="Firma del deudor (se incrusta en el pagaré)"
+                  label={t('prestamos.firma_deudor_label')}
                   onFirma={(dataUrl) => {
                     setFirmaUrl(dataUrl);
                     setMostrarFirma(false);
@@ -247,14 +249,14 @@ export function PrestamoDetallePage() {
               className="flex w-fit items-center gap-2 rounded-lg border border-brand-600 px-4 py-2 text-sm font-semibold text-brand-600 hover:bg-brand-50"
             >
               <RotateCcw size={15} />
-              Renovar préstamo
+              {t('prestamos.renovar_prestamo')}
             </Link>
             <button
               onClick={() => setShowVencido(true)}
               className="flex w-fit items-center gap-2 rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"
             >
               <ShieldAlert size={15} />
-              Marcar como vencido
+              {t('prestamos.marcar_vencido')}
             </button>
           </div>
         )}
@@ -264,52 +266,52 @@ export function PrestamoDetallePage() {
       {prestamo.cuotas && prestamo.cuotas.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-700">Plan de Amortización</h2>
-            <span className="text-xs text-gray-400">{prestamo.cuotas.length} cuotas</span>
+            <h2 className="text-sm font-semibold text-gray-700">{t('prestamos.plan_amortizacion')}</h2>
+            <span className="text-xs text-gray-400">{t('prestamos.cuotas_count', { count: prestamo.cuotas.length })}</span>
           </div>
 
           {/* Totales del plan completo */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
             <div className="rounded-lg bg-gray-50 p-3">
-              <p className="text-gray-400 text-xs">Capital total</p>
+              <p className="text-gray-400 text-xs">{t('prestamos.capital_total')}</p>
               <p className="font-semibold text-gray-900 mono-nums">{fmt(totalesCuotas.capital)}</p>
             </div>
             <div className="rounded-lg bg-blue-50 p-3">
-              <p className="text-gray-400 text-xs">Interés total</p>
+              <p className="text-gray-400 text-xs">{t('prestamos.interes_total')}</p>
               <p className="font-semibold text-blue-600 mono-nums">{fmt(totalesCuotas.interes)}</p>
             </div>
             <div className="rounded-lg bg-gray-50 p-3">
-              <p className="text-gray-400 text-xs">Total a pagar</p>
+              <p className="text-gray-400 text-xs">{t('prestamos.total_pagar')}</p>
               <p className="font-semibold text-gray-900 mono-nums">{fmt(totalesCuotas.total)}</p>
             </div>
             <div className="rounded-lg bg-emerald-50 p-3">
-              <p className="text-gray-400 text-xs">Pagado</p>
+              <p className="text-gray-400 text-xs">{t('prestamos.pagado')}</p>
               <p className="font-semibold text-emerald-600 mono-nums">{fmt(totalesCuotas.pagado)}</p>
             </div>
             <div className="rounded-lg bg-red-50 p-3">
-              <p className="text-gray-400 text-xs">Saldo pendiente</p>
+              <p className="text-gray-400 text-xs">{t('prestamos.saldo_pendiente')}</p>
               <p className="font-semibold text-red-600 mono-nums">{fmt(totalesCuotas.saldo)}</p>
             </div>
           </div>
 
           <Table<CuotaAmortizacion>
             columns={[
-              { key: 'numero_cuota', header: '#' },
+              { key: 'numero_cuota', header: t('prestamos.col_numero') },
               {
                 key: 'fecha_vencimiento',
-                header: 'Vencimiento',
+                header: t('prestamos.col_vencimiento'),
                 render: (r) => format(new Date(r.fecha_vencimiento), 'dd/MM/yyyy'),
               },
-              { key: 'capital',  header: 'Capital',  render: (r) => <span className="mono-nums">{fmt(r.capital)}</span> },
-              { key: 'interes',  header: 'Interés',  render: (r) => <span className="mono-nums">{fmt(r.interes)}</span> },
+              { key: 'capital',  header: t('prestamos.capital'),  render: (r) => <span className="mono-nums">{fmt(r.capital)}</span> },
+              { key: 'interes',  header: t('prestamos.col_interes'),  render: (r) => <span className="mono-nums">{fmt(r.interes)}</span> },
               {
                 key: 'monto_total',
-                header: 'Total cuota',
+                header: t('prestamos.col_total_cuota'),
                 render: (r) => <span className="font-semibold text-gray-900 mono-nums">{fmt(r.monto_total)}</span>,
               },
               {
                 key: 'monto_pagado',
-                header: 'Pagado',
+                header: t('prestamos.col_pagado'),
                 render: (r) => (
                   <span className={`mono-nums ${r.monto_pagado > 0 ? 'text-emerald-600 font-medium' : 'text-gray-400'}`}>
                     {fmt(r.monto_pagado)}
@@ -318,7 +320,7 @@ export function PrestamoDetallePage() {
               },
               {
                 key: 'saldo',
-                header: 'Saldo',
+                header: t('prestamos.col_saldo'),
                 render: (r) => {
                   const saldo = r.monto_total - r.monto_pagado;
                   return (
@@ -330,7 +332,7 @@ export function PrestamoDetallePage() {
               },
               {
                 key: 'estado',
-                header: 'Estado',
+                header: t('prestamos.col_estado'),
                 render: (r) => (
                   <Badge
                     label={r.estado}
@@ -355,11 +357,11 @@ export function PrestamoDetallePage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl p-6 space-y-5 animate-fade-in overflow-y-auto max-h-[90vh]">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900">Aprobar préstamo</h2>
+              <h2 className="text-lg font-bold text-gray-900">{t('prestamos.modal_aprobar_titulo')}</h2>
               <button
                 onClick={() => setShowAprobar(false)}
                 className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100"
-                aria-label="Cerrar"
+                aria-label={t('prestamos.cerrar_aria')}
               >
                 <X size={16} />
               </button>
@@ -368,7 +370,7 @@ export function PrestamoDetallePage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                  Capital a aprobar (RD$) <span className="text-red-400">*</span>
+                  {t('prestamos.capital_a_aprobar', { simbolo: settings?.simbolo_moneda ?? 'RD$' })} <span className="text-red-400">*</span>
                 </label>
                 <input
                   type="number"
@@ -383,7 +385,7 @@ export function PrestamoDetallePage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                    Tasa de interés (%) <span className="text-red-400">*</span>
+                    {t('prestamos.tasa_interes')} <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="number"
@@ -396,7 +398,7 @@ export function PrestamoDetallePage() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                    Primer pago <span className="text-red-400">*</span>
+                    {t('prestamos.primer_pago')} <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="date"
@@ -409,10 +411,10 @@ export function PrestamoDetallePage() {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                  Cobrador asignado <span className="text-red-400">*</span>
+                  {t('prestamos.cobrador_asignado')} <span className="text-red-400">*</span>
                 </label>
                 <select value={cobradorId} onChange={(e) => setCobradorId(e.target.value)} className="input-field">
-                  <option value="">— Seleccionar cobrador —</option>
+                  <option value="">{t('prestamos.seleccionar_cobrador')}</option>
                   {cobradores.map((c) => (
                     <option key={c.id} value={c.id}>{c.nombre} {c.apellido}</option>
                   ))}
@@ -433,10 +435,10 @@ export function PrestamoDetallePage() {
                 disabled={!capitalAprobado || !tasaInteres || !cobradorId || !fechaPrimerPago || aprobarMut.isPending}
                 className="btn-primary flex-1 justify-center"
               >
-                {aprobarMut.isPending ? 'Aprobando…' : 'Confirmar aprobación'}
+                {aprobarMut.isPending ? t('prestamos.aprobando') : t('prestamos.confirmar_aprobacion')}
               </button>
               <button onClick={() => setShowAprobar(false)} className="btn-secondary">
-                Cancelar
+                {t('common.cancelar')}
               </button>
             </div>
           </div>
@@ -447,11 +449,11 @@ export function PrestamoDetallePage() {
       {showRechazar && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 space-y-4 animate-fade-in overflow-y-auto max-h-[90vh]">
-            <h2 className="text-lg font-bold text-gray-900">Rechazar solicitud</h2>
+            <h2 className="text-lg font-bold text-gray-900">{t('prestamos.modal_rechazar_titulo')}</h2>
             <textarea
               value={motivoRechazo}
               onChange={(e) => setMotivoRechazo(e.target.value)}
-              placeholder="Motivo del rechazo (opcional)"
+              placeholder={t('prestamos.motivo_rechazo_placeholder')}
               rows={3}
               className="input-field resize-none"
             />
@@ -461,10 +463,10 @@ export function PrestamoDetallePage() {
                 disabled={rechazarMut.isPending}
                 className="flex-1 justify-center flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
               >
-                {rechazarMut.isPending ? 'Rechazando…' : 'Confirmar rechazo'}
+                {rechazarMut.isPending ? t('prestamos.rechazando') : t('prestamos.confirmar_rechazo')}
               </button>
               <button onClick={() => setShowRechazar(false)} className="btn-secondary">
-                Cancelar
+                {t('common.cancelar')}
               </button>
             </div>
           </div>
@@ -475,14 +477,14 @@ export function PrestamoDetallePage() {
       {showVencido && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 space-y-4 animate-fade-in overflow-y-auto max-h-[90vh]">
-            <h2 className="text-lg font-bold text-gray-900">Marcar préstamo como vencido</h2>
+            <h2 className="text-lg font-bold text-gray-900">{t('prestamos.modal_vencido_titulo')}</h2>
             <p className="text-sm text-gray-500">
-              Cierra forzosamente el préstamo. Esta acción no se puede deshacer.
+              {t('prestamos.modal_vencido_desc')}
             </p>
             <textarea
               value={motivoVencido}
               onChange={(e) => setMotivoVencido(e.target.value)}
-              placeholder="Motivo del cierre forzoso"
+              placeholder={t('prestamos.motivo_cierre_placeholder')}
               rows={3}
               className="input-field resize-none"
             />
@@ -493,7 +495,7 @@ export function PrestamoDetallePage() {
                 onChange={(e) => setReportarBuro(e.target.checked)}
                 className="rounded border-gray-300"
               />
-              Reportar automáticamente al buró de crédito
+              {t('prestamos.reportar_buro_label')}
             </label>
 
             {vencidoErr && (
@@ -509,10 +511,10 @@ export function PrestamoDetallePage() {
                 disabled={marcarVencidoMut.isPending}
                 className="flex-1 justify-center flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
               >
-                {marcarVencidoMut.isPending ? 'Procesando…' : 'Confirmar'}
+                {marcarVencidoMut.isPending ? t('prestamos.procesando') : t('prestamos.confirmar')}
               </button>
               <button onClick={() => setShowVencido(false)} className="btn-secondary">
-                Cancelar
+                {t('common.cancelar')}
               </button>
             </div>
           </div>

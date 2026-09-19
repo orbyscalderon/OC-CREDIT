@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
 import { ArrowLeft, Shield, ShieldAlert, ShieldX } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -6,12 +7,18 @@ import { buroApi } from '@/api/buro.api';
 import { Badge, nivelRiesgoVariant } from '@/components/common/Badge';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useAuth } from '@/hooks/useAuth';
+import { tipoDocumentoPorPais } from '@/utils/documentosIdentidad';
+import { formatCurrency } from '@/utils/format';
 
 export function BuroConsultaPage() {
+  const { t } = useTranslation();
   const [cedula, setCedula] = useState('');
+  const { user } = useAuth();
+  const tipoDoc = tipoDocumentoPorPais(user?.tenant_pais);
 
   const { data, mutate, isPending, error } = useMutation({
-    mutationFn: (dto: { cedula: string }) =>
+    mutationFn: (dto: { cedula: string; tipo_documento?: string }) =>
       buroApi.consultar(dto),
   });
 
@@ -21,8 +28,8 @@ export function BuroConsultaPage() {
         <div className="flex items-center gap-3 rounded-xl bg-red-50 border border-red-300 p-4">
           <ShieldX size={28} className="text-red-600" />
           <div>
-            <p className="font-bold text-red-700 text-lg">NO PRESTAR</p>
-            <p className="text-sm text-red-600">Historial crítico en el sistema</p>
+            <p className="font-bold text-red-700 text-lg">{t('buro.no_prestar')}</p>
+            <p className="text-sm text-red-600">{t('buro.no_prestar_desc')}</p>
           </div>
         </div>
       );
@@ -31,8 +38,8 @@ export function BuroConsultaPage() {
         <div className="flex items-center gap-3 rounded-xl bg-amber-50 border border-amber-300 p-4">
           <ShieldAlert size={28} className="text-amber-600" />
           <div>
-            <p className="font-bold text-amber-700 text-lg">PRESTAR CON MUCHA CAUTELA</p>
-            <p className="text-sm text-amber-600">Historial de riesgo alto — evalúe garantías</p>
+            <p className="font-bold text-amber-700 text-lg">{t('buro.prestar_cautela')}</p>
+            <p className="text-sm text-amber-600">{t('buro.prestar_cautela_desc')}</p>
           </div>
         </div>
       );
@@ -40,51 +47,50 @@ export function BuroConsultaPage() {
       <div className="flex items-center gap-3 rounded-xl bg-emerald-50 border border-emerald-300 p-4">
         <Shield size={28} className="text-emerald-600" />
         <div>
-          <p className="font-bold text-emerald-700 text-lg">SIN REPORTES NEGATIVOS</p>
-          <p className="text-sm text-emerald-600">No hay alertas en el sistema</p>
+          <p className="font-bold text-emerald-700 text-lg">{t('buro.sin_reportes_negativos')}</p>
+          <p className="text-sm text-emerald-600">{t('buro.sin_alertas_sistema')}</p>
         </div>
       </div>
     );
   };
 
-  const fmt = (n: number | null | undefined) =>
-    'RD$ ' + Number(n ?? 0).toLocaleString('es-DO', { minimumFractionDigits: 2 });
+  const fmt = (n: number | null | undefined) => formatCurrency(n, user);
 
   return (
     <div className="p-6 space-y-6 max-w-3xl">
       <Link to="/buro" className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900">
         <ArrowLeft size={16} />
-        Volver al buró
+        {t('buro.volver')}
       </Link>
 
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Consultar Historial Crediticio</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('buro.consultar_titulo')}</h1>
         <p className="text-sm text-gray-500">
-          Consulta cross-tenant — verifica en TODAS las agencias del sistema
+          {t('buro.consultar_subtitulo')}
         </p>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Cédula del cliente</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('buro.cliente_label', { tipo: tipoDoc.etiqueta })}</label>
           <input
             value={cedula}
             onChange={(e) => setCedula(e.target.value)}
-            placeholder="000-0000000-0"
+            placeholder={tipoDoc.placeholder}
             className="input-field"
           />
         </div>
         <button
-          onClick={() => mutate({ cedula: cedula.trim() })}
+          onClick={() => mutate({ cedula: cedula.trim(), tipo_documento: tipoDoc.codigo })}
           disabled={!cedula.trim() || isPending}
           className="rounded-lg bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
         >
-          {isPending ? 'Consultando…' : 'Consultar'}
+          {isPending ? t('buro.consultando') : t('buro.consultar')}
         </button>
 
         {error && (
           <p className="text-sm text-red-500">
-            Error al consultar: {(error as { message?: string })?.message}
+            {t('buro.error_consultar', { msg: (error as { message?: string })?.message })}
           </p>
         )}
       </div>
@@ -102,18 +108,18 @@ export function BuroConsultaPage() {
             </h2>
             <div className="grid grid-cols-3 gap-4 text-sm">
               <div>
-                <p className="text-gray-400 text-xs">Total reportes</p>
+                <p className="text-gray-400 text-xs">{t('buro.total_reportes')}</p>
                 <p className="font-bold text-gray-900 text-xl">{data.total_reportes}</p>
               </div>
               <div>
-                <p className="text-gray-400 text-xs">Deuda activa total</p>
+                <p className="text-gray-400 text-xs">{t('buro.deuda_activa_total')}</p>
                 <p className="font-bold text-red-600 text-xl">{fmt(data.deuda_pendiente_total ?? 0)}</p>
               </div>
               <div>
-                <p className="text-gray-400 text-xs">Riesgo consolidado</p>
+                <p className="text-gray-400 text-xs">{t('buro.riesgo_consolidado')}</p>
                 {data.nivel_riesgo_consolidado
                   ? <Badge label={data.nivel_riesgo_consolidado} variant={nivelRiesgoVariant(data.nivel_riesgo_consolidado)} />
-                  : <span className="text-xs text-gray-400">Sin historial</span>}
+                  : <span className="text-xs text-gray-400">{t('buro.sin_historial')}</span>}
               </div>
             </div>
           </div>
@@ -122,7 +128,7 @@ export function BuroConsultaPage() {
           {data.reportes.length > 0 && (
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-3">
-                Reportes individuales ({data.reportes.length})
+                {t('buro.reportes_individuales', { count: data.reportes.length })}
               </h3>
               <div className="space-y-3">
                 {data.reportes.map((r) => (
@@ -134,13 +140,12 @@ export function BuroConsultaPage() {
                       <p className="text-sm font-medium text-gray-800">{r.tenant_nombre}</p>
                       <div className="flex items-center gap-2">
                         <Badge label={r.nivel_riesgo} variant={nivelRiesgoVariant(r.nivel_riesgo)} />
-                        {r.deuda_saldada && <Badge label="Saldada" variant="green" />}
+                        {r.deuda_saldada && <Badge label={t('buro.saldada_badge')} variant="green" />}
                       </div>
                     </div>
                     <p className="mt-1 text-xs text-gray-600">{r.motivo}{r.descripcion_detallada ? ` — ${r.descripcion_detallada}` : ''}</p>
                     <p className="mt-1 text-xs text-gray-400">
-                      Deuda original: {fmt(r.capital_original)}
-                      {' · '}Reportado: {format(new Date(r.created_at), 'dd/MM/yyyy', { locale: es })}
+                      {t('buro.deuda_original_reportado', { monto: fmt(r.capital_original), fecha: format(new Date(r.created_at), 'dd/MM/yyyy', { locale: es }) })}
                     </p>
                   </div>
                 ))}

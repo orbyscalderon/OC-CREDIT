@@ -2,19 +2,20 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Navigate, useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { GoogleLogin } from '@react-oauth/google';
 import { Eye, EyeOff, ArrowRight, Shield } from 'lucide-react';
 import { useState } from 'react';
 
-const schema = z.object({
-  email:    z.string().email('Email inválido'),
-  password: z.string().min(6, 'Mínimo 6 caracteres'),
-});
-
-type FormData = z.infer<typeof schema>;
-
 export function LoginPage() {
+  const { t } = useTranslation();
+  const schema = z.object({
+    email:    z.string().email(t('login.email_invalido')),
+    password: z.string().min(6, t('login.password_min')),
+  });
+  type FormData = z.infer<typeof schema>;
+
   const { login, loginWithGoogle, loading, error, googleError, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [showPwd, setShowPwd] = useState(false);
@@ -48,14 +49,14 @@ export function LoginPage() {
 
         {/* Feature highlights */}
         <div className="space-y-5">
-          <h2 className="text-3xl font-extrabold text-white leading-tight">
-            Sistema de Préstamos<br />y Cobranzas por Rutas
+          <h2 className="text-3xl font-extrabold text-white leading-tight whitespace-pre-line">
+            {t('login.titulo_marca')}
           </h2>
           <p className="text-blue-200 text-sm leading-relaxed">
-            Gestiona tu cartera, controla cobradores en campo y monitorea la mora en tiempo real.
+            {t('login.subtitulo_marca')}
           </p>
           <div className="space-y-3 pt-2">
-            {['Multi-tenant SaaS', 'Cobros offline con sync', 'Buró de Crédito integrado', 'Reportes en tiempo real'].map((feat) => (
+            {[t('login.feat_1'), t('login.feat_2'), t('login.feat_3'), t('login.feat_4')].map((feat) => (
               <div key={feat} className="flex items-center gap-2.5">
                 <div className="w-5 h-5 rounded-full bg-brand-500/30 border border-brand-400/40 flex items-center justify-center flex-shrink-0">
                   <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
@@ -68,7 +69,7 @@ export function LoginPage() {
           </div>
         </div>
 
-        <p className="text-blue-400/60 text-xs">© 2026 OCA HOLDING GROUP LLC. Todos los derechos reservados.</p>
+        <p className="text-blue-400/60 text-xs">{t('common.copyright')}</p>
       </div>
 
       {/* Panel derecho — formulario */}
@@ -86,15 +87,15 @@ export function LoginPage() {
             <div className="w-10 h-10 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center mb-4">
               <Shield size={20} className="text-brand-600" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Bienvenido</h1>
-            <p className="text-sm text-gray-500 mt-1">Ingresa a tu panel administrativo</p>
+            <h1 className="text-2xl font-bold text-gray-900">{t('login.bienvenido')}</h1>
+            <p className="text-sm text-gray-500 mt-1">{t('login.subtitulo')}</p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* Email */}
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
-                Email
+                {t('login.email')}
               </label>
               <input
                 {...register('email')}
@@ -110,7 +111,7 @@ export function LoginPage() {
             {/* Password */}
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
-                Contraseña
+                {t('login.contrasena')}
               </label>
               <div className="relative">
                 <input
@@ -153,11 +154,11 @@ export function LoginPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                   </svg>
-                  Iniciando sesión…
+                  {t('login.iniciando_sesion')}
                 </span>
               ) : (
                 <>
-                  Iniciar sesión
+                  {t('login.iniciar_sesion')}
                   <ArrowRight size={15} />
                 </>
               )}
@@ -169,7 +170,7 @@ export function LoginPage() {
             <div className="mt-6">
               <div className="relative flex items-center mb-4">
                 <div className="flex-1 border-t border-gray-200" />
-                <span className="mx-3 text-xs text-gray-400">o continúa con</span>
+                <span className="mx-3 text-xs text-gray-400">{t('login.o_continua_con')}</span>
                 <div className="flex-1 border-t border-gray-200" />
               </div>
 
@@ -198,7 +199,7 @@ export function LoginPage() {
 
           <div className="mt-6 text-center">
             <Link to="/" className="text-xs text-gray-400 hover:text-brand-600 transition-colors">
-              ← Volver al inicio
+              ← {t('common.volver_inicio')}
             </Link>
           </div>
         </div>

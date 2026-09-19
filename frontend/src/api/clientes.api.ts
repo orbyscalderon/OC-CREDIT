@@ -23,6 +23,12 @@ export const clientesApi = {
   porRuta: (rutaId: string) =>
     api.get<Cliente[]>(`/clientes/ruta/${rutaId}`).then((r) => r.data),
 
+  reordenar: (rutaId: string, orden: string[]) =>
+    api.put<Cliente[]>(`/clientes/ruta/${rutaId}/orden`, { orden }).then((r) => r.data),
+
+  ordenarAutomatico: (rutaId: string) =>
+    api.post<Cliente[]>(`/clientes/ruta/${rutaId}/orden/auto`).then((r) => r.data),
+
   subirCedula: (id: string, frontal?: File | null, trasera?: File | null) => {
     const form = new FormData();
     if (frontal) form.append('frontal', frontal);

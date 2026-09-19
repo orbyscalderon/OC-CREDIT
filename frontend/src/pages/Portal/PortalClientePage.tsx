@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
 import { Shield, ChevronRight } from 'lucide-react';
 import axios from 'axios';
@@ -25,10 +26,12 @@ interface ClientePortal {
   apellido: string;
   cedula: string;
   telefono: string;
+  simbolo_moneda: string;
   prestamos: Prestamo[];
 }
 
 export function PortalClientePage() {
+  const { t } = useTranslation();
   const [cedula, setCedula] = useState('');
   const [tenantId, setTenantId] = useState('');
   const [cliente, setCliente] = useState<ClientePortal | null>(null);
@@ -42,7 +45,7 @@ export function PortalClientePage() {
   });
 
   const fmt = (n: number) =>
-    'RD$ ' + Number(n).toLocaleString('es-DO', { minimumFractionDigits: 2 });
+    `${cliente?.simbolo_moneda ?? 'RD$'} ` + Number(n).toLocaleString('es-DO', { minimumFractionDigits: 2 });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center p-4">
@@ -52,33 +55,33 @@ export function PortalClientePage() {
           <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-white/20 mb-3">
             <Shield size={28} className="text-white" />
           </div>
-          <h1 className="text-2xl font-extrabold text-white">Portal del Cliente</h1>
-          <p className="text-blue-100 text-sm mt-1">Consulta tus préstamos y cuotas pendientes</p>
+          <h1 className="text-2xl font-extrabold text-white">{t('portal.titulo')}</h1>
+          <p className="text-blue-100 text-sm mt-1">{t('portal.subtitulo')}</p>
         </div>
 
         {!cliente ? (
           <div className="bg-white rounded-2xl p-6 shadow-xl space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tu cédula</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('portal.tu_cedula')}</label>
               <input
                 value={cedula}
                 onChange={e => setCedula(e.target.value)}
-                placeholder="000-0000000-0"
+                placeholder={t('portal.cedula_placeholder')}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">ID de tu empresa prestamista</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('portal.id_empresa')}</label>
               <input
                 value={tenantId}
                 onChange={e => setTenantId(e.target.value)}
-                placeholder="Código de empresa (te lo da tu prestamista)"
+                placeholder={t('portal.id_empresa_placeholder')}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             {consultarMut.isError && (
-              <p className="text-sm text-red-500">No se encontró cliente con esa cédula.</p>
+              <p className="text-sm text-red-500">{t('portal.no_encontrado')}</p>
             )}
 
             <button
@@ -86,11 +89,11 @@ export function PortalClientePage() {
               disabled={!cedula.trim() || !tenantId.trim() || consultarMut.isPending}
               className="w-full rounded-lg bg-blue-600 py-3 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60"
             >
-              {consultarMut.isPending ? 'Consultando…' : 'Consultar mis préstamos'}
+              {consultarMut.isPending ? t('portal.consultando') : t('portal.consultar_prestamos')}
             </button>
 
             <p className="text-center text-xs text-gray-400">
-              © 2026 OCA HOLDING GROUP LLC. Todos los derechos reservados.
+              {t('common.copyright')}
             </p>
           </div>
         ) : (
@@ -113,7 +116,7 @@ export function PortalClientePage() {
               <div key={i} className="bg-white rounded-2xl p-5 shadow-xl">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-semibold text-gray-800">
-                    Préstamo {pr.modalidad}
+                    {t('portal.prestamo_modalidad', { modalidad: pr.modalidad })}
                   </span>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                     pr.estado === 'Activo' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
@@ -124,11 +127,11 @@ export function PortalClientePage() {
 
                 <div className="grid grid-cols-2 gap-3 text-sm mb-4">
                   <div>
-                    <p className="text-xs text-gray-400">Capital</p>
+                    <p className="text-xs text-gray-400">{t('portal.capital')}</p>
                     <p className="font-semibold">{fmt(pr.capital)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-400">Cuotas pendientes</p>
+                    <p className="text-xs text-gray-400">{t('portal.cuotas_pendientes')}</p>
                     <p className="font-semibold">{pr.cuotas_pendientes}</p>
                   </div>
                 </div>
@@ -137,12 +140,12 @@ export function PortalClientePage() {
                   <div className="rounded-xl bg-blue-50 border border-blue-100 p-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-xs text-blue-600 font-medium">Próxima cuota</p>
+                        <p className="text-xs text-blue-600 font-medium">{t('portal.proxima_cuota')}</p>
                         <p className="text-lg font-extrabold text-blue-700">
                           {fmt(pr.proxima_cuota.monto)}
                         </p>
                         <p className="text-xs text-gray-500">
-                          Vence: {new Date(pr.proxima_cuota.vence).toLocaleDateString('es-DO')}
+                          {t('portal.vence', { fecha: new Date(pr.proxima_cuota.vence).toLocaleDateString('es-DO') })}
                         </p>
                       </div>
                       <ChevronRight size={20} className="text-blue-400" />
@@ -156,7 +159,7 @@ export function PortalClientePage() {
               onClick={() => setCliente(null)}
               className="w-full rounded-xl bg-white/20 py-2.5 text-sm font-medium text-white hover:bg-white/30"
             >
-              Nueva consulta
+              {t('portal.nueva_consulta')}
             </button>
           </div>
         )}

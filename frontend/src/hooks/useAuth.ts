@@ -16,6 +16,11 @@ function buildSession(resp: LoginResponse): SessionUser {
     empleadoId: resp.usuario.empleado_id,
     tenantId: resp.tenant_config.tenant_id,
     tenant_nombre: resp.tenant_config.nombre_empresa,
+    tenant_pais: resp.tenant_config.pais,
+    tenant_moneda: resp.tenant_config.moneda,
+    tenant_simbolo_moneda: resp.tenant_config.simbolo_moneda,
+    tenant_zona_horaria: resp.tenant_config.zona_horaria,
+    tenant_formato_fecha: resp.tenant_config.formato_fecha,
     expiresAt: Date.now() + JWT_DURATION_MS,
   };
 }

@@ -11,6 +11,11 @@ export interface SessionUser {
   empleadoId: string;
   tenantId: string;
   tenant_nombre: string;
+  tenant_pais: string;
+  tenant_moneda: string;
+  tenant_simbolo_moneda: string;
+  tenant_zona_horaria: string;
+  tenant_formato_fecha: string;
   expiresAt: number; // epoch ms
 }
 

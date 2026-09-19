@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Search, AlertOctagon } from 'lucide-react';
 import { buroApi } from '@/api/buro.api';
@@ -7,23 +8,26 @@ import { Badge, nivelRiesgoVariant } from '@/components/common/Badge';
 import type { HistorialCredito } from '@/types';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useAuth } from '@/hooks/useAuth';
+import { formatCurrency } from '@/utils/format';
 
 export function BuroPage() {
+  const { t } = useTranslation();
+  const { user } = useAuth();
   const { data, isLoading } = useQuery({
     queryKey: ['buro-propios'],
     queryFn: () => buroApi.misReportes({ limit: 50 }),
   });
 
-  const fmt = (n: number | null) =>
-    'RD$ ' + Number(n ?? 0).toLocaleString('es-DO', { minimumFractionDigits: 2 });
+  const fmt = (n: number | null) => formatCurrency(n, user);
 
   return (
     <div className="p-6 space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Buró de Crédito</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('buro.titulo')}</h1>
           <p className="text-sm text-gray-500">
-            Historial permanente de mal crédito — registros que sobreviven al tenant
+            {t('buro.subtitulo')}
           </p>
         </div>
         <Link
@@ -31,7 +35,7 @@ export function BuroPage() {
           className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
         >
           <Search size={15} />
-          Consultar cédula
+          {t('buro.consultar_cedula')}
         </Link>
       </div>
 
@@ -39,49 +43,47 @@ export function BuroPage() {
       <div className="flex items-start gap-3 rounded-xl bg-amber-50 border border-amber-200 p-4">
         <AlertOctagon size={18} className="text-amber-600 mt-0.5 flex-shrink-0" />
         <p className="text-sm text-amber-800">
-          Los reportes del buró son <strong>permanentes e inmutables</strong>. Solo pueden ser
-          inactivados por el super-admin de la plataforma ante errores de captura o resolución legal.
-          Consulte el historial antes de aprobar cualquier préstamo.
+          {t('buro.aviso_prefix')} <strong>{t('buro.aviso_bold')}</strong>{t('buro.aviso_suffix')}
         </p>
       </div>
 
       <Table<HistorialCredito>
         columns={[
-          { key: 'cedula',  header: 'Cédula' },
-          { key: 'nombre',  header: 'Cliente', render: (r) => `${r.nombre} ${r.apellido}` },
+          { key: 'cedula',  header: t('buro.col_cedula') },
+          { key: 'nombre',  header: t('buro.col_cliente'), render: (r) => `${r.nombre} ${r.apellido}` },
           {
             key: 'nivel_riesgo',
-            header: 'Riesgo',
+            header: t('buro.col_riesgo'),
             render: (r) => <Badge label={r.nivel_riesgo} variant={nivelRiesgoVariant(r.nivel_riesgo)} />,
           },
-          { key: 'motivo', header: 'Motivo' },
+          { key: 'motivo', header: t('buro.col_motivo') },
           {
             key: 'capital_original',
-            header: 'Deuda original',
+            header: t('buro.col_deuda_original'),
             render: (r) => fmt(r.capital_original),
           },
           {
             key: 'deuda_saldada',
-            header: 'Saldada',
+            header: t('buro.col_saldada'),
             render: (r) => (
-              <Badge label={r.deuda_saldada ? 'Sí' : 'No'} variant={r.deuda_saldada ? 'green' : 'red'} />
+              <Badge label={r.deuda_saldada ? t('buro.si') : t('buro.no')} variant={r.deuda_saldada ? 'green' : 'red'} />
             ),
           },
           {
             key: 'created_at',
-            header: 'Reportado',
+            header: t('buro.col_reportado'),
             render: (r) => format(new Date(r.created_at), 'dd/MM/yyyy', { locale: es }),
           },
-          { key: 'tenant_nombre', header: 'Agencia' },
+          { key: 'tenant_nombre', header: t('buro.col_agencia') },
         ]}
         data={data?.data ?? []}
         keyField="id"
         loading={isLoading}
-        emptyMessage="No ha emitido reportes"
+        emptyMessage={t('buro.sin_reportes')}
       />
 
       <p className="text-right text-[11px] text-gray-400">
-        © 2026 OCA HOLDING GROUP LLC. Todos los derechos reservados.
+        {t('common.copyright')}
       </p>
     </div>
   );

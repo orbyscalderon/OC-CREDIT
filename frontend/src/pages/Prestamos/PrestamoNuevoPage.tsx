@@ -2,6 +2,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { ArrowLeft, CreditCard, Calculator } from 'lucide-react';
 import { prestamosApi } from '@/api/prestamos.api';
@@ -9,24 +10,24 @@ import { clientesApi } from '@/api/clientes.api';
 import { rutasApi } from '@/api/rutas.api';
 import { CalculadoraPrestamo } from '@/components/common/CalculadoraPrestamo';
 import { useAuth } from '@/hooks/useAuth';
+import { formatCurrency } from '@/utils/format';
 import { Rol } from '@/types';
 import { useState } from 'react';
 
 const MODALIDADES = ['Diario', 'Semanal', 'Quincenal', 'Mensual'] as const;
 
-const schema = z.object({
-  cliente_id:         z.string().uuid('Selecciona un cliente válido'),
-  ruta_id:             z.string().uuid('Selecciona una ruta válida'),
-  capital_solicitado: z.coerce.number().min(100, 'Mínimo RD$ 100').max(10_000_000),
-  tasa_interes:       z.coerce.number().min(0.1, 'Mínimo 0.1%').max(100),
-  num_cuotas:         z.coerce.number().int().min(1).max(520),
-  modalidad:          z.enum(MODALIDADES),
-  proposito:          z.string().max(300).optional().or(z.literal('')),
-});
-
-type FormData = z.infer<typeof schema>;
+type FormData = {
+  cliente_id: string;
+  ruta_id: string;
+  capital_solicitado: number;
+  tasa_interes: number;
+  num_cuotas: number;
+  modalidad: typeof MODALIDADES[number];
+  proposito?: string;
+};
 
 export function PrestamoNuevoPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [params] = useSearchParams();
@@ -34,6 +35,16 @@ export function PrestamoNuevoPage() {
   const [showCalc, setShowCalc] = useState(false);
   const { user } = useAuth();
   const esCobrador = user?.rol === Rol.COBRADOR_TENANT;
+
+  const schema = z.object({
+    cliente_id:         z.string().uuid(t('prestamos.cliente_invalido')),
+    ruta_id:             z.string().uuid(t('prestamos.ruta_invalida')),
+    capital_solicitado: z.coerce.number().min(100, t('prestamos.capital_minimo')).max(10_000_000),
+    tasa_interes:       z.coerce.number().min(0.1, t('prestamos.tasa_minima')).max(100),
+    num_cuotas:         z.coerce.number().int().min(1).max(520),
+    modalidad:          z.enum(MODALIDADES),
+    proposito:          z.string().max(300).optional().or(z.literal('')),
+  });
 
   // Un cobrador no tiene acceso a /clientes ni /rutas (listados de todo el
   // tenant, admin/supervisor only) — debe ver solo sus propias rutas y los
@@ -115,18 +126,17 @@ export function PrestamoNuevoPage() {
     },
   });
 
-  const fmt = (n: number) =>
-    'RD$ ' + Number(n).toLocaleString('es-DO', { minimumFractionDigits: 2 });
+  const fmt = (n: number) => formatCurrency(n, user);
 
   return (
     <div className="p-6 max-w-2xl space-y-6 animate-fade-in">
       <div>
         <Link to="/prestamos" className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 transition-colors mb-4">
           <ArrowLeft size={15} />
-          Volver a préstamos
+          {t('prestamos.volver')}
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">Nueva solicitud de préstamo</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Completa los datos para registrar la solicitud</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('prestamos.nueva_titulo')}</h1>
+        <p className="text-sm text-gray-500 mt-0.5">{t('prestamos.nueva_subtitulo')}</p>
       </div>
 
       <form
@@ -136,10 +146,10 @@ export function PrestamoNuevoPage() {
         {/* Cliente */}
         <div>
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-            Cliente <span className="text-red-400">*</span>
+            {t('prestamos.cliente')} <span className="text-red-400">*</span>
           </label>
           <select {...register('cliente_id')} className="input-field">
-            <option value="">— Seleccionar cliente —</option>
+            <option value="">{t('prestamos.seleccionar_cliente')}</option>
             {clientes?.data.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.nombre} {c.apellido} — {c.cedula}
@@ -152,10 +162,10 @@ export function PrestamoNuevoPage() {
         {/* Ruta */}
         <div>
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-            Ruta de cobro <span className="text-red-400">*</span>
+            {t('prestamos.ruta_cobro')} <span className="text-red-400">*</span>
           </label>
           <select {...register('ruta_id')} className="input-field">
-            <option value="">— Seleccionar ruta —</option>
+            <option value="">{t('prestamos.seleccionar_ruta')}</option>
             {rutas?.map((r) => (
               <option key={r.id} value={r.id}>{r.nombre}</option>
             ))}
@@ -167,7 +177,7 @@ export function PrestamoNuevoPage() {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-              Capital solicitado (RD$) <span className="text-red-400">*</span>
+              {t('prestamos.capital_solicitado', { simbolo: user?.tenant_simbolo_moneda ?? 'RD$' })} <span className="text-red-400">*</span>
             </label>
             <input
               {...register('capital_solicitado')}
@@ -180,7 +190,7 @@ export function PrestamoNuevoPage() {
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-              Tasa de interés (%) <span className="text-red-400">*</span>
+              {t('prestamos.tasa_interes')} <span className="text-red-400">*</span>
             </label>
             <input
               {...register('tasa_interes')}
@@ -190,7 +200,7 @@ export function PrestamoNuevoPage() {
               className="input-field mono-nums"
             />
             {errors.tasa_interes && <p className="mt-1 text-xs text-red-500">{errors.tasa_interes.message}</p>}
-            <p className="mt-1 text-xs text-gray-400">Propuesta — el administrador confirma la tasa final al aprobar</p>
+            <p className="mt-1 text-xs text-gray-400">{t('prestamos.tasa_hint')}</p>
           </div>
         </div>
 
@@ -198,7 +208,7 @@ export function PrestamoNuevoPage() {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-              Número de cuotas <span className="text-red-400">*</span>
+              {t('prestamos.numero_cuotas')} <span className="text-red-400">*</span>
             </label>
             <input
               {...register('num_cuotas')}
@@ -210,7 +220,7 @@ export function PrestamoNuevoPage() {
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-              Modalidad <span className="text-red-400">*</span>
+              {t('prestamos.modalidad')} <span className="text-red-400">*</span>
             </label>
             <select {...register('modalidad')} className="input-field">
               {MODALIDADES.map((m) => (
@@ -223,12 +233,12 @@ export function PrestamoNuevoPage() {
         {/* Propósito */}
         <div>
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-            Propósito del préstamo
+            {t('prestamos.proposito')}
           </label>
           <textarea
             {...register('proposito')}
             rows={2}
-            placeholder="Capital de trabajo, mejoras del hogar, compra de equipos…"
+            placeholder={t('prestamos.proposito_placeholder')}
             className="input-field resize-none"
           />
         </div>
@@ -236,18 +246,18 @@ export function PrestamoNuevoPage() {
         {/* Estimación rápida */}
         {capital > 0 && tasa > 0 && cuotas > 0 && (
           <div className="rounded-xl bg-blue-50 border border-blue-100 p-4">
-            <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-2">Estimación ({modalidad})</p>
+            <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-2">{t('prestamos.estimacion', { modalidad })}</p>
             <div className="grid grid-cols-3 gap-3 text-center">
               <div>
-                <p className="text-[10px] text-blue-400">Capital</p>
+                <p className="text-[10px] text-blue-400">{t('prestamos.capital')}</p>
                 <p className="font-bold text-blue-800 text-sm mono-nums">{fmt(capital)}</p>
               </div>
               <div>
-                <p className="text-[10px] text-blue-400">Interés total</p>
+                <p className="text-[10px] text-blue-400">{t('prestamos.interes_total')}</p>
                 <p className="font-bold text-blue-800 text-sm mono-nums">{fmt(capital * (tasa / 100))}</p>
               </div>
               <div>
-                <p className="text-[10px] text-blue-400">Cuota aprox.</p>
+                <p className="text-[10px] text-blue-400">{t('prestamos.cuota_aprox')}</p>
                 <p className="font-bold text-blue-800 text-sm mono-nums">{fmt(cuotaEst)}</p>
               </div>
             </div>
@@ -262,11 +272,11 @@ export function PrestamoNuevoPage() {
             className="inline-flex items-center gap-1.5 text-xs text-brand-600 hover:text-brand-800 font-medium transition-colors"
           >
             <Calculator size={13} />
-            {showCalc ? 'Ocultar' : 'Abrir'} calculadora de amortización
+            {showCalc ? t('prestamos.ocultar') : t('prestamos.abrir')} {t('prestamos.calculadora_amortizacion')}
           </button>
           {showCalc && (
             <div className="mt-3 rounded-xl border border-gray-200 p-4 bg-gray-50">
-              <CalculadoraPrestamo />
+              <CalculadoraPrestamo simboloMoneda={user?.tenant_simbolo_moneda ?? 'RD$'} />
             </div>
           )}
         </div>
@@ -276,7 +286,7 @@ export function PrestamoNuevoPage() {
           <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
             <p className="text-sm text-red-700">
               {(crear.error as { response?: { data?: { message?: string } } })?.response?.data?.message
-                ?? 'Error al crear la solicitud. Verifica los datos.'}
+                ?? t('prestamos.error_crear_solicitud')}
             </p>
           </div>
         )}
@@ -289,17 +299,17 @@ export function PrestamoNuevoPage() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                 </svg>
-                Creando solicitud…
+                {t('prestamos.creando_solicitud')}
               </>
             ) : (
               <>
                 <CreditCard size={15} />
-                Crear solicitud
+                {t('prestamos.crear_solicitud')}
               </>
             )}
           </button>
           <Link to="/prestamos" className="btn-secondary text-sm">
-            Cancelar
+            {t('common.cancelar')}
           </Link>
         </div>
       </form>

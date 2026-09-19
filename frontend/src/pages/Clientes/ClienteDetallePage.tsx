@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, CreditCard, ScanLine, Upload, X as XIcon, CheckCircle2, FileDown } from 'lucide-react';
@@ -8,11 +9,13 @@ import { Table } from '@/components/common/Table';
 import { Badge, estadoPrestamoVariant } from '@/components/common/Badge';
 import { generarEstadoCuentaPDF } from '@/utils/estado-cuenta.pdf';
 import { useAuth } from '@/hooks/useAuth';
+import { formatCurrency } from '@/utils/format';
 import type { Prestamo } from '@/types';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 export function ClienteDetallePage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
   const { user } = useAuth();
@@ -55,8 +58,7 @@ export function ClienteDetallePage() {
     setUploadOk(false);
   };
 
-  const fmt = (n: number) =>
-    'RD$ ' + n.toLocaleString('es-DO', { minimumFractionDigits: 2 });
+  const fmt = (n: number) => formatCurrency(n, user);
 
   const hasPending = !!(frontalFile || traseraFile);
 
@@ -64,7 +66,7 @@ export function ClienteDetallePage() {
     <div className="p-6 space-y-6">
       <Link to="/clientes" className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900">
         <ArrowLeft size={16} />
-        Volver a clientes
+        {t('clientes.volver')}
       </Link>
 
       {cliente && (
@@ -74,13 +76,13 @@ export function ClienteDetallePage() {
               {cliente.nombre} {cliente.apellido}
             </h1>
             <div className="mt-3 grid grid-cols-2 gap-3 text-sm text-gray-600 lg:grid-cols-4">
-              <div><span className="font-medium">Cédula:</span> {cliente.cedula ?? '—'}</div>
-              <div><span className="font-medium">Teléfono:</span> {cliente.telefono ?? '—'}</div>
-              <div><span className="font-medium">Dirección:</span> {cliente.direccion_casa ?? '—'}</div>
+              <div><span className="font-medium">{t('clientes.campo_cedula')}</span> {cliente.cedula ?? '—'}</div>
+              <div><span className="font-medium">{t('clientes.campo_telefono')}</span> {cliente.telefono ?? '—'}</div>
+              <div><span className="font-medium">{t('clientes.campo_direccion')}</span> {cliente.direccion_casa ?? '—'}</div>
               <div>
-                <span className="font-medium">Estado:</span>{' '}
+                <span className="font-medium">{t('clientes.campo_estado')}</span>{' '}
                 <span className={cliente.activo ? 'text-emerald-600' : 'text-red-500'}>
-                  {cliente.activo ? 'Activo' : 'Inactivo'}
+                  {cliente.activo ? t('common.activo') : t('common.inactivo')}
                 </span>
               </div>
             </div>
@@ -90,7 +92,7 @@ export function ClienteDetallePage() {
           <div className="pt-4 border-t border-gray-100">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-1.5">
               <ScanLine size={13} />
-              Cédula de identidad
+              {t('clientes.cedula_identidad')}
             </p>
             <div className="grid grid-cols-2 gap-3 max-w-md">
               {(['frontal', 'trasera'] as const).map((lado) => {
@@ -109,7 +111,7 @@ export function ClienteDetallePage() {
                           onClick={() => inputRef.current?.click()}
                           className="text-brand-600 hover:underline text-xs font-medium"
                         >
-                          Reemplazar
+                          {t('clientes.reemplazar')}
                         </button>
                       )}
                     </p>
@@ -118,7 +120,7 @@ export function ClienteDetallePage() {
                         <a href={displayUrl} target="_blank" rel="noreferrer">
                           <img
                             src={displayUrl}
-                            alt={`Cédula ${lado}`}
+                            alt={t('clientes.cedula_alt', { lado })}
                             className="w-full h-full object-cover"
                           />
                         </a>
@@ -142,7 +144,7 @@ export function ClienteDetallePage() {
                         className="w-full aspect-video rounded-xl border-2 border-dashed border-gray-200 hover:border-brand-400 hover:bg-brand-50 transition-colors flex flex-col items-center justify-center gap-1.5 text-gray-400 hover:text-brand-600"
                       >
                         <Upload size={18} />
-                        <span className="text-xs font-medium">Subir foto</span>
+                        <span className="text-xs font-medium">{t('clientes.subir_foto')}</span>
                       </button>
                     )}
                     <input
@@ -169,13 +171,13 @@ export function ClienteDetallePage() {
                 disabled={subirMut.isPending}
                 className="mt-3 btn-primary text-sm"
               >
-                {subirMut.isPending ? 'Guardando…' : 'Guardar fotos de cédula'}
+                {subirMut.isPending ? t('clientes.guardando') : t('clientes.guardar_fotos')}
               </button>
             )}
             {uploadOk && (
               <p className="mt-2 flex items-center gap-1.5 text-xs text-emerald-600">
                 <CheckCircle2 size={13} />
-                Fotos guardadas correctamente
+                {t('clientes.fotos_guardadas')}
               </p>
             )}
           </div>
@@ -186,7 +188,7 @@ export function ClienteDetallePage() {
               className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
             >
               <CreditCard size={15} />
-              Nuevo Préstamo
+              {t('clientes.nuevo_prestamo')}
             </Link>
             <button
               onClick={() => {
@@ -197,28 +199,29 @@ export function ClienteDetallePage() {
                   clienteTelefono:  cliente.telefono,
                   clienteDireccion: cliente.direccion_casa,
                   tenantNombre:     user?.tenant_nombre ?? 'OCA HOLDING GROUP LLC',
+                  simboloMoneda:    user?.tenant_simbolo_moneda,
                   prestamos:        prestamos.data,
                 });
               }}
               className="btn-secondary text-sm"
             >
               <FileDown size={14} />
-              Estado de cuenta
+              {t('clientes.estado_cuenta')}
             </button>
           </div>
         </div>
       )}
 
       <div>
-        <h2 className="text-sm font-semibold text-gray-700 mb-3">Historial de Préstamos</h2>
+        <h2 className="text-sm font-semibold text-gray-700 mb-3">{t('clientes.historial_prestamos')}</h2>
         <Table<Prestamo>
           columns={[
-            { key: 'capital_aprobado', header: 'Capital', render: (r) => fmt(r.capital_aprobado) },
-            { key: 'modalidad', header: 'Modalidad' },
-            { key: 'num_cuotas', header: 'Cuotas' },
+            { key: 'capital_aprobado', header: t('clientes.col_capital'), render: (r) => fmt(r.capital_aprobado) },
+            { key: 'modalidad', header: t('clientes.col_modalidad') },
+            { key: 'num_cuotas', header: t('clientes.col_cuotas') },
             {
               key: 'fecha_aprobacion',
-              header: 'Aprobación',
+              header: t('clientes.col_aprobacion'),
               render: (r) =>
                 r.fecha_aprobacion
                   ? format(new Date(r.fecha_aprobacion), 'dd MMM yyyy', { locale: es })
@@ -226,7 +229,7 @@ export function ClienteDetallePage() {
             },
             {
               key: 'estado',
-              header: 'Estado',
+              header: t('clientes.col_estado'),
               render: (r) => <Badge label={r.estado} variant={estadoPrestamoVariant(r.estado)} />,
             },
             {
@@ -234,7 +237,7 @@ export function ClienteDetallePage() {
               header: '',
               render: (r) => (
                 <Link to={`/prestamos/${r.id}`} className="text-xs text-brand-600 hover:underline">
-                  Ver
+                  {t('common.ver')}
                 </Link>
               ),
             },
@@ -242,7 +245,7 @@ export function ClienteDetallePage() {
           data={prestamos?.data ?? []}
           keyField="id"
           loading={isLoading}
-          emptyMessage="Sin préstamos"
+          emptyMessage={t('clientes.sin_prestamos')}
         />
       </div>
     </div>

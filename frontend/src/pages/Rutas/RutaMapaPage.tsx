@@ -1,12 +1,14 @@
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft } from 'lucide-react';
 import { rutasApi } from '@/api/rutas.api';
 import { RutaMap } from '@/components/maps/RutaMap';
 import { format } from 'date-fns';
 
 export function RutaMapaPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const [fecha, setFecha] = useState(format(new Date(), 'yyyy-MM-dd'));
 
@@ -29,12 +31,12 @@ export function RutaMapaPage() {
     <div className="p-6 space-y-5">
       <Link to="/rutas" className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900">
         <ArrowLeft size={16} />
-        Volver a rutas
+        {t('rutas.volver')}
       </Link>
 
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">
-          Mapa de ruta: {ruta?.nombre ?? '…'}
+          {t('rutas.mapa_de_ruta', { nombre: ruta?.nombre ?? '…' })}
         </h1>
         <input
           type="date"
@@ -48,29 +50,29 @@ export function RutaMapaPage() {
       <div className="flex gap-4 text-xs text-gray-600">
         <span className="flex items-center gap-1">
           <span className="inline-block w-3 h-3 rounded-full bg-green-500" />
-          Cobro
+          {t('rutas.leyenda_cobro')}
         </span>
         <span className="flex items-center gap-1">
           <span className="inline-block w-3 h-3 rounded-full bg-red-500" />
-          Novedad
+          {t('rutas.leyenda_novedad')}
         </span>
         <span className="flex items-center gap-1">
           <span className="inline-block w-3 h-3 rounded-full bg-blue-500" />
-          Cliente (dónde se entrega/cobra el préstamo)
+          {t('rutas.leyenda_cliente')}
         </span>
       </div>
 
       {isLoading ? (
         <div className="h-96 bg-gray-100 rounded-xl flex items-center justify-center text-gray-400">
-          Cargando mapa…
+          {t('rutas.cargando_mapa')}
         </div>
       ) : (
         <RutaMap puntos={eventos} clientes={clientes} height="480px" />
       )}
 
       <p className="text-xs text-gray-400">
-        {eventos.length} eventos georreferenciados el {fecha} · {clientes.length} clientes con ubicación
-        {' · '}Mapa: © OpenStreetMap contributors
+        {t('rutas.resumen_eventos', { eventos: eventos.length, fecha, clientes: clientes.length })}
+        {' · '}{t('rutas.mapa_atribucion')}
       </p>
     </div>
   );

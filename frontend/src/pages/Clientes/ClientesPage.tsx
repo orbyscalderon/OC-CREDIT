@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Search, UserPlus, Eye } from 'lucide-react';
 import { clientesApi } from '@/api/clientes.api';
@@ -8,6 +9,7 @@ import { Badge } from '@/components/common/Badge';
 import type { Cliente } from '@/types';
 
 export function ClientesPage() {
+  const { t } = useTranslation();
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
 
@@ -25,13 +27,13 @@ export function ClientesPage() {
     <div className="p-6 space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Clientes</h1>
-          <p className="text-sm text-gray-500">{total} clientes registrados</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('clientes.titulo')}</h1>
+          <p className="text-sm text-gray-500">{t('clientes.registrados', { count: total })}</p>
         </div>
         {/* S1-4: .btn-primary   S3-17: active:scale está incluido en .btn-primary */}
         <Link to="/clientes/nuevo" className="btn-primary">
           <UserPlus size={16} />
-          Nuevo cliente
+          {t('clientes.nuevo')}
         </Link>
       </div>
 
@@ -41,7 +43,7 @@ export function ClientesPage() {
         <input
           value={q}
           onChange={(e) => { setQ(e.target.value); setPage(1); }}
-          placeholder="Buscar por nombre, apellido o cédula…"
+          placeholder={t('clientes.buscar')}
           /* S1-4: .input-field */
           className="input-field pl-9"
         />
@@ -49,13 +51,13 @@ export function ClientesPage() {
 
       <Table<Cliente>
         columns={[
-          { key: 'cedula',   header: 'Cédula' },
-          { key: 'nombre',   header: 'Nombre', render: (r) => `${r.nombre} ${r.apellido}` },
-          { key: 'telefono', header: 'Teléfono', render: (r) => r.telefono ?? '—' },
+          { key: 'cedula',   header: t('clientes.col_cedula') },
+          { key: 'nombre',   header: t('clientes.col_nombre'), render: (r) => `${r.nombre} ${r.apellido}` },
+          { key: 'telefono', header: t('clientes.col_telefono'), render: (r) => r.telefono ?? '—' },
           {
             key: 'activo',
-            header: 'Estado',
-            render: (r) => <Badge label={r.activo ? 'Activo' : 'Inactivo'} variant={r.activo ? 'green' : 'gray'} />,
+            header: t('clientes.col_estado'),
+            render: (r) => <Badge label={r.activo ? t('common.activo') : t('common.inactivo')} variant={r.activo ? 'green' : 'gray'} />,
           },
           {
             key: 'acciones',
@@ -63,7 +65,7 @@ export function ClientesPage() {
             render: (r) => (
               <Link to={`/clientes/${r.id}`} className="inline-flex items-center gap-1 text-xs text-brand-600 hover:text-brand-800 font-medium transition-colors">
                 <Eye size={13} />
-                Ver
+                {t('common.ver')}
               </Link>
             ),
           },
@@ -71,7 +73,7 @@ export function ClientesPage() {
         data={data?.data ?? []}
         keyField="id"
         loading={isLoading}
-        emptyMessage="No se encontraron clientes"
+        emptyMessage={t('clientes.sin_resultados')}
       />
 
       {/* S2-14: Página X de Y */}
@@ -82,17 +84,17 @@ export function ClientesPage() {
             disabled={page === 1}
             className="btn-secondary px-3 py-1.5 text-xs disabled:opacity-40"
           >
-            Anterior
+            {t('common.anterior')}
           </button>
           <span className="text-gray-500 text-xs">
-            Página <span className="font-semibold text-gray-800">{page}</span> de <span className="font-semibold text-gray-800">{totalPages}</span>
+            {t('common.pagina')} <span className="font-semibold text-gray-800">{page}</span> {t('common.de')} <span className="font-semibold text-gray-800">{totalPages}</span>
           </span>
           <button
             onClick={() => setPage((p) => p + 1)}
             disabled={page >= totalPages}
             className="btn-secondary px-3 py-1.5 text-xs disabled:opacity-40"
           >
-            Siguiente
+            {t('common.siguiente')}
           </button>
         </div>
       )}

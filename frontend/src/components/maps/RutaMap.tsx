@@ -1,6 +1,8 @@
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import type { CoordenadasResponse, ClienteUbicacion } from '@/types';
+import { useAuth } from '@/hooks/useAuth';
+import { formatCurrency } from '@/utils/format';
 import 'leaflet/dist/leaflet.css';
 
 // Fix broken default marker icons in Vite/Webpack builds
@@ -44,6 +46,7 @@ interface Props {
 }
 
 export function RutaMap({ puntos, clientes = [], center = [18.4861, -69.9312], zoom = 12, height = '400px' }: Props) {
+  const { user } = useAuth();
   // La trayectoria solo conecta eventos del día (cobros/novedades) — las
   // casas de los clientes son ubicaciones fijas, no se incluyen en la línea.
   const coordPairs = puntos
@@ -79,7 +82,7 @@ export function RutaMap({ puntos, clientes = [], center = [18.4861, -69.9312], z
               <p>{p.descripcion}</p>
               {p.monto !== undefined && (
                 <p className="text-emerald-600 font-medium">
-                  RD$ {p.monto.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
+                  {formatCurrency(p.monto, user)}
                 </p>
               )}
               <p className="text-gray-400 text-xs mt-1">

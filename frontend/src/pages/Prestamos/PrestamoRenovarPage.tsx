@@ -1,9 +1,12 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { ArrowLeft, RotateCcw, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { prestamosApi } from '@/api/prestamos.api';
 import { empleadosApi } from '@/api/empleados.api';
+import { useAuth } from '@/hooks/useAuth';
+import { formatCurrency } from '@/utils/format';
 
 const MODALIDADES = ['Diario', 'Semanal', 'Quincenal', 'Mensual'] as const;
 
@@ -14,8 +17,10 @@ function mañana() {
 }
 
 export function PrestamoRenovarPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [capitalAprobado, setCapitalAprobado] = useState('');
   const [modalidad, setModalidad] = useState<typeof MODALIDADES[number]>('Mensual');
@@ -57,34 +62,34 @@ export function PrestamoRenovarPage() {
   });
 
   const errMsg = renovarMut.isError
-    ? ((renovarMut.error as any)?.response?.data?.message ?? 'Error al renovar el préstamo')
+    ? ((renovarMut.error as any)?.response?.data?.message ?? t('prestamos.error_renovar'))
     : null;
 
-  const fmt = (n: number) => 'RD$ ' + n.toLocaleString('es-DO', { minimumFractionDigits: 2 });
+  const fmt = (n: number) => formatCurrency(n, user);
 
   const canSubmit = capitalAprobado && numCuotas && tasaInteres && cobradorId && fechaPrimerPago;
 
-  if (isLoading) return <div className="p-6 text-gray-400">Cargando…</div>;
-  if (!prestamo) return <div className="p-6 text-red-500">Préstamo no encontrado</div>;
+  if (isLoading) return <div className="p-6 text-gray-400">{t('prestamos.cargando')}</div>;
+  if (!prestamo) return <div className="p-6 text-red-500">{t('prestamos.no_encontrado')}</div>;
 
   if (resultado) {
     return (
       <div className="p-6 max-w-md mx-auto">
         <div className="bg-white rounded-2xl border border-emerald-200 p-8 shadow-sm text-center space-y-4">
           <CheckCircle2 size={48} className="text-emerald-500 mx-auto" />
-          <h2 className="text-xl font-bold text-gray-900">Préstamo renovado</h2>
+          <h2 className="text-xl font-bold text-gray-900">{t('prestamos.renovado_titulo')}</h2>
           <div className="grid grid-cols-2 gap-3 text-sm mt-2">
             <div className="rounded-lg bg-gray-50 p-3">
-              <p className="text-gray-400 text-xs">Saldo liquidado</p>
+              <p className="text-gray-400 text-xs">{t('prestamos.saldo_liquidado')}</p>
               <p className="font-bold text-gray-900">{fmt(resultado.saldoLiquidado)}</p>
             </div>
             <div className="rounded-lg bg-emerald-50 p-3">
-              <p className="text-gray-400 text-xs">Neto entregado</p>
+              <p className="text-gray-400 text-xs">{t('prestamos.neto_entregado')}</p>
               <p className="font-bold text-emerald-700">{fmt(resultado.capitalNeto)}</p>
             </div>
           </div>
           <button onClick={() => navigate('/prestamos')} className="btn-primary w-full justify-center mt-2">
-            Ver préstamos
+            {t('prestamos.ver_prestamos')}
           </button>
         </div>
       </div>
@@ -95,15 +100,15 @@ export function PrestamoRenovarPage() {
     <div className="p-6 space-y-6 max-w-2xl animate-fade-in">
       <Link to={`/prestamos/${id}`} className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900">
         <ArrowLeft size={16} />
-        Volver al préstamo
+        {t('prestamos.volver_al_prestamo')}
       </Link>
 
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Renovar préstamo</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('prestamos.renovar_titulo')}</h1>
         <p className="text-sm text-gray-500 mt-0.5">
           {prestamo.cliente
             ? `${prestamo.cliente.nombre} ${prestamo.cliente.apellido} — ${prestamo.cliente.cedula}`
-            : 'Liquida el saldo actual y crea un nuevo plan de pago'}
+            : t('prestamos.renovar_subtitulo_generico')}
         </p>
       </div>
 
@@ -111,7 +116,7 @@ export function PrestamoRenovarPage() {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-              Nuevo capital aprobado (RD$) <span className="text-red-400">*</span>
+              {t('prestamos.nuevo_capital_aprobado', { simbolo: user?.tenant_simbolo_moneda ?? 'RD$' })} <span className="text-red-400">*</span>
             </label>
             <input
               type="number" step="0.01" min="1"
@@ -119,11 +124,11 @@ export function PrestamoRenovarPage() {
               onChange={(e) => setCapitalAprobado(e.target.value)}
               className="input-field mono-nums"
             />
-            <p className="mt-1 text-xs text-gray-400">Debe ser mayor al saldo pendiente actual</p>
+            <p className="mt-1 text-xs text-gray-400">{t('prestamos.capital_hint')}</p>
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-              Tasa de interés (%) <span className="text-red-400">*</span>
+              {t('prestamos.tasa_interes')} <span className="text-red-400">*</span>
             </label>
             <input
               type="number" step="0.01" min="0.1"
@@ -137,7 +142,7 @@ export function PrestamoRenovarPage() {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-              Número de cuotas <span className="text-red-400">*</span>
+              {t('prestamos.numero_cuotas')} <span className="text-red-400">*</span>
             </label>
             <input
               type="number" min="1"
@@ -148,7 +153,7 @@ export function PrestamoRenovarPage() {
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-              Modalidad <span className="text-red-400">*</span>
+              {t('prestamos.modalidad')} <span className="text-red-400">*</span>
             </label>
             <select value={modalidad} onChange={(e) => setModalidad(e.target.value as typeof modalidad)} className="input-field">
               {MODALIDADES.map((m) => <option key={m} value={m}>{m}</option>)}
@@ -159,10 +164,10 @@ export function PrestamoRenovarPage() {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-              Cobrador asignado <span className="text-red-400">*</span>
+              {t('prestamos.cobrador_asignado')} <span className="text-red-400">*</span>
             </label>
             <select value={cobradorId} onChange={(e) => setCobradorId(e.target.value)} className="input-field">
-              <option value="">— Seleccionar —</option>
+              <option value="">{t('rutas.seleccionar_placeholder')}</option>
               {cobradores.map((c) => (
                 <option key={c.id} value={c.id}>{c.nombre} {c.apellido}</option>
               ))}
@@ -170,7 +175,7 @@ export function PrestamoRenovarPage() {
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-              Primer pago <span className="text-red-400">*</span>
+              {t('prestamos.primer_pago')} <span className="text-red-400">*</span>
             </label>
             <input
               type="date"
@@ -194,7 +199,7 @@ export function PrestamoRenovarPage() {
           className="btn-primary w-full justify-center"
         >
           <RotateCcw size={15} />
-          {renovarMut.isPending ? 'Renovando…' : 'Confirmar renovación'}
+          {renovarMut.isPending ? t('prestamos.renovando') : t('prestamos.confirmar_renovacion')}
         </button>
       </div>
     </div>

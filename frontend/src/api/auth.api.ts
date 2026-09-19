@@ -17,6 +17,7 @@ export interface LoginResponse {
   tenant_config: {
     tenant_id: string;
     nombre_empresa: string;
+    pais: string;
     url_logo: string | null;
     color_primario: string;
     color_secundario: string;

@@ -1,19 +1,23 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, MapPin } from 'lucide-react';
 import { rutasApi } from '@/api/rutas.api';
+import { empleadosApi } from '@/api/empleados.api';
 
 const schema = z.object({
   nombre:      z.string().min(1, 'Requerido').max(100),
   descripcion: z.string().max(300).optional().or(z.literal('')),
+  cobrador_id: z.string().optional().or(z.literal('')),
 });
 
 type FormData = z.infer<typeof schema>;
 
 export function RutaNuevaPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const qc = useQueryClient();
 
@@ -23,12 +27,22 @@ export function RutaNuevaPage() {
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { nombre: '', descripcion: '' },
+    defaultValues: { nombre: '', descripcion: '', cobrador_id: '' },
+  });
+
+  const { data: cobradores = [] } = useQuery({
+    queryKey: ['empleados'],
+    queryFn: empleadosApi.listar,
+    select: (data) => data.filter((e) => e.activo && e.rol === 'cobrador_tenant'),
   });
 
   const crear = useMutation({
     mutationFn: (dto: FormData) =>
-      rutasApi.crear({ nombre: dto.nombre, descripcion: dto.descripcion || undefined }),
+      rutasApi.crear({
+        nombre: dto.nombre,
+        descripcion: dto.descripcion || undefined,
+        cobrador_id: dto.cobrador_id || undefined,
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['rutas'] });
       navigate('/rutas');
@@ -40,10 +54,10 @@ export function RutaNuevaPage() {
       <div>
         <Link to="/rutas" className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 transition-colors mb-4">
           <ArrowLeft size={15} />
-          Volver a rutas
+          {t('rutas.volver')}
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">Nueva ruta de cobro</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Crea una ruta para agrupar clientes y asignar cobradores</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('rutas.nueva_titulo')}</h1>
+        <p className="text-sm text-gray-500 mt-0.5">{t('rutas.nueva_subtitulo')}</p>
       </div>
 
       <form
@@ -52,11 +66,11 @@ export function RutaNuevaPage() {
       >
         <div>
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-            Nombre de la ruta <span className="text-red-400">*</span>
+            {t('rutas.nombre_ruta')} <span className="text-red-400">*</span>
           </label>
           <input
             {...register('nombre')}
-            placeholder="Ruta Norte, Sector Los Mameyes…"
+            placeholder={t('rutas.nombre_ruta_placeholder')}
             className="input-field"
           />
           {errors.nombre && <p className="mt-1 text-xs text-red-500">{errors.nombre.message}</p>}
@@ -64,21 +78,35 @@ export function RutaNuevaPage() {
 
         <div>
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-            Descripción
+            {t('rutas.descripcion')}
           </label>
           <textarea
             {...register('descripcion')}
             rows={3}
-            placeholder="Zona de cobertura, sectores incluidos, notas para el cobrador…"
+            placeholder={t('rutas.descripcion_placeholder')}
             className="input-field resize-none"
           />
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+            {t('rutas.cobrador_asignado')}
+          </label>
+          <select {...register('cobrador_id')} className="input-field">
+            <option value="">{t('rutas.sin_asignar_opcion')}</option>
+            {cobradores.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nombre} {c.apellido}
+              </option>
+            ))}
+          </select>
         </div>
 
         {crear.isError && (
           <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3">
             <p className="text-sm text-red-700">
               {(crear.error as { response?: { data?: { message?: string } } })?.response?.data?.message
-                ?? 'Error al crear la ruta.'}
+                ?? t('rutas.error_crear')}
             </p>
           </div>
         )}
@@ -91,17 +119,17 @@ export function RutaNuevaPage() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                 </svg>
-                Creando…
+                {t('rutas.creando')}
               </>
             ) : (
               <>
                 <MapPin size={15} />
-                Crear ruta
+                {t('rutas.crear')}
               </>
             )}
           </button>
           <Link to="/rutas" className="btn-secondary text-sm">
-            Cancelar
+            {t('common.cancelar')}
           </Link>
         </div>
       </form>
