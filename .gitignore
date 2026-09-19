@@ -23,6 +23,11 @@ Thumbs.db
 .vscode/
 .idea/
 
+# Claude Code (config/tooling local a cada máquina, no del proyecto)
+.claude/settings.local.json
+.agents/
+skills-lock.json
+
 # TypeScript
 *.tsbuildinfo
 
