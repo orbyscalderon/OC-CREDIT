@@ -1,6 +1,6 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import axios, { AxiosInstance } from 'axios';
 
 const BUCKET = 'documentos';
 const SIGNED_URL_TTL_SEGUNDOS = 300;
@@ -13,37 +13,55 @@ const SIGNED_URL_TTL_SEGUNDOS = 300;
  *
  * Reemplaza el disco local (diskStorage/fs.writeFile a /var/www/...) que
  * se perdía en cada redeploy de Railway (filesystem efímero).
+ *
+ * Usa axios (HTTP directo a la REST API de Storage) en vez del cliente
+ * @supabase/supabase-js: ese cliente depende del `fetch` global de Node
+ * para subir binarios, y en Node 20 (la imagen del Dockerfile) eso tumbaba
+ * el proceso completo -- funcionaba bien en local con Node 24 pero crasheaba
+ * en Railway. axios usa los módulos http/https nativos, sin esa dependencia.
  */
 @Injectable()
 export class StorageService {
-  private readonly client: SupabaseClient;
+  private readonly http: AxiosInstance;
 
-  constructor(private readonly config: ConfigService) {
-    const url = this.config.get<string>('SUPABASE_URL');
-    const key = this.config.get<string>('SUPABASE_SERVICE_ROLE_KEY');
+  constructor(config: ConfigService) {
+    const url = config.get<string>('SUPABASE_URL');
+    const key = config.get<string>('SUPABASE_SERVICE_ROLE_KEY');
     if (!url || !key) {
       throw new Error(
         'SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY no configuradas -- requeridas para subir/leer documentos',
       );
     }
-    this.client = createClient(url, key, { auth: { persistSession: false } });
+    this.http = axios.create({
+      baseURL: `${url}/storage/v1`,
+      headers: { Authorization: `Bearer ${key}`, apikey: key },
+      timeout: 15_000,
+    });
   }
 
   async subir(path: string, buffer: Buffer, contentType: string): Promise<string> {
-    const { error } = await this.client.storage
-      .from(BUCKET)
-      .upload(path, buffer, { contentType, upsert: true });
-    if (error) throw new InternalServerErrorException(`Error subiendo archivo: ${error.message}`);
-    return path;
+    try {
+      await this.http.post(`/object/${BUCKET}/${path}`, buffer, {
+        headers: { 'Content-Type': contentType, 'x-upsert': 'true' },
+        maxBodyLength: Infinity,
+      });
+      return path;
+    } catch (err) {
+      const msg = axios.isAxiosError(err) ? JSON.stringify(err.response?.data ?? err.message) : String(err);
+      throw new InternalServerErrorException(`Error subiendo archivo: ${msg}`);
+    }
   }
 
   async urlFirmada(path: string): Promise<string> {
-    const { data, error } = await this.client.storage
-      .from(BUCKET)
-      .createSignedUrl(path, SIGNED_URL_TTL_SEGUNDOS);
-    if (error || !data) {
-      throw new InternalServerErrorException(`Error generando URL firmada: ${error?.message}`);
+    try {
+      const { data } = await this.http.post<{ signedURL: string }>(
+        `/object/sign/${BUCKET}/${path}`,
+        { expiresIn: SIGNED_URL_TTL_SEGUNDOS },
+      );
+      return `${this.http.defaults.baseURL}${data.signedURL}`;
+    } catch (err) {
+      const msg = axios.isAxiosError(err) ? JSON.stringify(err.response?.data ?? err.message) : String(err);
+      throw new InternalServerErrorException(`Error generando URL firmada: ${msg}`);
     }
-    return data.signedUrl;
   }
 }
