@@ -143,5 +143,12 @@
   "rutaDeCobro": "Ruta de cobro",
   "sinAsignar": "Sin asignar",
   "clienteCreado": "Cliente creado correctamente",
-  "crearCliente": "Crear cliente"
+  "crearCliente": "Crear cliente",
+  "mapaTitulo": "Mapa de ruta",
+  "mapaSinClientes": "Ningún cliente de esta ruta tiene ubicación guardada todavía",
+  "mapaSeleccionarRuta": "Selecciona una ruta",
+  "mapaMiUbicacion": "Mi ubicación",
+  "mapaSinPrestamos": "No hay préstamos activos con ruta asignada",
+  "mapaPrestamosActivos": "préstamo(s) activo(s)",
+  "mapaSinPrestamosActivos": "Sin préstamos activos"
 }

@@ -915,6 +915,48 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Crear cliente'**
   String get crearCliente;
+
+  /// No description provided for @mapaTitulo.
+  ///
+  /// In es, this message translates to:
+  /// **'Mapa de ruta'**
+  String get mapaTitulo;
+
+  /// No description provided for @mapaSinClientes.
+  ///
+  /// In es, this message translates to:
+  /// **'Ningún cliente de esta ruta tiene ubicación guardada todavía'**
+  String get mapaSinClientes;
+
+  /// No description provided for @mapaSeleccionarRuta.
+  ///
+  /// In es, this message translates to:
+  /// **'Selecciona una ruta'**
+  String get mapaSeleccionarRuta;
+
+  /// No description provided for @mapaMiUbicacion.
+  ///
+  /// In es, this message translates to:
+  /// **'Mi ubicación'**
+  String get mapaMiUbicacion;
+
+  /// No description provided for @mapaSinPrestamos.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay préstamos activos con ruta asignada'**
+  String get mapaSinPrestamos;
+
+  /// No description provided for @mapaPrestamosActivos.
+  ///
+  /// In es, this message translates to:
+  /// **'préstamo(s) activo(s)'**
+  String get mapaPrestamosActivos;
+
+  /// No description provided for @mapaSinPrestamosActivos.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin préstamos activos'**
+  String get mapaSinPrestamosActivos;
 }
 
 class _AppLocalizationsDelegate

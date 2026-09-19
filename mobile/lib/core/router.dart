@@ -14,6 +14,7 @@ import '../features/prestamos/screens/solicitudes_screen.dart';
 import '../features/prestamos/screens/nueva_solicitud_screen.dart';
 import '../features/empleados/screens/empleados_screen.dart';
 import '../features/clientes/screens/cliente_nuevo_screen.dart';
+import '../features/rutas/screens/mapa_ruta_screen.dart';
 import '../providers/auth_provider.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -46,6 +47,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/empleados',   builder: (_, __) => const EmpleadosScreen()),
       GoRoute(path: '/cajas-dia',   builder: (_, __) => const CajasDiaScreen()),
       GoRoute(path: '/cliente-nuevo', builder: (_, __) => const ClienteNuevoScreen()),
+      GoRoute(path: '/mapa', builder: (_, __) => const MapaRutaScreen()),
     ],
   );
 });

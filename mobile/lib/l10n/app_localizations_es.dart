@@ -452,4 +452,26 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get crearCliente => 'Crear cliente';
+
+  @override
+  String get mapaTitulo => 'Mapa de ruta';
+
+  @override
+  String get mapaSinClientes =>
+      'Ningún cliente de esta ruta tiene ubicación guardada todavía';
+
+  @override
+  String get mapaSeleccionarRuta => 'Selecciona una ruta';
+
+  @override
+  String get mapaMiUbicacion => 'Mi ubicación';
+
+  @override
+  String get mapaSinPrestamos => 'No hay préstamos activos con ruta asignada';
+
+  @override
+  String get mapaPrestamosActivos => 'préstamo(s) activo(s)';
+
+  @override
+  String get mapaSinPrestamosActivos => 'Sin préstamos activos';
 }

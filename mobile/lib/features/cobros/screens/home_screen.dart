@@ -116,6 +116,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   context.push('/nueva-solicitud');
                 },
               ),
+              ListTile(
+                leading: const Icon(Icons.map_outlined),
+                title: Text(l10n.mapaTitulo),
+                onTap: () {
+                  Navigator.pop(context);
+                  context.push('/mapa');
+                },
+              ),
               if (esAdmin) ...[
                 ListTile(
                   leading: const Icon(Icons.dashboard_outlined),
