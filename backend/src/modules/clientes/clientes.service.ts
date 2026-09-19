@@ -1,7 +1,6 @@
 import {
   BadRequestException, Injectable, NotFoundException,
 } from '@nestjs/common';
-import * as path from 'path';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, ILike, In, Repository } from 'typeorm';
 import { Cliente } from './entities/cliente.entity';
@@ -9,6 +8,7 @@ import { Ruta } from '../rutas/entities/ruta.entity';
 import { BuroCreditoService } from '../buro-credito/buro-credito.service';
 import { CrearClienteDto, ActualizarClienteDto } from './dto/cliente.dto';
 import { ordenarPorCercania } from '../../common/utils/geo.util';
+import { StorageService } from '../../common/services/storage.service';
 
 export interface PaginatedClientes {
   data: Cliente[];
@@ -24,6 +24,7 @@ export class ClientesService {
     @InjectRepository(Ruta) private readonly rutaRepo: Repository<Ruta>,
     private readonly buroCreditoService: BuroCreditoService,
     @InjectDataSource() private readonly dataSource: DataSource,
+    private readonly storageService: StorageService,
   ) {}
 
   /** Rutas asignadas a un cobrador — usado para acotar su búsqueda a sus propios clientes. */
@@ -102,14 +103,30 @@ export class ClientesService {
   async subirFotosCedula(
     tenantId: string,
     clienteId: string,
-    frontalPath?: string,
-    traseraPath?: string,
+    frontal?: { buffer: Buffer; mimetype: string },
+    trasera?: { buffer: Buffer; mimetype: string },
   ): Promise<Cliente> {
     const cliente = await this.obtener(tenantId, clienteId);
-    const uploadsDir = process.env.UPLOADS_DIR || '/var/www/oc-credit/uploads';
-    if (frontalPath) cliente.foto_cedula_frontal_url = path.relative(uploadsDir, frontalPath);
-    if (traseraPath) cliente.foto_cedula_trasera_url = path.relative(uploadsDir, traseraPath);
+    if (frontal) {
+      const ext = frontal.mimetype.split('/')[1] || 'jpg';
+      const objectPath = `cedulas/${clienteId}/frontal.${ext}`;
+      await this.storageService.subir(objectPath, frontal.buffer, frontal.mimetype);
+      cliente.foto_cedula_frontal_url = objectPath;
+    }
+    if (trasera) {
+      const ext = trasera.mimetype.split('/')[1] || 'jpg';
+      const objectPath = `cedulas/${clienteId}/trasera.${ext}`;
+      await this.storageService.subir(objectPath, trasera.buffer, trasera.mimetype);
+      cliente.foto_cedula_trasera_url = objectPath;
+    }
     return this.repo.save(cliente);
+  }
+
+  async urlFotoCedula(tenantId: string, clienteId: string, lado: 'frontal' | 'trasera'): Promise<string> {
+    const cliente = await this.obtener(tenantId, clienteId);
+    const objectPath = lado === 'frontal' ? cliente.foto_cedula_frontal_url : cliente.foto_cedula_trasera_url;
+    if (!objectPath) throw new NotFoundException('Imagen no disponible');
+    return this.storageService.urlFirmada(objectPath);
   }
 
   async reasignarRuta(tenantId: string, clienteId: string, nuevaRutaId: string): Promise<void> {

@@ -8,8 +8,6 @@ import {
 } from '@nestjs/common';
 import { InjectEntityManager } from '@nestjs/typeorm';
 import { EntityManager } from 'typeorm';
-import * as fs from 'fs';
-import * as path from 'path';
 import { RegistrarCobroDto, CobroResponseDto } from './dto/registrar-cobro.dto';
 import { Transaccion } from '../cajas/entities/transaccion.entity';
 import { Caja } from '../cajas/entities/caja.entity';
@@ -25,6 +23,7 @@ import {
 import { fechaHoyEnZona } from '../../common/utils/fecha-negocio.util';
 import { ZonaHorariaService } from '../../common/services/zona-horaria.service';
 import { haversineKm } from '../../common/utils/geo.util';
+import { StorageService } from '../../common/services/storage.service';
 
 // ─── Tipos internos ───────────────────────────────────────────────────────────
 
@@ -66,6 +65,7 @@ export class CobrosService {
   constructor(
     @InjectEntityManager() private readonly em: EntityManager,
     private readonly zonaHorariaService: ZonaHorariaService,
+    private readonly storageService: StorageService,
   ) {}
 
   /**
@@ -463,8 +463,7 @@ export class CobrosService {
     tenantId: string,
     transaccionId: string,
     buffer: Buffer,
-    originalname: string,
-    uploadsDir: string,
+    mimetype: string,
   ): Promise<{ foto_evidencia_url: string }> {
     const transaccion = await this.em.findOne(Transaccion, {
       where: { id: transaccionId, tenant_id: tenantId, tipo: TipoTransaccion.COBRO },
@@ -473,23 +472,18 @@ export class CobrosService {
       throw new NotFoundException('Cobro no encontrado para este tenant');
     }
 
-    // La validación de propiedad del cobro va ANTES de tocar el disco a
-    // propósito: con diskStorage de multer el archivo se escribe durante el
-    // parseo del request, antes de que el controller pueda verificar nada,
-    // dejando carpetas huérfanas en disco para IDs inexistentes o ajenos.
-    const ext = path.extname(originalname).toLowerCase() || '.jpg';
-    const dir = path.join(uploadsDir, 'cobros', transaccionId);
-    await fs.promises.mkdir(dir, { recursive: true });
-    const absPath = path.join(dir, `evidencia${ext}`);
-    await fs.promises.writeFile(absPath, buffer);
-
-    const relPath = path.relative(uploadsDir, absPath);
+    // La validación de propiedad del cobro va ANTES de subir el archivo a
+    // propósito (memoryStorage retiene el buffer en memoria hasta este
+    // punto, no lo escribe a ningún lado hasta que se confirma el dueño).
+    const ext = mimetype.split('/')[1] || 'jpg';
+    const objectPath = `cobros/${transaccionId}/evidencia.${ext}`;
+    await this.storageService.subir(objectPath, buffer, mimetype);
 
     await this.em.update(Transaccion, { id: transaccionId }, {
-      foto_comprobante_url: relPath,
+      foto_comprobante_url: objectPath,
     });
 
-    return { foto_evidencia_url: relPath };
+    return { foto_evidencia_url: objectPath };
   }
 
   async obtenerFotoEvidencia(tenantId: string, transaccionId: string): Promise<string | null> {
@@ -499,5 +493,11 @@ export class CobrosService {
     });
     if (!transaccion) throw new NotFoundException('Cobro no encontrado');
     return transaccion.foto_comprobante_url ?? null;
+  }
+
+  async urlFotoEvidencia(tenantId: string, transaccionId: string): Promise<string | null> {
+    const objectPath = await this.obtenerFotoEvidencia(tenantId, transaccionId);
+    if (!objectPath) return null;
+    return this.storageService.urlFirmada(objectPath);
   }
 }

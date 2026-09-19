@@ -1,13 +1,11 @@
 import {
-  Body, Controller, Get, NotFoundException, Param, ParseUUIDPipe,
+  Body, Controller, Get, Param, ParseUUIDPipe,
   Post, Put, Query, Res, UploadedFiles, UseGuards, UseInterceptors,
   DefaultValuePipe, ParseIntPipe,
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { diskStorage } from 'multer';
-import * as path from 'path';
-import * as fs from 'fs';
+import { memoryStorage } from 'multer';
 import { Response as ExpressResponse } from 'express';
 import { ClientesService } from './clientes.service';
 import { CrearClienteDto, ActualizarClienteDto, ReordenarClientesDto } from './dto/cliente.dto';
@@ -16,20 +14,6 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser, JwtPayload } from '../../common/decorators/current-user.decorator';
 import { Rol } from '../../common/constants/roles.enum';
-
-const UPLOADS_DIR = process.env.UPLOADS_DIR || '/var/www/oc-credit/uploads';
-
-const cedulaStorage = diskStorage({
-  destination: (req, _file, cb) => {
-    const dir = path.join(UPLOADS_DIR, 'cedulas', req.params.id as string);
-    fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
-    cb(null, `${file.fieldname}${ext}`);
-  },
-});
 
 @ApiTags('Clientes')
 @ApiBearerAuth('JWT')
@@ -143,7 +127,7 @@ export class ClientesController {
   @UseInterceptors(FileFieldsInterceptor(
     [{ name: 'frontal', maxCount: 1 }, { name: 'trasera', maxCount: 1 }],
     {
-      storage: cedulaStorage,
+      storage: memoryStorage(),
       limits: { fileSize: 10 * 1024 * 1024 },
       fileFilter: (_req, file, cb) => {
         if (file.mimetype.startsWith('image/')) cb(null, true);
@@ -156,10 +140,12 @@ export class ClientesController {
     @Param('id', ParseUUIDPipe) id: string,
     @UploadedFiles() files: { frontal?: Express.Multer.File[]; trasera?: Express.Multer.File[] },
   ) {
+    const frontal = files.frontal?.[0];
+    const trasera = files.trasera?.[0];
     return this.service.subirFotosCedula(
       user.tenantId, id,
-      files.frontal?.[0]?.path,
-      files.trasera?.[0]?.path,
+      frontal ? { buffer: frontal.buffer, mimetype: frontal.mimetype } : undefined,
+      trasera ? { buffer: trasera.buffer, mimetype: trasera.mimetype } : undefined,
     );
   }
 
@@ -172,11 +158,7 @@ export class ClientesController {
     @Param('lado') lado: string,
     @Res() res: ExpressResponse,
   ) {
-    const cliente = await this.service.obtener(user.tenantId, id);
-    const relPath = lado === 'frontal' ? cliente.foto_cedula_frontal_url : cliente.foto_cedula_trasera_url;
-    if (!relPath) throw new NotFoundException('Imagen no disponible');
-    const absPath = path.join(UPLOADS_DIR, relPath);
-    if (!fs.existsSync(absPath)) throw new NotFoundException('Archivo no encontrado en el servidor');
-    res.sendFile(absPath);
+    const url = await this.service.urlFotoCedula(user.tenantId, id, lado === 'frontal' ? 'frontal' : 'trasera');
+    res.redirect(url);
   }
 }

@@ -10,8 +10,6 @@ import {
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { memoryStorage } from 'multer';
-import * as fs from 'fs';
-import * as path from 'path';
 import { Response as ExpressResponse } from 'express';
 import { CobrosService } from './cobros.service';
 import { RegistrarCobroDto, CobroResponseDto } from './dto/registrar-cobro.dto';
@@ -20,8 +18,6 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser, JwtPayload } from '../../common/decorators/current-user.decorator';
 import { Rol } from '../../common/constants/roles.enum';
-
-const UPLOADS_DIR = process.env.UPLOADS_DIR || '/var/www/oc-credit/uploads';
 
 @ApiTags('Cobros')
 @ApiBearerAuth('JWT')
@@ -112,7 +108,7 @@ export class CobrosController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file) throw new BadRequestException('No se recibió ningún archivo');
-    return this.cobrosService.subirFotoEvidencia(user.tenantId, id, file.buffer, file.originalname, UPLOADS_DIR);
+    return this.cobrosService.subirFotoEvidencia(user.tenantId, id, file.buffer, file.mimetype);
   }
 
   /**
@@ -127,10 +123,8 @@ export class CobrosController {
     @Param('id', ParseUUIDPipe) id: string,
     @Res() res: ExpressResponse,
   ) {
-    const relPath = await this.cobrosService.obtenerFotoEvidencia(user.tenantId, id);
-    if (!relPath) throw new NotFoundException('Este cobro no tiene foto de evidencia');
-    const absPath = path.join(UPLOADS_DIR, relPath);
-    if (!fs.existsSync(absPath)) throw new NotFoundException('Archivo no encontrado en el servidor');
-    res.sendFile(absPath);
+    const url = await this.cobrosService.urlFotoEvidencia(user.tenantId, id);
+    if (!url) throw new NotFoundException('Este cobro no tiene foto de evidencia');
+    res.redirect(url);
   }
 }

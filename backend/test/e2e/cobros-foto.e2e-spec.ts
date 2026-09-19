@@ -144,7 +144,7 @@ describe('POST/GET /api/v1/cobros/:id/foto (E2E)', () => {
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(404));
 
-  it('201 sube la foto y luego 200 al verla con el mismo contenido', async () => {
+  it('201 sube la foto y luego 302 a una URL firmada con el mismo contenido', async () => {
     const uploadResp = await request(app.getHttpServer())
       .post(`/api/v1/cobros/${transaccionId}/foto`)
       .set('Authorization', `Bearer ${cobradoreToken}`)
@@ -153,11 +153,18 @@ describe('POST/GET /api/v1/cobros/:id/foto (E2E)', () => {
 
     expect(uploadResp.body.data).toHaveProperty('foto_evidencia_url');
 
+    // El endpoint redirige a una URL firmada de Supabase Storage en vez de
+    // servir los bytes directo (evita depender del disco local, efímero en
+    // Railway) — seguimos la redirección y comparamos el contenido real.
     const verResp = await request(app.getHttpServer())
       .get(`/api/v1/cobros/${transaccionId}/foto`)
       .set('Authorization', `Bearer ${adminToken}`)
-      .expect(200);
+      .expect(302);
 
-    expect(Buffer.compare(verResp.body, pngBuffer)).toBe(0);
+    const signedUrl = verResp.headers.location;
+    expect(signedUrl).toContain('/storage/v1/object/sign/documentos/');
+
+    const descargado = await fetch(signedUrl).then((r) => r.arrayBuffer());
+    expect(Buffer.compare(Buffer.from(descargado), pngBuffer)).toBe(0);
   });
 });
