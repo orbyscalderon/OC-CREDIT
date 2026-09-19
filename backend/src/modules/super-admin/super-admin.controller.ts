@@ -9,6 +9,8 @@ import { SuperAdminService } from './super-admin.service';
 import type { SuperAdminJwtPayload } from './super-admin-auth.service';
 import { BuroCreditoService } from '../buro-credito/buro-credito.service';
 import { InactivarReporteBuroDto } from '../buro-credito/dto/buro.dto';
+import { CrearAdminDto } from './dto/crear-admin.dto';
+import { ToggleAdminActivoDto } from './dto/toggle-admin-activo.dto';
 
 /**
  * Panel exclusivo de OCA HOLDING GROUP LLC
@@ -95,16 +97,17 @@ export class SuperAdminController {
 
   @Post('admins')
   @ApiOperation({ summary: 'Crear nueva cuenta de super-admin' })
-  crearAdmin(@Body() dto: { email: string; password: string; nombre: string }) {
+  crearAdmin(@Body() dto: CrearAdminDto) {
     return this.svc.crearAdmin(dto.email, dto.password, dto.nombre);
   }
 
   @Patch('admins/:id/activo')
   @ApiOperation({ summary: 'Activar o desactivar cuenta de super-admin' })
   toggleAdminActivo(
+    @CurrentSuperAdmin() admin: SuperAdminJwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: { activo: boolean },
+    @Body() dto: ToggleAdminActivoDto,
   ) {
-    return this.svc.toggleAdminActivo(id, dto.activo);
+    return this.svc.toggleAdminActivo(id, dto.activo, admin.sub);
   }
 }

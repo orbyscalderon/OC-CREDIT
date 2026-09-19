@@ -121,15 +121,32 @@ export class SuperAdminService {
     const existe = await this.adminRepo.findOne({ where: { email: email.toLowerCase().trim() } });
     if (existe) throw new BadRequestException('Ya existe una cuenta con ese email');
     const password_hash = await bcrypt.hash(password, 12);
-    return this.adminRepo.save(
+    const saved = await this.adminRepo.save(
       this.adminRepo.create({ email: email.toLowerCase().trim(), password_hash, nombre, activo: true }),
     );
+    // No devolver el entity crudo: password_hash no debe viajar en la
+    // respuesta (@Exclude() en la entidad no aplica sin ClassSerializerInterceptor
+    // global, que no está registrado en este proyecto).
+    return { id: saved.id, email: saved.email, nombre: saved.nombre, activo: saved.activo, created_at: saved.created_at };
   }
 
-  async toggleAdminActivo(id: string, activo: boolean) {
+  async toggleAdminActivo(id: string, activo: boolean, actorId: string) {
     const admin = await this.adminRepo.findOne({ where: { id } });
     if (!admin) throw new NotFoundException('Cuenta no encontrada');
+
+    if (!activo) {
+      if (id === actorId) {
+        throw new BadRequestException('No puedes desactivar tu propia cuenta');
+      }
+      // Sin esto, desactivar la última cuenta activa deja el panel de
+      // super-admin sin nadie que pueda volver a entrar y reactivarla.
+      const activos = await this.adminRepo.count({ where: { activo: true } });
+      if (activos <= 1) {
+        throw new BadRequestException('No puedes desactivar la última cuenta de super-admin activa');
+      }
+    }
+
     await this.adminRepo.update(id, { activo });
-    return { ...admin, activo };
+    return { id: admin.id, email: admin.email, nombre: admin.nombre, activo };
   }
 }
