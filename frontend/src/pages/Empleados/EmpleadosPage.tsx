@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { PlusCircle, UserCheck, UserX, KeyRound, X, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { empleadosApi } from '@/api/empleados.api';
 import { Badge } from '@/components/common/Badge';
+import { ModalOverlay } from '@/components/common/ModalOverlay';
 import { useAuth } from '@/hooks/useAuth';
 import { tipoDocumentoPorPais } from '@/utils/documentosIdentidad';
 import type { Empleado } from '@/types';
@@ -164,7 +165,7 @@ export function EmpleadosPage() {
 
       {/* Modal crear empleado */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 backdrop-blur-sm p-4">
+        <ModalOverlay>
           <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl p-6 space-y-5 animate-fade-in overflow-y-auto max-h-[90vh]">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900">{t('empleados.modal_nuevo_titulo')}</h2>
@@ -237,12 +238,12 @@ export function EmpleadosPage() {
               </div>
             </form>
           </div>
-        </div>
+        </ModalOverlay>
       )}
 
       {/* Modal resetear contraseña */}
       {resetTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 backdrop-blur-sm p-4">
+        <ModalOverlay>
           <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 space-y-4 animate-fade-in overflow-y-auto max-h-[90vh]">
             <h2 className="text-lg font-bold text-gray-900">
               {t('empleados.resetear_titulo')}
@@ -277,7 +278,7 @@ export function EmpleadosPage() {
               </button>
             </div>
           </div>
-        </div>
+        </ModalOverlay>
       )}
     </div>
   );
