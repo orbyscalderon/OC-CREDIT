@@ -35,3 +35,7 @@ skills-lock.json
 .vite/
 .vercel
 .env*
+# .env.production SÍ se commitea: no lleva secretos, solo la URL pública del
+# backend y el client ID de Google (público por diseño) -- Vite lo necesita
+# disponible en el build de Cloudflare, que solo tiene lo que está en git.
+!frontend/.env.production
