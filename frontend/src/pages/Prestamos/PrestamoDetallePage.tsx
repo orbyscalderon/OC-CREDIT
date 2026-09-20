@@ -55,7 +55,11 @@ export function PrestamoDetallePage() {
   const { data: cobradores = [] } = useQuery({
     queryKey: ['empleados'],
     queryFn: empleadosApi.listar,
-    select: (data) => data.filter((e) => e.activo && e.rol === 'cobrador_tenant'),
+    // admin_tenant y supervisor_tenant tambien pueden abrir su propia caja y
+    // cobrar (ver @Roles en cajas.controller.ts) -- un negocio con un solo
+    // admin, sin cobradores contratados todavia, necesita poder asignarse el
+    // prestamo a si mismo en vez de quedar bloqueado por un dropdown vacio.
+    select: (data) => data.filter((e) => e.activo),
   });
 
   const aprobarMut = useMutation({
@@ -417,7 +421,10 @@ export function PrestamoDetallePage() {
                 <select value={cobradorId} onChange={(e) => setCobradorId(e.target.value)} className="input-field">
                   <option value="">{t('prestamos.seleccionar_cobrador')}</option>
                   {cobradores.map((c) => (
-                    <option key={c.id} value={c.id}>{c.nombre} {c.apellido}</option>
+                    <option key={c.id} value={c.id}>
+                      {c.nombre} {c.apellido}
+                      {c.rol !== 'cobrador_tenant' ? ` (${t(`empleados.rol_${c.rol === 'admin_tenant' ? 'admin' : 'supervisor'}`)})` : ''}
+                    </option>
                   ))}
                 </select>
               </div>
