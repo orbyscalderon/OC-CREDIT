@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Trash2, Check } from 'lucide-react';
 
 interface Props {
@@ -6,7 +7,9 @@ interface Props {
   label?: string;
 }
 
-export function FirmaDigital({ onFirma, label = 'Firma del cliente' }: Props) {
+export function FirmaDigital({ onFirma, label }: Props) {
+  const { t } = useTranslation();
+  const labelText = label ?? t('firma.cliente_default');
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [dibujando, setDibujando] = useState(false);
   const [tieneFirma, setTieneFirma] = useState(false);
@@ -80,7 +83,7 @@ export function FirmaDigital({ onFirma, label = 'Firma del cliente' }: Props) {
 
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium text-gray-700">{label}</p>
+      <p className="text-sm font-medium text-gray-700">{labelText}</p>
       <div className="relative rounded-xl border-2 border-dashed border-gray-300 bg-white overflow-hidden">
         <canvas
           ref={canvasRef}
@@ -97,7 +100,7 @@ export function FirmaDigital({ onFirma, label = 'Firma del cliente' }: Props) {
         />
         {!tieneFirma && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <p className="text-xs text-gray-400">Firme aquí</p>
+            <p className="text-xs text-gray-400">{t('firma.firme_aqui')}</p>
           </div>
         )}
       </div>
@@ -107,7 +110,7 @@ export function FirmaDigital({ onFirma, label = 'Firma del cliente' }: Props) {
           onClick={limpiar}
           className="flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50"
         >
-          <Trash2 size={12} /> Borrar
+          <Trash2 size={12} /> {t('firma.borrar')}
         </button>
         <button
           type="button"
@@ -115,7 +118,7 @@ export function FirmaDigital({ onFirma, label = 'Firma del cliente' }: Props) {
           disabled={!tieneFirma}
           className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-40"
         >
-          <Check size={12} /> Confirmar firma
+          <Check size={12} /> {t('firma.confirmar')}
         </button>
       </div>
     </div>

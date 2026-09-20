@@ -1,5 +1,6 @@
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import L from 'leaflet';
+import { useTranslation } from 'react-i18next';
 import type { CoordenadasResponse, ClienteUbicacion } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import { formatCurrency } from '@/utils/format';
@@ -57,6 +58,7 @@ interface Props {
 
 export function RutaMap({ puntos, clientes = [], rutaUbicacion, center = [18.4861, -69.9312], zoom = 12, height = '400px' }: Props) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   // La trayectoria solo conecta eventos del día (cobros/novedades) — las
   // casas de los clientes son ubicaciones fijas, no se incluyen en la línea.
   const coordPairs = puntos
@@ -113,8 +115,8 @@ export function RutaMap({ puntos, clientes = [], rutaUbicacion, center = [18.486
               {c.direccion_casa && <p className="mt-1">{c.direccion_casa}</p>}
               <p className="mt-1 text-xs text-blue-600">
                 {c.prestamos_activos > 0
-                  ? `${c.prestamos_activos} préstamo(s) activo(s)`
-                  : 'Sin préstamos activos'}
+                  ? t('rutas.mapa_prestamos_activos', { count: c.prestamos_activos })
+                  : t('rutas.mapa_sin_prestamos')}
               </p>
             </div>
           </Popup>

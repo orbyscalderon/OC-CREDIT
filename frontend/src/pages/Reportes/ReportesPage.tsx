@@ -14,12 +14,13 @@ import {
 
 const AGING_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#f97316', '#ef4444'];
 
-const RANGO_LABELS: Record<string, string> = {
-  Al_Dia: 'Al día',
-  '1_a_30_dias': '1-30 días',
-  '31_a_60_dias': '31-60 días',
-  '61_a_90_dias': '61-90 días',
-  Mas_de_90_dias: '+90 días',
+// Códigos internos del backend (no traducir) -> clave i18n de la etiqueta.
+const RANGO_LABEL_KEY: Record<string, string> = {
+  Al_Dia: 'reportes.aging_al_dia',
+  '1_a_30_dias': 'reportes.aging_1_30',
+  '31_a_60_dias': 'reportes.aging_31_60',
+  '61_a_90_dias': 'reportes.aging_61_90',
+  Mas_de_90_dias: 'reportes.aging_mas_90',
 };
 
 /* S2-12: función de variante para estado de cuadre */
@@ -52,7 +53,7 @@ export function ReportesPage() {
   const totalPrestamosAging = (aging ?? []).reduce((s, r) => s + Number(r.prestamos), 0);
   const agingConDatos = (aging ?? []).map((r) => ({
     ...r,
-    etiqueta: RANGO_LABELS[r.rango] ?? r.rango,
+    etiqueta: RANGO_LABEL_KEY[r.rango] ? t(RANGO_LABEL_KEY[r.rango]) : r.rango,
     porcentaje: totalPrestamosAging > 0 ? Math.round((Number(r.prestamos) / totalPrestamosAging) * 1000) / 10 : 0,
   }));
 

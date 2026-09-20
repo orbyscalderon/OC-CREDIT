@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, Users, UserPlus, CreditCard, Wallet,
   MapPin, ShieldAlert, BarChart3, Settings, LogOut,
@@ -13,22 +14,24 @@ import { prestamosApi } from '@/api/prestamos.api';
 import { Rol } from '@/types';
 import { clsx } from 'clsx';
 
+// labelKey en vez de texto fijo -- se resuelve con t() dentro del componente
+// para que reaccione al cambio de idioma (este array vive fuera del render).
 const navItems = [
-  { to: '/panel',          label: 'Dashboard',       icon: LayoutDashboard, roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT] },
-  { to: '/clientes',       label: 'Clientes',         icon: Users,           roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT] },
-  { to: '/clientes/nuevo', label: 'Nuevo Cliente',    icon: UserPlus,        roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT] },
-  { to: '/mi-ruta',        label: 'Mi Ruta',          icon: RouteIcon,       roles: [Rol.COBRADOR_TENANT] },
-  { to: '/prestamos',      label: 'Préstamos',        icon: CreditCard,      roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT] },
-  { to: '/cajas',          label: 'Cajas / Cobros',   icon: Wallet,          roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT] },
-  { to: '/cobros/nuevo',   label: 'Cobro Manual',     icon: PiggyBank,       roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT] },
-  { to: '/rutas',          label: 'Rutas',            icon: MapPin,          roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT] },
-  { to: '/empleados',      label: 'Empleados',        icon: UserCog,         roles: [Rol.ADMIN_TENANT] },
-  { to: '/buro',           label: 'Buró de Crédito',  icon: ShieldAlert,     roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT] },
-  { to: '/cuentas-cobrar', label: 'Cuentas x Cobrar', icon: ClipboardList,   roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT] },
-  { to: '/reportes',       label: 'Reportes',         icon: BarChart3,       roles: [Rol.ADMIN_TENANT] },
-  { to: '/config',         label: 'Configuración',    icon: Settings,        roles: [Rol.ADMIN_TENANT] },
-  { to: '/config/feriados',label: 'Feriados',         icon: CalendarOff,     roles: [Rol.ADMIN_TENANT] },
-  { to: '/config/backup',  label: 'Copia Seguridad',  icon: HardDrive,       roles: [Rol.ADMIN_TENANT] },
+  { to: '/panel',          labelKey: 'nav.dashboard',       icon: LayoutDashboard, roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT] },
+  { to: '/clientes',       labelKey: 'nav.clientes',        icon: Users,           roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT] },
+  { to: '/clientes/nuevo', labelKey: 'nav.nuevo_cliente',   icon: UserPlus,        roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT] },
+  { to: '/mi-ruta',        labelKey: 'nav.mi_ruta',         icon: RouteIcon,       roles: [Rol.COBRADOR_TENANT] },
+  { to: '/prestamos',      labelKey: 'nav.prestamos',       icon: CreditCard,      roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT] },
+  { to: '/cajas',          labelKey: 'nav.cajas_cobros',    icon: Wallet,          roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT] },
+  { to: '/cobros/nuevo',   labelKey: 'nav.cobro_manual',    icon: PiggyBank,       roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT] },
+  { to: '/rutas',          labelKey: 'nav.rutas',           icon: MapPin,          roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT] },
+  { to: '/empleados',      labelKey: 'nav.empleados',       icon: UserCog,         roles: [Rol.ADMIN_TENANT] },
+  { to: '/buro',           labelKey: 'nav.buro',            icon: ShieldAlert,     roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT] },
+  { to: '/cuentas-cobrar', labelKey: 'nav.cuentas_cobrar',  icon: ClipboardList,   roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT] },
+  { to: '/reportes',       labelKey: 'nav.reportes',        icon: BarChart3,       roles: [Rol.ADMIN_TENANT] },
+  { to: '/config',         labelKey: 'nav.config',          icon: Settings,        roles: [Rol.ADMIN_TENANT] },
+  { to: '/config/feriados',labelKey: 'nav.feriados',        icon: CalendarOff,     roles: [Rol.ADMIN_TENANT] },
+  { to: '/config/backup',  labelKey: 'nav.backup',          icon: HardDrive,       roles: [Rol.ADMIN_TENANT] },
 ];
 
 /* CSS hover via Tailwind no funciona bien con bg-[color] dinámico en sidebar oscuro,
@@ -37,7 +40,14 @@ const SIDEBAR_BG    = '#0f172a';
 const SIDEBAR_HOVER = '#1e293b';
 const SIDEBAR_ACTIVE_BG = 'linear-gradient(135deg, #1e3a5f 0%, #1e3060 100%)';
 
+const ROL_KEY: Record<string, string> = {
+  [Rol.ADMIN_TENANT]: 'empleados.rol_admin',
+  [Rol.SUPERVISOR_TENANT]: 'empleados.rol_supervisor',
+  [Rol.COBRADOR_TENANT]: 'empleados.rol_cobrador',
+};
+
 export function Sidebar() {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const settings = useTenantSettings();
 
@@ -75,7 +85,7 @@ export function Sidebar() {
             </div>
             <div>
               <p className="text-white font-bold text-sm leading-none">OCA Credit</p>
-              <p className="text-[10px] leading-none mt-0.5" style={{ color: '#64748b' }}>Panel Administrativo</p>
+              <p className="text-[10px] leading-none mt-0.5" style={{ color: '#64748b' }}>{t('nav.panel_administrativo')}</p>
             </div>
           </div>
         )}
@@ -86,7 +96,7 @@ export function Sidebar() {
         className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5"
         style={{ scrollbarWidth: 'thin', scrollbarColor: `${SIDEBAR_HOVER} transparent` }}
       >
-        {allowed.map(({ to, label, icon: Icon }, i) => (
+        {allowed.map(({ to, labelKey, icon: Icon }, i) => (
           <NavLink
             key={to}
             to={to}
@@ -110,7 +120,7 @@ export function Sidebar() {
                   className="flex-shrink-0 transition-colors"
                   style={{ color: isActive ? '#93c5fd' : 'currentColor' }}
                 />
-                <span className="flex-1 truncate">{label}</span>
+                <span className="flex-1 truncate">{t(labelKey)}</span>
                 {to === '/prestamos' && pendientes > 0 && (
                   <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white flex-shrink-0">
                     {pendientes > 99 ? '99+' : pendientes}
@@ -132,9 +142,9 @@ export function Sidebar() {
         style={{ borderTop: `1px solid ${SIDEBAR_HOVER}` }}
       >
         {[
-          { to: '/portal',      label: 'Portal Clientes', icon: Globe },
-          { to: '/super-admin', label: 'Super Admin',      icon: Crown },
-        ].map(({ to, label, icon: Icon }) => (
+          { to: '/portal',      labelKey: 'nav.portal_clientes', icon: Globe },
+          { to: '/super-admin', labelKey: 'nav.super_admin',     icon: Crown },
+        ].map(({ to, labelKey, icon: Icon }) => (
           <a
             key={to}
             href={to}
@@ -144,7 +154,7 @@ export function Sidebar() {
             style={{ color: '#475569' }}
           >
             <Icon size={13} />
-            {label}
+            {t(labelKey)}
           </a>
         ))}
       </div>
@@ -164,14 +174,14 @@ export function Sidebar() {
           <div className="flex-1 min-w-0">
             <p className="text-white text-xs font-medium truncate">{user?.email}</p>
             <p className="text-[10px] capitalize truncate" style={{ color: '#64748b' }}>
-              {user?.rol?.replace(/_/g, ' ')}
+              {user?.rol && ROL_KEY[user.rol] ? t(ROL_KEY[user.rol]) : user?.rol?.replace(/_/g, ' ')}
             </p>
           </div>
           {/* S3-19: hover con CSS class en lugar de JS events */}
           <button
             onClick={logout}
-            title="Cerrar sesión"
-            aria-label="Cerrar sesión"
+            title={t('nav.cerrar_sesion')}
+            aria-label={t('nav.cerrar_sesion')}
             className="p-1.5 rounded-md transition-colors flex-shrink-0 hover:text-red-400 hover:bg-red-500/10"
             style={{ color: '#475569' }}
           >

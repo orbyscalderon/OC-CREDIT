@@ -197,7 +197,7 @@ export function EmpleadosPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{t('empleados.contrasena')} <span className="text-red-400">*</span></label>
-                  <input {...register('password')} type="password" className="input-field" placeholder="Min. 8 caracteres" />
+                  <input {...register('password')} type="password" className="input-field" placeholder={t('empleados.password_min8')} />
                   {errors.password && <p className="mt-1 text-xs text-red-500">{errors.password.message}</p>}
                 </div>
                 <div>

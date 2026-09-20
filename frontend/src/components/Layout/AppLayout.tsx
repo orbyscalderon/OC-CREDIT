@@ -1,31 +1,34 @@
 import { Outlet, Navigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Sidebar } from './Sidebar';
 import { authStore } from '@/stores/auth.store';
 import { NotificacionesBell } from '@/components/common/NotificacionesBell';
 
-const pageTitles: Record<string, string> = {
-  '/panel':          'Dashboard',
-  '/clientes':       'Clientes',
-  '/prestamos':      'Préstamos',
-  '/cajas':          'Cajas / Cobros',
-  '/rutas':          'Rutas',
-  '/buro':           'Buró de Crédito',
-  '/cuentas-cobrar': 'Cuentas por Cobrar',
-  '/reportes':       'Reportes',
-  '/config':         'Configuración',
-  '/config/backup':  'Copia de Seguridad',
+const pageTitleKeys: Record<string, string> = {
+  '/panel':          'nav.dashboard',
+  '/clientes':       'nav.clientes',
+  '/prestamos':      'nav.prestamos',
+  '/cajas':          'nav.cajas_cobros',
+  '/rutas':          'nav.rutas',
+  '/buro':           'nav.buro',
+  '/cuentas-cobrar': 'nav.cuentas_cobrar_completo',
+  '/reportes':       'nav.reportes',
+  '/config':         'nav.config',
+  '/config/backup':  'nav.backup_completo',
 };
 
 export function AppLayout() {
+  const { t } = useTranslation();
   const location = useLocation();
 
   if (!authStore.isAuthenticated()) {
     return <Navigate to="/login" replace />;
   }
 
-  const pageTitle = Object.entries(pageTitles).find(
+  const pageTitleKey = Object.entries(pageTitleKeys).find(
     ([path]) => location.pathname === path || location.pathname.startsWith(path + '/')
-  )?.[1] ?? '';
+  )?.[1];
+  const pageTitle = pageTitleKey ? t(pageTitleKey) : '';
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">

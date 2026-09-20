@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { planesApi, type UsoPlan } from '@/api/planes.api';
 import { clsx } from 'clsx';
 import { TrendingUp } from 'lucide-react';
@@ -14,6 +15,7 @@ function Bar({ used, limit, color }: { used: number; limit: number; color: strin
 }
 
 export function UsoPlanMeter() {
+  const { t } = useTranslation();
   const { data: uso } = useQuery<UsoPlan>({
     queryKey: ['uso-plan'],
     queryFn: planesApi.usoActual,
@@ -34,18 +36,18 @@ export function UsoPlanMeter() {
         <div className="flex items-center gap-2">
           <TrendingUp size={16} className={lleno ? 'text-red-500' : cerca ? 'text-amber-500' : 'text-blue-600'} />
           <span className="text-sm font-semibold text-gray-700">
-            Plan <span className="capitalize text-blue-600">{uso.plan_nombre}</span>
+            {t('plan_meter.plan_prefix')} <span className="capitalize text-blue-600">{uso.plan_nombre}</span>
           </span>
         </div>
         <Link to="/config" className="text-xs text-blue-600 hover:underline font-medium">
-          Mejorar plan
+          {t('plan_meter.mejorar_plan')}
         </Link>
       </div>
 
       <div className="space-y-2.5 text-xs text-gray-600">
         <div>
           <div className="flex justify-between mb-1">
-            <span>Préstamos activos</span>
+            <span>{t('plan_meter.prestamos_activos')}</span>
             <span className={clsx('font-bold', lleno ? 'text-red-600' : cerca ? 'text-amber-600' : 'text-gray-800')}>
               {uso.prestamos_activos_usados}/{uso.max_prestamos_activos >= 9999 ? '∞' : uso.max_prestamos_activos}
             </span>
@@ -58,7 +60,7 @@ export function UsoPlanMeter() {
         </div>
         <div>
           <div className="flex justify-between mb-1">
-            <span>Cobradores</span>
+            <span>{t('plan_meter.cobradores')}</span>
             <span className="font-bold text-gray-800">
               {uso.cobradores_usados}/{uso.max_cobradores >= 9999 ? '∞' : uso.max_cobradores}
             </span>
@@ -67,7 +69,7 @@ export function UsoPlanMeter() {
         </div>
         <div>
           <div className="flex justify-between mb-1">
-            <span>Rutas activas</span>
+            <span>{t('plan_meter.rutas_activas')}</span>
             <span className="font-bold text-gray-800">
               {uso.rutas_usadas}/{uso.max_rutas >= 9999 ? '∞' : uso.max_rutas}
             </span>
@@ -78,12 +80,12 @@ export function UsoPlanMeter() {
 
       {lleno && (
         <p className="mt-3 text-xs text-red-600 font-medium">
-          ⚠ Límite alcanzado — no puedes crear nuevos préstamos. <Link to="/config" className="underline">Mejora tu plan</Link>.
+          {t('plan_meter.limite_alcanzado')} <Link to="/config" className="underline">{t('plan_meter.mejora_tu_plan')}</Link>.
         </p>
       )}
       {cerca && !lleno && (
         <p className="mt-3 text-xs text-amber-700">
-          Estás al {Math.round(uso.pct_prestamos_usados)}% de tu límite.
+          {t('plan_meter.cerca_del_limite', { pct: Math.round(uso.pct_prestamos_usados) })}
         </p>
       )}
     </div>

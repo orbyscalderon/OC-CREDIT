@@ -1,7 +1,14 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Calculator } from 'lucide-react';
 
 const MODALIDADES = ['Diario', 'Semanal', 'Quincenal', 'Mensual'] as const;
+const MODALIDAD_KEY: Record<typeof MODALIDADES[number], string> = {
+  Diario: 'calculadora.modalidad_diario',
+  Semanal: 'calculadora.modalidad_semanal',
+  Quincenal: 'calculadora.modalidad_quincenal',
+  Mensual: 'calculadora.modalidad_mensual',
+};
 
 interface CuotaPreview {
   numero: number;
@@ -52,6 +59,7 @@ export function CalculadoraPrestamo({
   cuotasInicial = 10,
   modalidadInicial = 'Diario',
 }: CalculadoraPrestamoProps) {
+  const { t } = useTranslation();
   const [capital, setCapital] = useState(capitalInicial);
   const [tasa, setTasa] = useState(tasaInicial);
   const [cuotas, setCuotas] = useState(cuotasInicial);
@@ -73,13 +81,13 @@ export function CalculadoraPrestamo({
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 max-w-md mx-auto">
       <div className="flex items-center gap-2 mb-5">
         <Calculator size={20} className="text-blue-600" />
-        <h3 className="font-bold text-gray-900">Calculadora de Préstamo</h3>
+        <h3 className="font-bold text-gray-900">{t('calculadora.titulo')}</h3>
       </div>
 
       <div className="space-y-4">
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">
-            Capital a prestar
+            {t('calculadora.capital_label')}
           </label>
           <input
             type="number"
@@ -92,7 +100,7 @@ export function CalculadoraPrestamo({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Tasa de interés %</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">{t('calculadora.tasa_label')}</label>
             <input
               type="number"
               min={1} max={100} step={0.5}
@@ -102,7 +110,7 @@ export function CalculadoraPrestamo({
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Número de cuotas</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">{t('calculadora.cuotas_label')}</label>
             <input
               type="number"
               min={1} max={365}
@@ -114,7 +122,7 @@ export function CalculadoraPrestamo({
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Modalidad de pago</label>
+          <label className="block text-xs font-medium text-gray-600 mb-1">{t('calculadora.modalidad_label')}</label>
           <div className="flex gap-2 flex-wrap">
             {MODALIDADES.map(m => (
               <button
@@ -127,7 +135,7 @@ export function CalculadoraPrestamo({
                     : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
                 }`}
               >
-                {m}
+                {t(MODALIDAD_KEY[m])}
               </button>
             ))}
           </div>
@@ -137,19 +145,19 @@ export function CalculadoraPrestamo({
       {/* Resultado */}
       <div className="mt-5 rounded-xl bg-blue-50 border border-blue-100 p-4 space-y-2">
         <div className="flex justify-between text-sm">
-          <span className="text-gray-600">Capital</span>
+          <span className="text-gray-600">{t('calculadora.capital')}</span>
           <span className="font-semibold">{fmt(capital)}</span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-gray-600">Interés total ({tasa}%)</span>
+          <span className="text-gray-600">{t('calculadora.interes_total', { tasa })}</span>
           <span className="font-semibold text-amber-600">{fmt(totalInteres)}</span>
         </div>
         <div className="border-t border-blue-200 pt-2 flex justify-between">
-          <span className="font-bold text-gray-800">Total a pagar</span>
+          <span className="font-bold text-gray-800">{t('calculadora.total_pagar')}</span>
           <span className="font-bold text-blue-700">{fmt(totalPagar)}</span>
         </div>
         <div className="flex justify-between text-sm bg-white rounded-lg px-3 py-2 mt-1">
-          <span className="text-gray-600">Cuota {modalidad.toLowerCase()}</span>
+          <span className="text-gray-600">{t('calculadora.cuota_prefix')} {t(MODALIDAD_KEY[modalidad]).toLowerCase()}</span>
           <span className="font-extrabold text-blue-600 text-base">{fmt(cuotaMonto)}</span>
         </div>
       </div>
@@ -157,7 +165,7 @@ export function CalculadoraPrestamo({
       {/* Plan cuota por cuota */}
       <div className="mt-5">
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-          Detalle cuota por cuota
+          {t('calculadora.detalle')}
         </p>
         <div className="rounded-xl border border-gray-200 overflow-hidden">
           <div className="max-h-64 overflow-y-auto">
@@ -165,9 +173,9 @@ export function CalculadoraPrestamo({
               <thead className="bg-gray-50 sticky top-0">
                 <tr>
                   <th className="px-3 py-2 text-left font-semibold text-gray-500">#</th>
-                  <th className="px-3 py-2 text-right font-semibold text-gray-500">Capital</th>
-                  <th className="px-3 py-2 text-right font-semibold text-gray-500">Interés</th>
-                  <th className="px-3 py-2 text-right font-semibold text-gray-500">Total</th>
+                  <th className="px-3 py-2 text-right font-semibold text-gray-500">{t('calculadora.col_capital')}</th>
+                  <th className="px-3 py-2 text-right font-semibold text-gray-500">{t('calculadora.col_interes')}</th>
+                  <th className="px-3 py-2 text-right font-semibold text-gray-500">{t('calculadora.col_total')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -184,7 +192,7 @@ export function CalculadoraPrestamo({
           </div>
         </div>
         <p className="mt-1.5 text-[11px] text-gray-400">
-          Las fechas reales se calculan al aprobar (omiten domingos y feriados). La última cuota puede variar unos centavos por redondeo.
+          {t('calculadora.disclaimer')}
         </p>
       </div>
     </div>

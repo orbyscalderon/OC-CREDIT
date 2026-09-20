@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { Bell, AlertTriangle, Clock, Calendar, TrendingDown, X } from 'lucide-react';
 import { api } from '@/api/axios';
@@ -31,6 +32,7 @@ const DOT_COLOR: Record<string, string> = {
 };
 
 export function NotificacionesBell() {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
   const { data } = useQuery<{ alertas: Alerta[]; total: number }>({
@@ -47,8 +49,8 @@ export function NotificacionesBell() {
       <button
         onClick={() => setOpen((v) => !v)}
         className="relative flex items-center justify-center h-9 w-9 rounded-lg hover:bg-gray-100 transition-colors"
-        aria-label={`Notificaciones${total > 0 ? ` — ${total} alertas pendientes` : ''}`}
-        title="Notificaciones"
+        aria-label={total > 0 ? t('notificaciones.aria_con_alertas', { count: total }) : t('notificaciones.titulo')}
+        title={t('notificaciones.titulo')}
       >
         <Bell size={18} className="text-gray-600" />
         {total > 0 && (
@@ -66,11 +68,11 @@ export function NotificacionesBell() {
           {/* S2-13: dropdown con animate-fade-in */}
           <div className="absolute right-0 top-11 z-50 w-80 rounded-2xl border border-gray-200 bg-white shadow-xl animate-fade-in">
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <p className="text-sm font-semibold text-gray-800">Notificaciones</p>
+              <p className="text-sm font-semibold text-gray-800">{t('notificaciones.titulo')}</p>
               {/* S3-18: aria-label en botón X */}
               <button
                 onClick={() => setOpen(false)}
-                aria-label="Cerrar notificaciones"
+                aria-label={t('notificaciones.cerrar')}
                 className="p-1 rounded-md hover:bg-gray-100 transition-colors"
               >
                 <X size={14} className="text-gray-400" />
@@ -81,8 +83,8 @@ export function NotificacionesBell() {
               {alertas.length === 0 ? (
                 <div className="py-10 text-center">
                   <Bell size={28} className="mx-auto text-gray-200 mb-2" />
-                  <p className="text-sm font-medium text-gray-400">Sin alertas pendientes</p>
-                  <p className="text-xs text-gray-300 mt-0.5">Todo está en orden</p>
+                  <p className="text-sm font-medium text-gray-400">{t('notificaciones.sin_alertas')}</p>
+                  <p className="text-xs text-gray-300 mt-0.5">{t('notificaciones.todo_en_orden')}</p>
                 </div>
               ) : (
                 alertas.map((a, i) => {
