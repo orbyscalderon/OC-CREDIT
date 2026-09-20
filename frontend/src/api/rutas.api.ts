@@ -14,7 +14,10 @@ export const rutasApi = {
   misRutas: () =>
     api.get<Ruta[]>('/rutas/mis-rutas').then((r) => r.data),
 
-  crear: (dto: { nombre: string; descripcion?: string; cobrador_id?: string }) =>
+  crear: (dto: {
+    nombre: string; descripcion?: string; cobrador_id?: string;
+    direccion?: string; latitud?: number; longitud?: number;
+  }) =>
     api.post<Ruta>('/rutas', dto).then((r) => r.data),
 
   coordenadas: (id: string, fecha?: string) =>

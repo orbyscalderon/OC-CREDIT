@@ -22,6 +22,24 @@ export class CrearRutaDto {
   @IsString()
   zona?: string;
 
+  @ApiPropertyOptional({ description: 'Dirección de referencia de la ruta' })
+  @IsOptional()
+  @IsString()
+  @Length(0, 255)
+  direccion?: string;
+
+  @ApiPropertyOptional({ description: 'Latitud del punto de referencia de la ruta' })
+  @IsOptional()
+  @IsNumber()
+  @Min(-90) @Max(90)
+  latitud?: number;
+
+  @ApiPropertyOptional({ description: 'Longitud del punto de referencia de la ruta' })
+  @IsOptional()
+  @IsNumber()
+  @Min(-180) @Max(180)
+  longitud?: number;
+
   @ApiPropertyOptional({ description: 'Cobrador asignado a la ruta' })
   @IsOptional()
   @IsUuidLike()

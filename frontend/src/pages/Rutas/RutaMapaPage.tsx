@@ -27,6 +27,22 @@ export function RutaMapaPage() {
   const eventos = data?.eventos ?? [];
   const clientes = data?.clientes ?? [];
 
+  // Prioridad para centrar el mapa: 1) un cliente real de la ruta, 2) un
+  // evento del día, 3) la ubicación de referencia guardada en la ruta,
+  // 4) el default de RutaMap (Santo Domingo) como último recurso. Sin esto,
+  // una ruta fuera de Santo Domingo sin clientes/eventos georreferenciados
+  // todavía siempre abría centrada en la capital, sin relación con dónde
+  // está realmente la ruta.
+  const primerCliente = clientes.find((c) => c.lat && c.lng);
+  const primerEvento = eventos.find((e) => e.lat && e.lng);
+  const center: [number, number] | undefined = primerCliente
+    ? [primerCliente.lat, primerCliente.lng]
+    : primerEvento
+      ? [primerEvento.lat, primerEvento.lng]
+      : ruta?.latitud != null && ruta?.longitud != null
+        ? [Number(ruta.latitud), Number(ruta.longitud)]
+        : undefined;
+
   return (
     <div className="p-6 space-y-5">
       <Link to="/rutas" className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900">
@@ -60,6 +76,12 @@ export function RutaMapaPage() {
           <span className="inline-block w-3 h-3 rounded-full bg-blue-500" />
           {t('rutas.leyenda_cliente')}
         </span>
+        {ruta?.latitud != null && ruta?.longitud != null && (
+          <span className="flex items-center gap-1">
+            <span className="inline-block w-3 h-3 rounded-full bg-violet-500" />
+            {t('rutas.leyenda_ruta')}
+          </span>
+        )}
       </div>
 
       {isLoading ? (
@@ -67,7 +89,17 @@ export function RutaMapaPage() {
           {t('rutas.cargando_mapa')}
         </div>
       ) : (
-        <RutaMap puntos={eventos} clientes={clientes} height="480px" />
+        <RutaMap
+          puntos={eventos}
+          clientes={clientes}
+          center={center}
+          height="480px"
+          rutaUbicacion={
+            ruta?.latitud != null && ruta?.longitud != null
+              ? { lat: Number(ruta.latitud), lng: Number(ruta.longitud), nombre: ruta.nombre, direccion: ruta.direccion }
+              : null
+          }
+        />
       )}
 
       <p className="text-xs text-gray-400">

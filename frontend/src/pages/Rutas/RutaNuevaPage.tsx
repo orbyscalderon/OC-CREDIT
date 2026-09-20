@@ -1,16 +1,18 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, MapPin } from 'lucide-react';
+import { ArrowLeft, MapPin, CheckCircle2, LocateFixed } from 'lucide-react';
 import { rutasApi } from '@/api/rutas.api';
 import { empleadosApi } from '@/api/empleados.api';
 
 const schema = z.object({
   nombre:      z.string().min(1, 'Requerido').max(100),
   descripcion: z.string().max(300).optional().or(z.literal('')),
+  direccion:   z.string().max(255).optional().or(z.literal('')),
   cobrador_id: z.string().optional().or(z.literal('')),
 });
 
@@ -27,7 +29,7 @@ export function RutaNuevaPage() {
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { nombre: '', descripcion: '', cobrador_id: '' },
+    defaultValues: { nombre: '', descripcion: '', direccion: '', cobrador_id: '' },
   });
 
   const { data: cobradores = [] } = useQuery({
@@ -36,12 +38,39 @@ export function RutaNuevaPage() {
     select: (data) => data.filter((e) => e.activo && e.rol === 'cobrador_tenant'),
   });
 
+  const [ubicacion, setUbicacion] = useState<{ lat: number; lng: number } | null>(null);
+  const [ubicacionError, setUbicacionError] = useState('');
+  const [buscandoUbicacion, setBuscandoUbicacion] = useState(false);
+
+  const capturarUbicacion = () => {
+    if (!navigator.geolocation) {
+      setUbicacionError(t('rutas.ubicacion_sin_soporte'));
+      return;
+    }
+    setBuscandoUbicacion(true);
+    setUbicacionError('');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUbicacion({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setBuscandoUbicacion(false);
+      },
+      () => {
+        setUbicacionError(t('rutas.ubicacion_error'));
+        setBuscandoUbicacion(false);
+      },
+      { enableHighAccuracy: true, timeout: 10_000 },
+    );
+  };
+
   const crear = useMutation({
     mutationFn: (dto: FormData) =>
       rutasApi.crear({
         nombre: dto.nombre,
         descripcion: dto.descripcion || undefined,
+        direccion: dto.direccion || undefined,
         cobrador_id: dto.cobrador_id || undefined,
+        latitud: ubicacion?.lat,
+        longitud: ubicacion?.lng,
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['rutas'] });
@@ -86,6 +115,45 @@ export function RutaNuevaPage() {
             placeholder={t('rutas.descripcion_placeholder')}
             className="input-field resize-none"
           />
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+            {t('rutas.direccion')}
+          </label>
+          <input
+            {...register('direccion')}
+            placeholder={t('rutas.direccion_placeholder')}
+            className="input-field"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+            {t('rutas.ubicacion')}
+          </label>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={capturarUbicacion}
+              disabled={buscandoUbicacion}
+              className="btn-secondary text-sm flex-shrink-0"
+            >
+              <LocateFixed size={14} />
+              {buscandoUbicacion ? t('rutas.buscando_ubicacion') : ubicacion ? t('rutas.actualizar_ubicacion') : t('rutas.usar_ubicacion_actual')}
+            </button>
+            {ubicacion && (
+              <span className="flex items-center gap-1.5 text-xs text-emerald-600">
+                <CheckCircle2 size={14} />
+                {t('rutas.ubicacion_capturada', { lat: ubicacion.lat.toFixed(5), lng: ubicacion.lng.toFixed(5) })}
+              </span>
+            )}
+          </div>
+          {ubicacionError && <p className="mt-1 text-xs text-red-500">{ubicacionError}</p>}
+          <p className="mt-1 text-xs text-gray-400 flex items-center gap-1">
+            <MapPin size={11} />
+            {t('rutas.ubicacion_hint')}
+          </p>
         </div>
 
         <div>

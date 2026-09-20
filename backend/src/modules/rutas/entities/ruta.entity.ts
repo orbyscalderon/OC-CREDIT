@@ -26,6 +26,15 @@ export class Ruta {
   @Column({ length: 100, nullable: true })
   zona: string;
 
+  @Column({ length: 255, nullable: true })
+  direccion: string;
+
+  @Column({ type: 'numeric', precision: 10, scale: 7, nullable: true })
+  latitud: number;
+
+  @Column({ type: 'numeric', precision: 10, scale: 7, nullable: true })
+  longitud: number;
+
   @Column({ type: 'uuid', nullable: true })
   cobrador_id: string;
 

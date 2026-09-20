@@ -203,6 +203,9 @@ export interface Ruta {
   descripcion: string | null;
   activa: boolean;
   empleado_id: string | null;
+  direccion?: string | null;
+  latitud?: number | null;
+  longitud?: number | null;
   cobrador?: Pick<Empleado, 'nombre' | 'apellido'>;
 }
 
