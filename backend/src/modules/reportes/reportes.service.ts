@@ -242,7 +242,7 @@ export class ReportesService {
 
   // ─── NOTIFICACIONES IN-APP ────────────────────────────────────────────────
 
-  async notificaciones(tenantId: string) {
+  async notificaciones(tenantId: string, lang: 'es' | 'en' = 'es') {
     const tz = await this.zonaHorariaService.obtener(tenantId);
     const hoy = fechaHoyEnZona(tz);
     const manana = fechaEnZona(tz, 1);
@@ -287,18 +287,27 @@ export class ReportesService {
     ]);
 
     const alertas = [];
+    const fmtMonto = (n: number) => Number(n).toLocaleString(lang === 'en' ? 'en-US' : 'es-DO', { minimumFractionDigits: 2 });
 
     if (vencidas[0].total > 0)
-      alertas.push({ tipo: 'error', titulo: 'Cuotas vencidas', mensaje: `${vencidas[0].total} cuotas por RD$ ${Number(vencidas[0].monto).toLocaleString('es-DO', {minimumFractionDigits:2})}`, icono: 'AlertTriangle' });
+      alertas.push(lang === 'en'
+        ? { tipo: 'error', titulo: 'Overdue installments', mensaje: `${vencidas[0].total} installments for RD$ ${fmtMonto(vencidas[0].monto)}`, icono: 'AlertTriangle' }
+        : { tipo: 'error', titulo: 'Cuotas vencidas', mensaje: `${vencidas[0].total} cuotas por RD$ ${fmtMonto(vencidas[0].monto)}`, icono: 'AlertTriangle' });
 
     if (proximasHoy[0].total > 0)
-      alertas.push({ tipo: 'warning', titulo: 'Vencen hoy', mensaje: `${proximasHoy[0].total} cuotas vencen hoy`, icono: 'Clock' });
+      alertas.push(lang === 'en'
+        ? { tipo: 'warning', titulo: 'Due today', mensaje: `${proximasHoy[0].total} installments due today`, icono: 'Clock' }
+        : { tipo: 'warning', titulo: 'Vencen hoy', mensaje: `${proximasHoy[0].total} cuotas vencen hoy`, icono: 'Clock' });
 
     if (proximasManana[0].total > 0)
-      alertas.push({ tipo: 'info', titulo: 'Vencen mañana', mensaje: `${proximasManana[0].total} cuotas vencen mañana`, icono: 'Calendar' });
+      alertas.push(lang === 'en'
+        ? { tipo: 'info', titulo: 'Due tomorrow', mensaje: `${proximasManana[0].total} installments due tomorrow`, icono: 'Calendar' }
+        : { tipo: 'info', titulo: 'Vencen mañana', mensaje: `${proximasManana[0].total} cuotas vencen mañana`, icono: 'Calendar' });
 
     if (moraNueva[0].prestamos_con_mora > 0)
-      alertas.push({ tipo: 'error', titulo: 'Mora activa', mensaje: `${moraNueva[0].prestamos_con_mora} préstamos con mora total RD$ ${Number(moraNueva[0].mora_total).toLocaleString('es-DO', {minimumFractionDigits:2})}`, icono: 'TrendingDown' });
+      alertas.push(lang === 'en'
+        ? { tipo: 'error', titulo: 'Active overdue balance', mensaje: `${moraNueva[0].prestamos_con_mora} loans with total overdue RD$ ${fmtMonto(moraNueva[0].mora_total)}`, icono: 'TrendingDown' }
+        : { tipo: 'error', titulo: 'Mora activa', mensaje: `${moraNueva[0].prestamos_con_mora} préstamos con mora total RD$ ${fmtMonto(moraNueva[0].mora_total)}`, icono: 'TrendingDown' });
 
     return { alertas, total: alertas.length };
   }

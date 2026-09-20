@@ -1,4 +1,5 @@
 import axios, { AxiosError } from 'axios';
+import i18n from '@/i18n/config';
 
 // En dev, el proxy de vite.config.ts hace /api same-origin -> VITE_API_URL
 // no hace falta. En producción, frontend (Cloudflare) y backend (Railway)
@@ -11,6 +12,14 @@ export const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
   // Cookie HttpOnly enviada automáticamente en cada request al mismo origen
   withCredentials: true,
+});
+
+// Manda el idioma activo en cada request -- así el backend puede responder
+// en el mismo idioma para lo poco que arma texto del lado del servidor
+// (ej. notificaciones), sin depender de que cada llamada lo agregue a mano.
+api.interceptors.request.use((config) => {
+  config.headers['Accept-Language'] = i18n.language ?? 'es';
+  return config;
 });
 
 // Auto-unwrap { success, data, timestamp } → data

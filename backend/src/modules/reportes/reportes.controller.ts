@@ -11,6 +11,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser, JwtPayload } from '../../common/decorators/current-user.decorator';
+import { Lang, Idioma } from '../../common/decorators/lang.decorator';
 import { Rol } from '../../common/constants/roles.enum';
 
 @ApiTags('Reportes')
@@ -97,8 +98,8 @@ export class ReportesController {
   @Get('notificaciones')
   @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT)
   @ApiOperation({ summary: 'Alertas: cuotas vencidas, mora, clientes pendientes' })
-  notificaciones(@CurrentUser() user: JwtPayload) {
-    return this.service.notificaciones(user.tenantId);
+  notificaciones(@CurrentUser() user: JwtPayload, @Lang() lang: Idioma) {
+    return this.service.notificaciones(user.tenantId, lang);
   }
 
   /** Copia de seguridad — exporta datos del tenant en CSV dentro de un JSON */
