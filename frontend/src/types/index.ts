@@ -312,6 +312,21 @@ export interface AgingBand {
   saldo_pendiente: number;
 }
 
+export interface ArqueoDia {
+  id: string;
+  fecha: string;
+  estado: string;
+  cobrador: string;
+  ruta: string | null;
+  monto_apertura: number;
+  total_cobros: number;
+  total_gastos: number;
+  monto_esperado: number;
+  monto_cierre_declarado: number | null;
+  diferencia_cierre: number | null;
+  estado_cuadre: 'Sin_Cerrar' | 'Cuadrado' | 'Sobrante' | 'Faltante';
+}
+
 // ─── Paginado ─────────────────────────────────────────────────────────────────
 
 export interface PaginatedResponse<T> {

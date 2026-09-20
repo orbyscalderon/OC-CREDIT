@@ -169,9 +169,9 @@ export function ReportesPage() {
                   </td>
                 </tr>
               ) : (
-                arqueos.map((a: any) => (
-                  <tr key={a.caja_id} className="hover:bg-gray-50/70 transition-colors">
-                    <td className="px-4 py-3.5 font-medium text-gray-800">{a.cobrador_nombre ?? a.empleado_id}</td>
+                arqueos.map((a) => (
+                  <tr key={a.id} className="hover:bg-gray-50/70 transition-colors">
+                    <td className="px-4 py-3.5 font-medium text-gray-800">{a.cobrador}</td>
                     <td className="px-4 py-3.5 mono-nums text-gray-600">{fmt(a.monto_apertura)}</td>
                     <td className="px-4 py-3.5 mono-nums text-emerald-600 font-medium">{fmt(a.total_cobros)}</td>
                     <td className="px-4 py-3.5 mono-nums text-red-500">{fmt(a.total_gastos)}</td>
@@ -207,12 +207,15 @@ export function ReportesPage() {
         ) : ingresosMens && ingresosMens.length > 0 ? (
           <div className="card p-5">
             <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={[...ingresosMens].reverse()} barSize={32}>
+              {/* El backend ya devuelve ORDER BY mes ASC (mas viejo -> mas
+                  nuevo) -- un .reverse() aca invertia el orden cronologico
+                  del grafico, mostrando el mes mas reciente a la izquierda. */}
+              <BarChart data={ingresosMens} barSize={32}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
                 <Tooltip formatter={(v: number) => [fmt(v), t('reportes.cobrado_tooltip')]} />
-                <Bar dataKey="total_cobrado" name={t('reportes.total_cobrado_legend')} fill="#10b981" radius={[4,4,0,0]} />
+                <Bar dataKey="total" name={t('reportes.total_cobrado_legend')} fill="#10b981" radius={[4,4,0,0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

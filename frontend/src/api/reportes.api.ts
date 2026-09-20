@@ -1,5 +1,5 @@
 import { api } from './axios';
-import type { DashboardData, AgingBand } from '@/types';
+import type { DashboardData, AgingBand, ArqueoDia } from '@/types';
 
 export interface MoraSresumen {
   total_prestamos_en_mora: number;
@@ -35,8 +35,10 @@ export interface CuentaCobrar {
 
 export interface IngresoMensual {
   mes: string;
-  total_cobrado: number;
-  num_cobros: number;
+  capital: number;
+  interes: number;
+  mora: number;
+  total: number;
 }
 
 export interface HistorialPago {
@@ -61,7 +63,7 @@ export const reportesApi = {
     api.get<AgingBand[]>('/reportes/aging').then((r) => r.data),
 
   arqueosDia: (fecha?: string) =>
-    api.get('/reportes/arqueos', { params: { fecha } }).then((r) => r.data),
+    api.get<ArqueoDia[]>('/reportes/arqueos', { params: { fecha } }).then((r) => r.data),
 
   cobrosPorCobrador: (cobradorId: string, params: { desde: string; hasta: string }) =>
     api.get(`/reportes/cobrador/${cobradorId}`, { params }).then((r) => r.data),
