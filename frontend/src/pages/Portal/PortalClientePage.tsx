@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { Shield, ChevronRight } from 'lucide-react';
 import axios from 'axios';
 
@@ -32,8 +33,13 @@ interface ClientePortal {
 
 export function PortalClientePage() {
   const { t } = useTranslation();
+  const [params] = useSearchParams();
+  // El admin comparte un link con ?tenantId= ya incluido (ver Configuración
+  // → Portal del cliente) -- el cliente nunca debería tener que escribir a
+  // mano el ID crudo de la empresa, que nadie le da como "código".
+  const tenantIdDeLink = params.get('tenantId') ?? '';
   const [cedula, setCedula] = useState('');
-  const [tenantId, setTenantId] = useState('');
+  const [tenantId, setTenantId] = useState(tenantIdDeLink);
   const [cliente, setCliente] = useState<ClientePortal | null>(null);
 
   const consultarMut = useMutation({
@@ -70,15 +76,18 @@ export function PortalClientePage() {
                 className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('portal.id_empresa')}</label>
-              <input
-                value={tenantId}
-                onChange={e => setTenantId(e.target.value)}
-                placeholder={t('portal.id_empresa_placeholder')}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+            {!tenantIdDeLink && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('portal.id_empresa')}</label>
+                <input
+                  value={tenantId}
+                  onChange={e => setTenantId(e.target.value)}
+                  placeholder={t('portal.id_empresa_placeholder')}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="mt-1 text-xs text-gray-400">{t('portal.id_empresa_hint')}</p>
+              </div>
+            )}
 
             {consultarMut.isError && (
               <p className="text-sm text-red-500">{t('portal.no_encontrado')}</p>

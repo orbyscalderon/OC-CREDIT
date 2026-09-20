@@ -605,6 +605,7 @@
     "cedula_placeholder": "000-0000000-0",
     "id_empresa": "ID de tu empresa prestamista",
     "id_empresa_placeholder": "Código de empresa (te lo da tu prestamista)",
+    "id_empresa_hint": "Normalmente no necesitas esto -- pídele a tu prestamista el link directo al portal.",
     "no_encontrado": "No se encontró cliente con esa cédula.",
     "consultando": "Consultando…",
     "consultar_prestamos": "Consultar mis préstamos",
