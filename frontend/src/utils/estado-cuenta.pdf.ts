@@ -114,7 +114,7 @@ export function generarEstadoCuentaPDF(data: EstadoCuentaData): void {
   const pageH = doc.internal.pageSize.getHeight();
   doc.setFontSize(8).setTextColor(160);
   doc.text(
-    `© ${new Date().getFullYear()} OCA HOLDING GROUP LLC. Todos los derechos reservados. Generado por OCA Credit.`,
+    `© ${new Date().getFullYear()} ${data.tenantNombre}. Todos los derechos reservados.`,
     W / 2, pageH - 10,
     { align: 'center' },
   );

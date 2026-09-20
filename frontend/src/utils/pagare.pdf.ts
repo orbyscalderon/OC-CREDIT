@@ -127,10 +127,12 @@ export function generarPagarePDF(data: PagareData): void {
   doc.text(tenantNombre, 150, y + 10, { align: 'center' });
 
   // ── Pie ────────────────────────────────────────────────────
+  // Este es un documento legal del PRESTAMISTA (el tenant), no del proveedor
+  // del software -- el pie no debe llevar la marca de OCA Credit.
   doc.setFontSize(8);
   doc.setTextColor(150);
   doc.text(
-    '© 2026 OCA HOLDING GROUP LLC. Todos los derechos reservados. Generado por OCA Credit.',
+    `© ${new Date().getFullYear()} ${tenantNombre}. Todos los derechos reservados.`,
     105,
     285,
     { align: 'center' },

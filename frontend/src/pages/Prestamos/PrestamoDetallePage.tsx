@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { generarPagarePDF } from '@/utils/pagare.pdf';
 import { useTenantSettings } from '@/hooks/useTenantSettings';
+import { useAuth } from '@/hooks/useAuth';
 import { formatCurrency } from '@/utils/format';
 import { FirmaDigital } from '@/components/common/FirmaDigital';
 import { prestamosApi } from '@/api/prestamos.api';
@@ -30,6 +31,7 @@ export function PrestamoDetallePage() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
   const settings = useTenantSettings();
+  const { user } = useAuth();
   const [mostrarFirma, setMostrarFirma] = useState(false);
   const [firmaUrl, setFirmaUrl] = useState<string | undefined>();
 
@@ -211,7 +213,7 @@ export function PrestamoDetallePage() {
               <button
                 onClick={() => generarPagarePDF({
                   prestamo,
-                  tenantNombre: settings?.nombre_comercial ?? 'OCA Credit',
+                  tenantNombre: settings?.nombre_comercial ?? user?.tenant_nombre ?? 'Prestamista',
                   simboloMoneda: settings?.simbolo_moneda ?? 'RD$',
                   firmaClienteDataUrl: firmaUrl,
                 })}

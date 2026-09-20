@@ -25,6 +25,9 @@ describe('Buró de Crédito E2E', () => {
   let adminToken: string;
   let cobradorToken: string;
   const cedula = '001-1234567-9';
+  // El backend normaliza (quita guiones/espacios) al guardar y al consultar
+  // -- así "001-1234567-9" y "0011234567 9" quedan como la misma persona.
+  const cedulaNorm = '00112345679';
   let historialId: string;
 
   beforeAll(async () => {
@@ -98,7 +101,7 @@ describe('Buró de Crédito E2E', () => {
         .expect(200);
 
       const perfil = resp.body.data;
-      expect(perfil.cedula).toBe(cedula);
+      expect(perfil.cedula).toBe(cedulaNorm);
       expect(perfil.total_reportes).toBeGreaterThanOrEqual(1);
       expect(perfil.recomendacion).toBe('NO_PRESTAR');
       expect(Array.isArray(perfil.reportes)).toBe(true);
@@ -109,7 +112,7 @@ describe('Buró de Crédito E2E', () => {
       const em = moduleRef.get<EntityManager>(getEntityManagerToken());
       const antes = await em.query(
         'SELECT COUNT(*)::int AS n FROM consultas_buro WHERE cedula_consultada = $1',
-        [cedula],
+        [cedulaNorm],
       );
 
       await request(app.getHttpServer())
@@ -120,7 +123,7 @@ describe('Buró de Crédito E2E', () => {
 
       const despues = await em.query(
         'SELECT COUNT(*)::int AS n FROM consultas_buro WHERE cedula_consultada = $1',
-        [cedula],
+        [cedulaNorm],
       );
       expect(despues[0].n).toBe(antes[0].n + 1);
     });

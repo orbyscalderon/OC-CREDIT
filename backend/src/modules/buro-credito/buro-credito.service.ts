@@ -15,6 +15,7 @@ import { JwtPayload } from '../../common/decorators/current-user.decorator';
 import { Rol } from '../../common/constants/roles.enum';
 import { fechaHoyEnZona } from '../../common/utils/fecha-negocio.util';
 import { ZonaHorariaService } from '../../common/services/zona-horaria.service';
+import { normalizarDocumento } from '../../common/utils/normalizar-documento.util';
 
 interface ReporteAutomaticoInput {
   cedula: string;
@@ -56,7 +57,7 @@ export class BuroCreditoService {
     user: JwtPayload,
     tenantNombre: string,
   ): Promise<PerfilBuroResponseDto> {
-    const cedulaNorm = dto.cedula.trim().replace(/\s/g, '');
+    const cedulaNorm = normalizarDocumento(dto.cedula);
     const tipoDocumento = dto.tipo_documento?.trim() || 'cedula';
 
     // Obtener perfil agregado desde la vista — filtrado también por tipo de
@@ -72,7 +73,7 @@ export class BuroCreditoService {
       where: { cedula: cedulaNorm, tipo_documento: tipoDocumento, activo: true },
       order: { fecha_reporte: 'DESC' },
       select: [
-        'id', 'fecha_reporte', 'motivo', 'nivel_riesgo',
+        'id', 'fecha_reporte', 'motivo', 'nivel_riesgo', 'nombre', 'apellido',
         'saldo_impagado', 'capital_original', 'dias_mora_al_reportar',
         'tenant_nombre', 'descripcion_detallada', 'deuda_saldada',
         'fecha_saldo_deuda', 'moneda', 'created_at',
@@ -138,7 +139,7 @@ export class BuroCreditoService {
   ): Promise<HistorialCredito> {
     const fechaReporte = fechaHoyEnZona(await this.zonaHorariaService.obtener(user.tenantId));
     const registro = this.buroRepo.create({
-      cedula: dto.cedula.trim(),
+      cedula: normalizarDocumento(dto.cedula),
       tipo_documento: dto.tipo_documento?.trim() || 'cedula',
       nombre: dto.nombre.trim(),
       fecha_reporte: fechaReporte,
@@ -176,7 +177,7 @@ export class BuroCreditoService {
       const fechaReporte = fechaHoyEnZona(await this.zonaHorariaService.obtener(input.tenantId));
       await this.buroRepo.save(
         this.buroRepo.create({
-          cedula: input.cedula.trim(),
+          cedula: normalizarDocumento(input.cedula),
           nombre: input.nombre.trim(),
           apellido: input.apellido.trim(),
           telefono: input.telefono ?? null,

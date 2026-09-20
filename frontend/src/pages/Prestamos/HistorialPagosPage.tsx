@@ -5,6 +5,7 @@ import { ArrowLeft, Printer, Download, RotateCcw, Camera } from 'lucide-react';
 import { api } from '@/api/axios';
 import { generarReciboPDF } from '@/utils/recibo.pdf';
 import { useTenantSettings } from '@/hooks/useTenantSettings';
+import { useAuth } from '@/hooks/useAuth';
 import { formatCurrency } from '@/utils/format';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -45,6 +46,7 @@ export function HistorialPagosPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const settings = useTenantSettings();
+  const { user } = useAuth();
 
   const { data, isLoading } = useQuery<HistorialResponse>({
     queryKey: ['historial', id],
@@ -70,7 +72,7 @@ export function HistorialPagosPage() {
       montoCobrado: Number(t.monto),
       distribucion: t.distribucion_pago,
       cobrador: t.cobrador,
-      tenantNombre: settings?.nombre_comercial ?? 'OCA Credit',
+      tenantNombre: settings?.nombre_comercial ?? user?.tenant_nombre ?? 'Prestamista',
       piePagina: settings?.texto_pie_recibo ?? undefined,
       simboloMoneda: settings?.simbolo_moneda ?? 'RD$',
       fecha: t.created_at,

@@ -9,6 +9,7 @@ import { BuroCreditoService } from '../buro-credito/buro-credito.service';
 import { CrearClienteDto, ActualizarClienteDto } from './dto/cliente.dto';
 import { ordenarPorCercania } from '../../common/utils/geo.util';
 import { StorageService } from '../../common/services/storage.service';
+import { normalizarDocumento } from '../../common/utils/normalizar-documento.util';
 
 export interface PaginatedClientes {
   data: Cliente[];
@@ -37,15 +38,20 @@ export class ClientesService {
   }
 
   async crear(tenantId: string, dto: CrearClienteDto): Promise<Cliente> {
-    if (dto.cedula) {
+    // Normalizada (sin guiones/espacios) -- si no, "001-1234567-8" y
+    // "0011234567 8" pasan como cédulas distintas: se cuela el duplicado
+    // aquí y, peor, el buró cross-tenant nunca las hace matchear.
+    const cedula = dto.cedula ? normalizarDocumento(dto.cedula) : dto.cedula;
+
+    if (cedula) {
       const existe = await this.repo.findOne({
-        where: { tenant_id: tenantId, cedula: dto.cedula },
+        where: { tenant_id: tenantId, cedula },
       });
       if (existe) throw new BadRequestException('Ya existe un cliente con esa cédula en esta agencia');
     }
 
     return this.repo.save(
-      this.repo.create({ ...dto, tenant_id: tenantId }),
+      this.repo.create({ ...dto, cedula, tenant_id: tenantId }),
     );
   }
 
@@ -100,6 +106,7 @@ export class ClientesService {
   async actualizar(tenantId: string, id: string, dto: ActualizarClienteDto): Promise<Cliente> {
     const cliente = await this.obtener(tenantId, id);
     Object.assign(cliente, dto);
+    if (dto.cedula) cliente.cedula = normalizarDocumento(dto.cedula);
     return this.repo.save(cliente);
   }
 
