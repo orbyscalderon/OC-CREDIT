@@ -1,10 +1,15 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
-import { Download, Shield, HardDrive, Clock } from 'lucide-react';
+import { Download, Shield, HardDrive, Clock, Upload, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { api } from '@/api/axios';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+
+interface RestoreResult {
+  restaurados: Record<string, number>;
+  en_el_archivo: Record<string, number>;
+}
 
 const BACKUP_KEY = 'oc_ultimo_backup';
 
@@ -38,6 +43,39 @@ export function BackupPage() {
       setDescargado(true);
     },
   });
+
+  // ── Restaurar backup ──────────────────────────────────────────────────────
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [archivoSeleccionado, setArchivoSeleccionado] = useState<{ nombre: string; contenido: object } | null>(null);
+  const [confirmando, setConfirmando] = useState(false);
+  const [errorArchivo, setErrorArchivo] = useState<string | null>(null);
+
+  const onArchivoElegido = async (file: File | undefined) => {
+    setErrorArchivo(null);
+    setConfirmando(false);
+    if (!file) { setArchivoSeleccionado(null); return; }
+    try {
+      const texto = await file.text();
+      const contenido = JSON.parse(texto);
+      setArchivoSeleccionado({ nombre: file.name, contenido });
+    } catch {
+      setArchivoSeleccionado(null);
+      setErrorArchivo(t('backup.archivo_invalido'));
+    }
+  };
+
+  const restoreMut = useMutation({
+    mutationFn: () => api.post('/reportes/restaurar-backup', archivoSeleccionado!.contenido).then((r) => r.data as RestoreResult),
+    onSuccess: () => {
+      setConfirmando(false);
+      setArchivoSeleccionado(null);
+      if (fileRef.current) fileRef.current.value = '';
+    },
+  });
+
+  const restoreErrMsg = restoreMut.isError
+    ? ((restoreMut.error as any)?.response?.data?.message ?? t('backup.error_restaurar'))
+    : null;
 
   return (
     <div className="p-6 space-y-6 max-w-xl">
@@ -97,6 +135,105 @@ export function BackupPage() {
           <p className="text-center text-sm text-emerald-600 font-medium">
             {t('backup.descargado_exito')}
           </p>
+        )}
+
+        <p className="text-xs text-gray-400 border-t border-gray-100 pt-3">
+          {t('backup.aviso_manual')}
+        </p>
+      </div>
+
+      {/* Restaurar backup */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-4">
+        <div className="flex items-start gap-4">
+          <div className="h-12 w-12 rounded-xl bg-purple-50 flex items-center justify-center flex-shrink-0">
+            <Upload size={22} className="text-purple-600" />
+          </div>
+          <div>
+            <p className="font-semibold text-gray-900">{t('backup.restaurar_titulo')}</p>
+            <p className="text-sm text-gray-500 mt-1">{t('backup.restaurar_desc')}</p>
+          </div>
+        </div>
+
+        <input
+          ref={fileRef}
+          type="file"
+          accept="application/json"
+          onChange={(e) => onArchivoElegido(e.target.files?.[0])}
+          className="hidden"
+        />
+
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 py-3 text-sm font-medium text-gray-600 hover:border-purple-300 hover:text-purple-600 transition-colors"
+        >
+          <Upload size={15} />
+          {archivoSeleccionado ? archivoSeleccionado.nombre : t('backup.elegir_archivo')}
+        </button>
+
+        {errorArchivo && (
+          <p className="text-xs text-red-500 flex items-center gap-1.5">
+            <AlertCircle size={13} /> {errorArchivo}
+          </p>
+        )}
+
+        {archivoSeleccionado && !restoreMut.isSuccess && (
+          <>
+            {!confirmando ? (
+              <button
+                type="button"
+                onClick={() => setConfirmando(true)}
+                className="w-full rounded-xl bg-purple-600 py-3 text-sm font-bold text-white hover:bg-purple-700"
+              >
+                {t('backup.restaurar_boton')}
+              </button>
+            ) : (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-3">
+                <p className="text-xs text-amber-800">{t('backup.confirmar_restaurar')}</p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => restoreMut.mutate()}
+                    disabled={restoreMut.isPending}
+                    className="flex-1 rounded-lg bg-amber-600 py-2 text-xs font-bold text-white hover:bg-amber-700 disabled:opacity-60"
+                  >
+                    {restoreMut.isPending ? t('backup.restaurando') : t('backup.si_restaurar')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmando(false)}
+                    className="rounded-lg border border-gray-300 px-4 py-2 text-xs text-gray-600 hover:bg-gray-50"
+                  >
+                    {t('common.cancelar')}
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {restoreErrMsg && (
+          <p className="text-xs text-red-500 flex items-center gap-1.5">
+            <AlertCircle size={13} /> {Array.isArray(restoreErrMsg) ? restoreErrMsg.join(', ') : restoreErrMsg}
+          </p>
+        )}
+
+        {restoreMut.isSuccess && (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 space-y-1.5">
+            <p className="text-xs font-semibold text-emerald-700 flex items-center gap-1.5">
+              <CheckCircle2 size={14} /> {t('backup.restaurado_exito')}
+            </p>
+            {Object.entries(restoreMut.data.restaurados).map(([tabla, n]) => (
+              <p key={tabla} className="text-xs text-emerald-700">
+                {t(`backup.tabla_${tabla}`)}: +{n}
+                {restoreMut.data.en_el_archivo[tabla] > n && (
+                  <span className="text-emerald-600/70">
+                    {' '}({t('backup.ya_existian', { n: restoreMut.data.en_el_archivo[tabla] - n })})
+                  </span>
+                )}
+              </p>
+            ))}
+          </div>
         )}
       </div>
 
