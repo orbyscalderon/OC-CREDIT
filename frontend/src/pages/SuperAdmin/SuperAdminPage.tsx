@@ -10,6 +10,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid,
 } from 'recharts';
+import { planesApi } from '@/api/planes.api';
 
 // Login propio de super-admin (JWT separado del de tenants, ver
 // SuperAdminAuthController en el backend). sessionStorage en vez de
@@ -48,8 +49,6 @@ superApi.interceptors.response.use(
 );
 
 const unwrap = (r: any) => r.data?.data ?? r.data;
-
-const PLANES = ['free', 'personal', 'basico', 'profesional', 'avanzado', 'comercial', 'enterprise'];
 
 function SuperAdminLogin({ onSuccess }: { onSuccess: () => void }) {
   const { t } = useTranslation();
@@ -155,6 +154,17 @@ export function SuperAdminPage() {
   const { data: mrr } = useQuery({
     queryKey: ['sa-mrr'],
     queryFn: () => superApi.get('/super-admin/mrr').then(unwrap),
+    enabled: authed,
+  });
+
+  // Antes esto era una lista fija (['free','personal','basico','profesional',
+  // 'avanzado','comercial','enterprise']) que no tenía nada que ver con los
+  // planes reales de planes_saas ('free' inactivo + 'basico'/'growth'/'pro')
+  // -- elegir cualquiera de los 4 inventados daba 404 al guardar. Se trae la
+  // lista real (misma que usa el landing para mostrar precios).
+  const { data: planes = [] } = useQuery({
+    queryKey: ['sa-planes'],
+    queryFn: planesApi.listar,
     enabled: authed,
   });
 
@@ -314,8 +324,8 @@ export function SuperAdminPage() {
                           onChange={e => cambiarPlanMut.mutate({ id: tn.id, plan_id: e.target.value })}
                           className="bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         >
-                          {PLANES.map(p => (
-                            <option key={p} value={p}>{p}</option>
+                          {planes.map(p => (
+                            <option key={p.id} value={p.id}>{p.nombre}</option>
                           ))}
                         </select>
                       </td>

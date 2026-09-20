@@ -518,6 +518,7 @@
     "logo_actualizado": "Logo updated",
     "nombre_comercial": "Business name",
     "nombre_comercial_placeholder": "My Lending Company LLC",
+    "nombre_comercial_hint": "If left blank, your registered name ({{nombre}}) is used on promissory notes, receipts, and other documents.",
     "color_primario": "Primary color",
     "color_secundario": "Secondary color",
     "codigo_moneda": "Currency code",

@@ -518,6 +518,7 @@
     "logo_actualizado": "Logo actualizado",
     "nombre_comercial": "Nombre comercial",
     "nombre_comercial_placeholder": "Mi Empresa de Préstamos S.R.L.",
+    "nombre_comercial_hint": "Si lo dejas vacío, se usa tu nombre registrado ({{nombre}}) en pagarés, recibos y demás documentos.",
     "color_primario": "Color primario",
     "color_secundario": "Color secundario",
     "codigo_moneda": "Código de moneda",

@@ -216,7 +216,14 @@ export function ConfigPage() {
         {/* Nombre comercial */}
         <div>
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">{t('config.nombre_comercial')}</label>
-          <input {...register('nombre_comercial')} placeholder={t('config.nombre_comercial_placeholder')} className="input-field" />
+          <input
+            {...register('nombre_comercial')}
+            placeholder={user?.tenant_nombre ?? t('config.nombre_comercial_placeholder')}
+            className="input-field"
+          />
+          <p className="mt-1 text-xs text-gray-400">
+            {t('config.nombre_comercial_hint', { nombre: user?.tenant_nombre ?? '' })}
+          </p>
         </div>
 
         {/* Colores */}
