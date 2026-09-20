@@ -13,6 +13,8 @@ interface Props<T> {
   loading?: boolean;
   emptyMessage?: string;
   emptyIcon?: React.ReactNode;
+  /** Si se pasa, toda la fila queda clickeable (no solo el link "Ver" de la última columna). */
+  onRowClick?: (row: T) => void;
 }
 
 export function Table<T>({
@@ -22,6 +24,7 @@ export function Table<T>({
   loading,
   emptyMessage = 'Sin resultados',
   emptyIcon,
+  onRowClick,
 }: Props<T>) {
   return (
     <div className="overflow-x-auto rounded-2xl border border-gray-100 bg-white shadow-card">
@@ -67,7 +70,8 @@ export function Table<T>({
             data.map((row) => (
               <tr
                 key={String(row[keyField])}
-                className="hover:bg-gray-50/70 transition-colors"
+                onClick={onRowClick ? () => onRowClick(row) : undefined}
+                className={`hover:bg-gray-50/70 transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
               >
                 {columns.map((col) => (
                   <td key={col.key} className="px-4 py-3.5 text-gray-700">

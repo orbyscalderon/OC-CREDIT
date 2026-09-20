@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '@/api/axios';
 import { Badge } from '@/components/common/Badge';
 import { ArrowUpRight, Download } from 'lucide-react';
@@ -27,6 +27,7 @@ interface CuentaCobrar {
 
 export function CuentasCobrarPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [soloVencidos, setSoloVencidos] = useState(false);
 
@@ -129,7 +130,11 @@ export function CuentasCobrarPage() {
               </tr>
             ) : (
               data.map((r) => (
-                <tr key={r.prestamo_id} className="hover:bg-gray-50/70 transition-colors">
+                <tr
+                  key={r.prestamo_id}
+                  onClick={() => navigate(`/prestamos/${r.prestamo_id}`)}
+                  className="hover:bg-gray-50/70 transition-colors cursor-pointer"
+                >
                   <td className="px-4 py-3.5 font-medium text-gray-800">{r.nombre} {r.apellido}</td>
                   <td className="px-4 py-3.5 text-gray-400 text-xs">{r.cedula}</td>
                   <td className="px-4 py-3.5 text-gray-400 text-xs">{r.ruta ?? '—'}</td>
@@ -153,6 +158,7 @@ export function CuentasCobrarPage() {
                   <td className="px-4 py-3.5">
                     <Link
                       to={`/prestamos/${r.prestamo_id}`}
+                      onClick={(e) => e.stopPropagation()}
                       className="inline-flex items-center gap-1 text-xs text-brand-600 hover:text-brand-800 font-medium transition-colors"
                     >
                       {t('common.ver')} <ArrowUpRight size={11} />

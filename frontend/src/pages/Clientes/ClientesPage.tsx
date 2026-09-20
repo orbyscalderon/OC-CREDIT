@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Search, UserPlus, Eye } from 'lucide-react';
 import { clientesApi } from '@/api/clientes.api';
 import { Table } from '@/components/common/Table';
@@ -10,6 +10,7 @@ import type { Cliente } from '@/types';
 
 export function ClientesPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
 
@@ -63,7 +64,11 @@ export function ClientesPage() {
             key: 'acciones',
             header: '',
             render: (r) => (
-              <Link to={`/clientes/${r.id}`} className="inline-flex items-center gap-1 text-xs text-brand-600 hover:text-brand-800 font-medium transition-colors">
+              <Link
+                to={`/clientes/${r.id}`}
+                onClick={(e) => e.stopPropagation()}
+                className="inline-flex items-center gap-1 text-xs text-brand-600 hover:text-brand-800 font-medium transition-colors"
+              >
                 <Eye size={13} />
                 {t('common.ver')}
               </Link>
@@ -74,6 +79,7 @@ export function ClientesPage() {
         keyField="id"
         loading={isLoading}
         emptyMessage={t('clientes.sin_resultados')}
+        onRowClick={(r) => navigate(`/clientes/${r.id}`)}
       />
 
       {/* S2-14: Página X de Y */}

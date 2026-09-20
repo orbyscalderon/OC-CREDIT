@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Eye, PlusCircle } from 'lucide-react';
 import { prestamosApi } from '@/api/prestamos.api';
 import { Table } from '@/components/common/Table';
@@ -16,6 +16,7 @@ const ESTADOS: EstadoPrestamo[] = ['Activo', 'Pendiente', 'Vencido', 'Pagado', '
 
 export function PrestamosPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [estado, setEstado] = useState<string>('');
   const [page, setPage]     = useState(1);
@@ -113,6 +114,7 @@ export function PrestamosPage() {
             render: (r) => (
               <Link
                 to={`/prestamos/${r.id}`}
+                onClick={(e) => e.stopPropagation()}
                 className="inline-flex items-center gap-1 text-xs text-brand-600 hover:text-brand-800 font-medium transition-colors"
               >
                 <Eye size={13} />
@@ -125,6 +127,7 @@ export function PrestamosPage() {
         keyField="id"
         loading={isLoading}
         emptyMessage={t('prestamos.sin_resultados')}
+        onRowClick={(r) => navigate(`/prestamos/${r.id}`)}
       />
 
       {/* S2-14: Página X de Y */}
