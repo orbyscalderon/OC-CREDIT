@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import * as cookieParser from 'cookie-parser';
+import { json } from 'express';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
@@ -18,6 +19,10 @@ async function bootstrap() {
   const config = app.get(ConfigService);
 
   app.use(cookieParser());
+
+  // Default de Express/Nest es 100kb -- un backup completo (restaurar-backup)
+  // puede pesar varios MB con decenas de miles de cuotas/transacciones.
+  app.use(json({ limit: '25mb' }));
 
   app.use(helmet({ contentSecurityPolicy: true }));
 

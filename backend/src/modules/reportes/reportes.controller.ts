@@ -1,7 +1,8 @@
 import {
-  Controller, Get, Header, Param, ParseUUIDPipe,
-  Query, Res, UseGuards,
+  Body, Controller, Get, Header, Param, ParseUUIDPipe,
+  Post, Query, Res, UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { Response } from 'express';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ReportesService } from './reportes.service';
@@ -109,6 +110,15 @@ export class ReportesController {
   @Header('Content-Type', 'application/json')
   backup(@CurrentUser() user: JwtPayload) {
     return this.service.generarBackup(user.tenantId);
+  }
+
+  /** Restaura un backup (generado por GET /reportes/backup) dentro del mismo tenant */
+  @Post('restaurar-backup')
+  @Roles(Rol.ADMIN_TENANT)
+  @Throttle({ short: { limit: 2, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Restaura datos desde un backup -- solo inserta lo que falta, nunca pisa ni duplica' })
+  restaurarBackup(@CurrentUser() user: JwtPayload, @Body() backup: any) {
+    return this.service.restaurarBackup(user.tenantId, backup);
   }
 
   /** Reporte de ingresos mensual (Capital + Interés + Mora) */

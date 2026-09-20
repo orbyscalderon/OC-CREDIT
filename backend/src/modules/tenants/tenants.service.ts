@@ -1,7 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { IsBoolean, IsDateString, IsIn, IsNotEmpty, IsOptional, IsString, Length, Matches } from 'class-validator';
+import {
+  IsBoolean, IsDateString, IsIn, IsInt, IsNotEmpty,
+  IsNumber, IsOptional, IsString, Length, Matches, Max, Min,
+} from 'class-validator';
 import { TenantSettings } from './entities/tenant-settings.entity';
 import { ZONAS_HORARIAS_VALIDAS, FORMATOS_FECHA_VALIDOS } from '../../common/constants/zonas-horarias';
 import { ZonaHorariaService } from '../../common/services/zona-horaria.service';
@@ -41,6 +44,23 @@ export class UpdateSettingsDto {
 
   @IsOptional() @IsIn(FORMATOS_FECHA_VALIDOS)
   formato_fecha?: string;
+
+  // Estos 4 existían en la entidad y ya los usa el cálculo de mora / la
+  // geocerca antifraude (con sus defaults), pero nunca estuvieron en este
+  // DTO -- el admin no tenía forma de verlos ni cambiarlos desde el panel.
+  @IsOptional() @IsInt() @Min(0) @Max(30)
+  dias_mora_gracia?: number;
+
+  // Se guarda como fracción (0.02 = 2%) para que coincida 1:1 con la
+  // columna -- el frontend hace la conversión a/desde porcentaje.
+  @IsOptional() @IsNumber() @Min(0) @Max(1)
+  tasa_mora_diaria?: number;
+
+  @IsOptional() @IsInt() @Min(10) @Max(5000)
+  radio_geocerca_metros?: number;
+
+  @IsOptional() @IsBoolean()
+  permite_cobro_domingo?: boolean;
 }
 
 export class CrearFeriadoDto {

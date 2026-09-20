@@ -12,6 +12,16 @@ type Entrada = { es: string; en: string };
  * Convención de nombres: <modulo>_<que_pasa>, snake_case, sin acentos.
  */
 export const MESSAGES: Record<string, Entrada> = {
+  // ── reportes (backup) ────────────────────────────────────────────────
+  reportes_backup_formato_invalido: {
+    es: 'El archivo no tiene el formato esperado de un backup',
+    en: 'The file does not have the expected backup format',
+  },
+  reportes_backup_tenant_no_coincide: {
+    es: 'Este backup pertenece a otra empresa y no se puede restaurar aquí',
+    en: 'This backup belongs to a different company and cannot be restored here',
+  },
+
   // ── auth ──────────────────────────────────────────────────────────────
   auth_token_invalido_expirado: { es: 'Token inválido o expirado', en: 'Invalid or expired token' },
   auth_prueba_vencida: {

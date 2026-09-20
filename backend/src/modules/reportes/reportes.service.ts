@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectEntityManager } from '@nestjs/typeorm';
 import { EntityManager } from 'typeorm';
 import { fechaEnZona, fechaHoyEnZona } from '../../common/utils/fecha-negocio.util';
 import { ZonaHorariaService } from '../../common/services/zona-horaria.service';
+import { msg } from '../../common/i18n/messages';
 
 @Injectable()
 export class ReportesService {
@@ -364,6 +365,78 @@ export class ReportesService {
       transacciones,
       cajas,
     };
+  }
+
+  /**
+   * Restaura un backup generado por generarBackup() dentro del MISMO tenant.
+   * No es un "borrar y reemplazar" -- inserta solo lo que falta:
+   * ON CONFLICT (id) DO NOTHING, así nunca pisa ni duplica un registro que ya
+   * existe en la base actual (si la restauración se corre dos veces, o si
+   * parte de los datos del backup ya estaban ahí, no pasa nada).
+   *
+   * Requiere que el tenant, sus empleados y rutas YA EXISTAN -- el backup no
+   * incluye esas tablas (son la identidad de la cuenta, no el negocio del
+   * día a día), así que esto restaura datos transaccionales perdidos, no una
+   * cuenta completa borrada desde cero.
+   *
+   * Orden de inserción por dependencias de llave foránea: clientes (necesita
+   * rutas ya existentes) -> préstamos (necesita clientes/empleados/rutas) ->
+   * cajas (necesita empleados/rutas) -> cuotas (necesita préstamos) ->
+   * transacciones (necesita cajas/clientes/préstamos/empleados).
+   */
+  async restaurarBackup(tenantId: string, backup: any) {
+    if (!backup || typeof backup !== 'object') {
+      throw new BadRequestException(msg('reportes_backup_formato_invalido'));
+    }
+    if (backup.tenant_id !== tenantId) {
+      throw new BadRequestException(msg('reportes_backup_tenant_no_coincide'));
+    }
+
+    // Defensa en profundidad: aunque tenant_id del backup ya coincidió,
+    // cada fila se filtra otra vez por su propio tenant_id antes de tocar
+    // la base -- un archivo alterado a mano no puede colar filas ajenas.
+    const filaDeEsteTenant = (fila: any) => fila && fila.tenant_id === tenantId;
+    const filasDe = (clave: string): any[] =>
+      Array.isArray(backup[clave]) ? backup[clave].filter(filaDeEsteTenant) : [];
+
+    const clientes = filasDe('clientes');
+    const prestamos = filasDe('prestamos');
+    const cajas = filasDe('cajas');
+    const cuotas = filasDe('cuotas');
+    const transacciones = filasDe('transacciones');
+
+    return this.em.transaction(async (tx) => {
+      const insertar = async (tabla: string, filas: any[]) => {
+        if (filas.length === 0) return 0;
+        const result = await tx.query(
+          `INSERT INTO ${tabla}
+           SELECT * FROM jsonb_populate_recordset(NULL::${tabla}, $1::jsonb)
+           ON CONFLICT (id) DO NOTHING
+           RETURNING id`,
+          [JSON.stringify(filas)],
+        );
+        return result.length;
+      };
+
+      const restaurados = {
+        clientes: await insertar('clientes', clientes),
+        prestamos: await insertar('prestamos', prestamos),
+        cajas: await insertar('cajas', cajas),
+        cuotas: await insertar('cuotas_amortizacion', cuotas),
+        transacciones: await insertar('transacciones', transacciones),
+      };
+
+      return {
+        restaurados,
+        en_el_archivo: {
+          clientes: clientes.length,
+          prestamos: prestamos.length,
+          cajas: cajas.length,
+          cuotas: cuotas.length,
+          transacciones: transacciones.length,
+        },
+      };
+    });
   }
 
   // ─── ARQUEOS CONSOLIDADOS DEL DÍA ─────────────────────────────────────────
