@@ -23,6 +23,7 @@ const SIGNED_URL_TTL_SEGUNDOS = 300;
 @Injectable()
 export class StorageService {
   private readonly http: AxiosInstance;
+  private readonly baseUrl: string;
 
   constructor(config: ConfigService) {
     const url = config.get<string>('SUPABASE_URL');
@@ -32,16 +33,17 @@ export class StorageService {
         'SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY no configuradas -- requeridas para subir/leer documentos',
       );
     }
+    this.baseUrl = `${url}/storage/v1`;
     this.http = axios.create({
-      baseURL: `${url}/storage/v1`,
+      baseURL: this.baseUrl,
       headers: { Authorization: `Bearer ${key}`, apikey: key },
       timeout: 15_000,
     });
   }
 
-  async subir(path: string, buffer: Buffer, contentType: string): Promise<string> {
+  async subir(path: string, buffer: Buffer, contentType: string, bucket = BUCKET): Promise<string> {
     try {
-      await this.http.post(`/object/${BUCKET}/${path}`, buffer, {
+      await this.http.post(`/object/${bucket}/${path}`, buffer, {
         headers: { 'Content-Type': contentType, 'x-upsert': 'true' },
         maxBodyLength: Infinity,
       });
@@ -50,6 +52,11 @@ export class StorageService {
       const msg = axios.isAxiosError(err) ? JSON.stringify(err.response?.data ?? err.message) : String(err);
       throw new InternalServerErrorException(`Error subiendo archivo: ${msg}`);
     }
+  }
+
+  /** Solo para buckets PÚBLICOS (ej. "logos") -- URL estable, sin expirar, no requiere firma. */
+  urlPublica(path: string, bucket: string): string {
+    return `${this.baseUrl}/object/public/${bucket}/${path}`;
   }
 
   async urlFirmada(path: string): Promise<string> {

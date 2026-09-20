@@ -3,9 +3,9 @@ import {
   UseInterceptors, UploadedFile, Res, BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
+import { memoryStorage } from 'multer';
 import { extname, join } from 'path';
-import { existsSync, mkdirSync } from 'fs';
+import { existsSync } from 'fs';
 import { Response } from 'express';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { TenantsService, UpdateSettingsDto, CrearFeriadoDto } from './tenants.service';
@@ -15,27 +15,25 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser, JwtPayload } from '../../common/decorators/current-user.decorator';
 import { Rol } from '../../common/constants/roles.enum';
 import { msg } from '../../common/i18n/messages';
+import { StorageService } from '../../common/services/storage.service';
 
+// Legado -- diskStorage previo escribía acá, filesystem efímero de Railway
+// (se borraba en cada redeploy). Solo queda para servir un url_logo viejo
+// con ruta relativa si alguno sobrevivió; toda subida nueva va a Supabase
+// Storage (bucket público "logos", ver subirLogo()).
 const UPLOADS_DIR = process.env.UPLOADS_DIR ?? '/var/www/oc-credit/uploads';
-const LOGOS_DIR   = join(UPLOADS_DIR, 'logos');
 
-const logoStorage = diskStorage({
-  destination: (_req, _file, cb) => {
-    if (!existsSync(LOGOS_DIR)) mkdirSync(LOGOS_DIR, { recursive: true });
-    cb(null, LOGOS_DIR);
-  },
-  filename: (req: any, file, cb) => {
-    const tenantId = req.user?.tenantId ?? 'unknown';
-    cb(null, `${tenantId}${extname(file.originalname).toLowerCase()}`);
-  },
-});
+const LOGO_BUCKET = 'logos';
 
 @ApiTags('Tenants')
 @ApiBearerAuth('JWT')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller({ path: 'tenants', version: '1' })
 export class TenantsController {
-  constructor(private readonly service: TenantsService) {}
+  constructor(
+    private readonly service: TenantsService,
+    private readonly storageService: StorageService,
+  ) {}
 
   /* ── Settings ──────────────────────────────────────────────────────────── */
 
@@ -55,9 +53,9 @@ export class TenantsController {
 
   @Post('logo')
   @Roles(Rol.ADMIN_TENANT)
-  @ApiOperation({ summary: 'Subir logo del tenant (imagen)' })
+  @ApiOperation({ summary: 'Subir logo del tenant (imagen) -- Supabase Storage, bucket público' })
   @UseInterceptors(FileInterceptor('logo', {
-    storage: logoStorage,
+    storage: memoryStorage(),
     fileFilter: (_req, file, cb) => {
       const allowed = ['.png', '.jpg', '.jpeg', '.webp', '.svg'];
       if (!allowed.includes(extname(file.originalname).toLowerCase())) {
@@ -72,17 +70,27 @@ export class TenantsController {
     @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file) throw new BadRequestException(msg('tenants_archivo_no_recibido'));
-    const relativePath = join('logos', file.filename).replace(/\\/g, '/');
-    await this.service.updateSettings(user.tenantId, { url_logo: relativePath });
-    return { url_logo: relativePath };
+    // Sufijo de tiempo: cada subida es un archivo nuevo, así el navegador
+    // nunca sirve el logo viejo desde caché con la misma URL.
+    const path = `${user.tenantId}-${Date.now()}${extname(file.originalname).toLowerCase()}`;
+    await this.storageService.subir(path, file.buffer, file.mimetype, LOGO_BUCKET);
+    const url = this.storageService.urlPublica(path, LOGO_BUCKET);
+    await this.service.updateSettings(user.tenantId, { url_logo: url });
+    return { url_logo: url };
   }
 
+  /**
+   * Legado: solo sirve un url_logo con ruta relativa vieja (disco local,
+   * previo a Supabase Storage) si por algún motivo sobrevivió un redeploy.
+   * Toda subida nueva devuelve URL pública absoluta y el frontend la usa
+   * directo -- este endpoint deja de ser necesario para logos nuevos.
+   */
   @Get('logo')
   @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT)
-  @ApiOperation({ summary: 'Obtener logo del tenant' })
+  @ApiOperation({ summary: 'Obtener logo del tenant (legado -- rutas locales viejas)' })
   async getLogo(@CurrentUser() user: JwtPayload, @Res() res: Response) {
     const settings = await this.service.getSettings(user.tenantId);
-    if (!settings.url_logo) return res.status(404).send('Sin logo');
+    if (!settings.url_logo || settings.url_logo.startsWith('http')) return res.status(404).send('Sin logo');
     const absPath = join(UPLOADS_DIR, settings.url_logo);
     if (!existsSync(absPath)) return res.status(404).send('Archivo no encontrado');
     res.sendFile(absPath);
