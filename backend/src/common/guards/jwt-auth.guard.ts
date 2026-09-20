@@ -10,6 +10,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { DataSource } from 'typeorm';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { SKIP_SUBSCRIPTION_KEY } from '../decorators/skip-subscription-check.decorator';
+import { msg } from '../i18n/messages';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
@@ -36,7 +37,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   handleRequest(err: Error, user: any, _info: any, context: ExecutionContext): any {
     return (async () => {
       if (err || !user) {
-        throw new UnauthorizedException('Token inválido o expirado');
+        throw new UnauthorizedException(msg('auth_token_invalido_expirado'));
       }
 
       const omitirChequeoSuscripcion = this.reflector.getAllAndOverride<boolean>(
@@ -61,7 +62,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
             throw new HttpException(
               {
                 code: 'TRIAL_EXPIRED',
-                message: 'Tu período de prueba de 7 días terminó. Adquiere un plan para continuar.',
+                message: msg('auth_prueba_vencida'),
               },
               HttpStatus.PAYMENT_REQUIRED,
             );

@@ -24,6 +24,7 @@ import { fechaHoyEnZona } from '../../common/utils/fecha-negocio.util';
 import { ZonaHorariaService } from '../../common/services/zona-horaria.service';
 import { haversineKm } from '../../common/utils/geo.util';
 import { StorageService } from '../../common/services/storage.service';
+import { msg } from '../../common/i18n/messages';
 
 // ─── Tipos internos ───────────────────────────────────────────────────────────
 
@@ -97,7 +98,7 @@ export class CobrosService {
         );
         throw new ConflictException({
           code: 'DUPLICATE_UUID',
-          message: 'Transacción ya procesada. Pago descartado para evitar duplicado.',
+          message: msg('cobros_transaccion_duplicada'),
           transaccion_id: existente.id,
         });
       }
@@ -117,7 +118,7 @@ export class CobrosService {
 
       if (!caja) {
         throw new NotFoundException(
-          'Caja activa no encontrada. Verifique que la jornada esté iniciada.',
+          msg('cobros_caja_activa_no_encontrada_jornada'),
         );
       }
 
@@ -137,7 +138,7 @@ export class CobrosService {
 
       if (!prestamo) {
         throw new NotFoundException(
-          `Préstamo ${dto.prestamo_id} no encontrado o no está activo.`,
+          msg('cobros_prestamo_no_encontrado_o_inactivo', { id: dto.prestamo_id }),
         );
       }
 
@@ -147,7 +148,7 @@ export class CobrosService {
       // de María, sin importar quién esté haciendo la solicitud.
       if (prestamo.cobrador_id !== cobradorDeLaCaja) {
         throw new ForbiddenException(
-          'Este préstamo no está asignado al cobrador dueño de esa caja.',
+          msg('cobros_prestamo_no_asignado_a_cobrador_caja'),
         );
       }
 
@@ -178,8 +179,10 @@ export class CobrosService {
         if (distanciaMetros > radioMetros) {
           throw new BadRequestException({
             code: 'FUERA_DE_GEOCERCA',
-            message: `El cobro se registró a ${Math.round(distanciaMetros)}m de la casa del cliente ` +
-              `(máximo permitido: ${radioMetros}m). Acércate a la ubicación registrada antes de cobrar.`,
+            message: msg('cobros_fuera_de_geocerca', {
+              distancia: Math.round(distanciaMetros),
+              radio: radioMetros,
+            }),
             distancia_metros: Math.round(distanciaMetros),
             radio_permitido_metros: radioMetros,
           });
@@ -210,7 +213,7 @@ export class CobrosService {
 
       if (cuotasPendientes.length === 0) {
         throw new BadRequestException(
-          'El préstamo no tiene cuotas pendientes de cobro.',
+          msg('cobros_prestamo_sin_cuotas_pendientes'),
         );
       }
 
@@ -474,7 +477,7 @@ export class CobrosService {
       where: { id: transaccionId, tenant_id: tenantId, tipo: TipoTransaccion.COBRO },
     });
     if (!transaccion) {
-      throw new NotFoundException('Cobro no encontrado para este tenant');
+      throw new NotFoundException(msg('cobros_no_encontrado_para_tenant'));
     }
 
     // La validación de propiedad del cobro va ANTES de subir el archivo a
@@ -496,7 +499,7 @@ export class CobrosService {
       where: { id: transaccionId, tenant_id: tenantId, tipo: TipoTransaccion.COBRO },
       select: ['foto_comprobante_url'],
     });
-    if (!transaccion) throw new NotFoundException('Cobro no encontrado');
+    if (!transaccion) throw new NotFoundException(msg('cobros_no_encontrado'));
     return transaccion.foto_comprobante_url ?? null;
   }
 

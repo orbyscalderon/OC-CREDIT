@@ -5,6 +5,7 @@ import { IsBoolean, IsDateString, IsIn, IsNotEmpty, IsOptional, IsString, Length
 import { TenantSettings } from './entities/tenant-settings.entity';
 import { ZONAS_HORARIAS_VALIDAS, FORMATOS_FECHA_VALIDOS } from '../../common/constants/zonas-horarias';
 import { ZonaHorariaService } from '../../common/services/zona-horaria.service';
+import { msg } from '../../common/i18n/messages';
 
 /* ── DTOs ───────────────────────────────────────────────────────────────── */
 
@@ -64,7 +65,7 @@ export class TenantsService {
 
   async getSettings(tenantId: string): Promise<TenantSettings> {
     const settings = await this.settingsRepo.findOne({ where: { tenant_id: tenantId } });
-    if (!settings) throw new NotFoundException('Configuración no encontrada');
+    if (!settings) throw new NotFoundException(msg('tenants_configuracion_no_encontrada'));
     return settings;
   }
 
@@ -105,7 +106,7 @@ export class TenantsService {
       `DELETE FROM feriados WHERE fecha = $1 AND tenant_id = $2`,
       [fecha, tenantId],
     );
-    if (result[1] === 0) throw new NotFoundException('Feriado no encontrado o es global (no editable)');
+    if (result[1] === 0) throw new NotFoundException(msg('tenants_feriado_no_encontrado_o_global'));
     return { eliminado: true, fecha };
   }
 }

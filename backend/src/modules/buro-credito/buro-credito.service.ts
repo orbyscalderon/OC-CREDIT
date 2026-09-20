@@ -16,6 +16,7 @@ import { Rol } from '../../common/constants/roles.enum';
 import { fechaHoyEnZona } from '../../common/utils/fecha-negocio.util';
 import { ZonaHorariaService } from '../../common/services/zona-horaria.service';
 import { normalizarDocumento } from '../../common/utils/normalizar-documento.util';
+import { msg } from '../../common/i18n/messages';
 
 interface ReporteAutomaticoInput {
   cedula: string;
@@ -311,11 +312,11 @@ export class BuroCreditoService {
       where: { id: dto.reporte_id },
     });
 
-    if (!reporte) throw new NotFoundException('Reporte no encontrado en el buró');
+    if (!reporte) throw new NotFoundException(msg('buro_reporte_no_encontrado_en_buro'));
 
     // Solo el tenant que reportó puede marcar como saldada (o super_admin)
     if (reporte.tenant_id !== user.tenantId && user.rol !== Rol.ADMIN_TENANT) {
-      throw new ForbiddenException('Solo el tenant que reportó puede marcar la deuda como saldada');
+      throw new ForbiddenException(msg('buro_solo_tenant_reporto_puede_saldar'));
     }
 
     reporte.deuda_saldada = true;
@@ -344,7 +345,7 @@ export class BuroCreditoService {
     superAdminEmail: string,
   ): Promise<void> {
     const reporte = await this.buroRepo.findOne({ where: { id: dto.reporte_id } });
-    if (!reporte) throw new NotFoundException('Reporte no encontrado');
+    if (!reporte) throw new NotFoundException(msg('buro_reporte_no_encontrado'));
 
     // No borramos, solo marcamos como inactivo con trazabilidad
     reporte.activo = false;

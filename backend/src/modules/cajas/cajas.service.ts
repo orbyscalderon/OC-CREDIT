@@ -11,6 +11,7 @@ import { EstadoCaja, Rol, TipoTransaccion } from '../../common/constants/roles.e
 import { JwtPayload } from '../../common/decorators/current-user.decorator';
 import { fechaHoyEnZona } from '../../common/utils/fecha-negocio.util';
 import { ZonaHorariaService } from '../../common/services/zona-horaria.service';
+import { msg } from '../../common/i18n/messages';
 
 @Injectable()
 export class CajasService {
@@ -42,7 +43,7 @@ export class CajasService {
       if (existente.estado === EstadoCaja.ABIERTA) {
         return existente; // Idempotente: retorna la caja si ya está abierta
       }
-      throw new BadRequestException('Ya existe una caja cerrada para esta ruta hoy. No se puede reabrir.');
+      throw new BadRequestException(msg('cajas_ya_cerrada_hoy_no_reabrir'));
     }
 
     return this.em.transaction(async (tx) => {
@@ -101,7 +102,7 @@ export class CajasService {
         .setLock('pessimistic_write')
         .getOne();
 
-      if (!caja) throw new NotFoundException('Caja activa no encontrada');
+      if (!caja) throw new NotFoundException(msg('cajas_activa_no_encontrada'));
 
       // Calcular monto esperado final (redundante por columna generada, pero explícito)
       const montoEsperado = caja.monto_apertura + caja.total_cobros - caja.total_gastos;
@@ -177,7 +178,7 @@ export class CajasService {
       }
       const caja = await cajaQuery.setLock('pessimistic_write').getOne();
 
-      if (!caja) throw new NotFoundException('Caja activa no encontrada');
+      if (!caja) throw new NotFoundException(msg('cajas_activa_no_encontrada'));
 
       // El gasto se atribuye al DUEÑO de la caja, no a quien hace clic --
       // mismo motivo que en registrarCobro.
@@ -223,7 +224,7 @@ export class CajasService {
       const caja = await this.cajaRepo.findOne({
         where: { tenant_id: tenantId, cobrador_id: cobradorId, ruta_id: rutaId, estado: EstadoCaja.ABIERTA },
       });
-      if (!caja) throw new NotFoundException('No hay caja activa para esa ruta. Inicie la jornada primero.');
+      if (!caja) throw new NotFoundException(msg('cajas_sin_activa_para_ruta'));
       return caja;
     }
 
@@ -250,7 +251,7 @@ export class CajasService {
       .andWhere('c.tenant_id = :tid', { tid: tenantId })
       .getOne();
 
-    if (!caja) throw new NotFoundException('Caja no encontrada');
+    if (!caja) throw new NotFoundException(msg('cajas_no_encontrada'));
 
     const esAdmin = user.rol === Rol.ADMIN_TENANT;
 
@@ -308,7 +309,7 @@ export class CajasService {
       cajaQuery.andWhere('c.cobrador_id = :cid', { cid: userEmpleadoId });
     }
     const caja = await cajaQuery.getOne();
-    if (!caja) throw new NotFoundException('Caja no encontrada');
+    if (!caja) throw new NotFoundException(msg('cajas_no_encontrada'));
 
     const rows = await this.em.query<any[]>(`
       SELECT

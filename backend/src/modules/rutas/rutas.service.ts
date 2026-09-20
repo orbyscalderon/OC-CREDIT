@@ -9,6 +9,7 @@ import { CrearRutaDto, RegistrarNovedadDto } from './dto/rutas.dto';
 import { fechaHoyEnZona } from '../../common/utils/fecha-negocio.util';
 import { ZonaHorariaService } from '../../common/services/zona-horaria.service';
 import { JwtPayload } from '../../common/decorators/current-user.decorator';
+import { msg } from '../../common/i18n/messages';
 
 @Injectable()
 export class RutasService {
@@ -40,7 +41,7 @@ export class RutasService {
       where: { id, tenant_id: tenantId },
       relations: ['cobrador'],
     });
-    if (!ruta) throw new NotFoundException('Ruta no encontrada');
+    if (!ruta) throw new NotFoundException(msg('rutas_no_encontrada'));
     return ruta;
   }
 
@@ -53,7 +54,7 @@ export class RutasService {
    */
   async toggleActiva(tenantId: string, id: string, activa: boolean): Promise<Ruta> {
     const ruta = await this.rutaRepo.findOne({ where: { id, tenant_id: tenantId } });
-    if (!ruta) throw new NotFoundException('Ruta no encontrada');
+    if (!ruta) throw new NotFoundException(msg('rutas_no_encontrada'));
     ruta.activa = activa;
     return this.rutaRepo.save(ruta);
   }
@@ -73,10 +74,10 @@ export class RutasService {
     actor: JwtPayload,
   ): Promise<void> {
     const ruta = await this.rutaRepo.findOne({ where: { id: rutaId, tenant_id: tenantId } });
-    if (!ruta) throw new NotFoundException('Ruta no encontrada');
+    if (!ruta) throw new NotFoundException(msg('rutas_no_encontrada'));
 
     const cobradorNuevo = await this.empleadoRepo.findOne({ where: { id: cobradorId, tenant_id: tenantId } });
-    if (!cobradorNuevo) throw new NotFoundException('Cobrador no encontrado');
+    if (!cobradorNuevo) throw new NotFoundException(msg('rutas_cobrador_no_encontrado'));
 
     const cobradorAnterior = ruta.cobrador_id
       ? await this.empleadoRepo.findOne({ where: { id: ruta.cobrador_id, tenant_id: tenantId } })

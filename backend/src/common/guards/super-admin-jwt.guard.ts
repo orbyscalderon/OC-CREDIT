@@ -5,6 +5,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import type { SuperAdminJwtPayload } from '../../modules/super-admin/super-admin-auth.service';
+import { msg } from '../i18n/messages';
 
 @Injectable()
 export class SuperAdminJwtGuard implements CanActivate {
@@ -32,18 +33,18 @@ export class SuperAdminJwtGuard implements CanActivate {
     const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
     if (!token) {
-      throw new UnauthorizedException('Token de super-admin requerido');
+      throw new UnauthorizedException(msg('super_admin_token_requerido'));
     }
 
     try {
       const payload = await this.jwtService.verifyAsync<SuperAdminJwtPayload>(token, { secret });
       if (payload.type !== 'super_admin') {
-        throw new UnauthorizedException('Token inválido para este recurso');
+        throw new UnauthorizedException(msg('super_admin_token_invalido_recurso'));
       }
       req.superAdmin = payload;
       return true;
     } catch {
-      throw new UnauthorizedException('Token de super-admin inválido o expirado');
+      throw new UnauthorizedException(msg('super_admin_token_invalido_expirado'));
     }
   }
 }

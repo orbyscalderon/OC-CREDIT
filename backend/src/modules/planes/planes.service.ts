@@ -15,6 +15,7 @@ import { monedaPorPais } from '../../common/constants/monedas-por-pais';
 import { zonaHorariaPorPais } from '../../common/constants/zona-horaria-por-pais';
 import { fechaHoyEnZona } from '../../common/utils/fecha-negocio.util';
 import { ZonaHorariaService } from '../../common/services/zona-horaria.service';
+import { msg } from '../../common/i18n/messages';
 
 @Injectable()
 export class PlanesService {
@@ -47,7 +48,7 @@ export class PlanesService {
       `SELECT * FROM v_uso_tenant WHERE tenant_id = $1`,
       [tenantId],
     );
-    if (!rows.length) throw new NotFoundException('Tenant no encontrado');
+    if (!rows.length) throw new NotFoundException(msg('tenants_no_encontrado'));
     return rows[0];
   }
 
@@ -79,13 +80,13 @@ export class PlanesService {
     const existe = await this.usuarioRepo.findOne({
       where: { email: dto.email_admin.toLowerCase() },
     });
-    if (existe) throw new ConflictException('Ya existe una cuenta con ese email');
+    if (existe) throw new ConflictException(msg('cuentas_email_duplicado'));
 
     const planes = await this.ds.query(
       `SELECT * FROM planes_saas WHERE id = $1 AND activo = TRUE`,
       [dto.plan_id],
     );
-    if (!planes.length) throw new NotFoundException('Plan no encontrado');
+    if (!planes.length) throw new NotFoundException(msg('planes_no_encontrado'));
     const plan = planes[0];
 
     const pais = dto.pais?.toUpperCase() || 'DO';
@@ -169,7 +170,7 @@ export class PlanesService {
       `SELECT * FROM planes_saas WHERE id = $1 AND activo = TRUE`,
       [dto.plan_id],
     );
-    if (!planes.length) throw new NotFoundException('Plan no encontrado');
+    if (!planes.length) throw new NotFoundException(msg('planes_no_encontrado'));
     const plan = planes[0];
 
     // Plan gratis — no requiere pago
@@ -206,7 +207,7 @@ export class PlanesService {
       `SELECT * FROM planes_saas WHERE id = $1 AND activo = TRUE`,
       [dto.plan_id],
     );
-    if (!planes.length) throw new NotFoundException('Plan no encontrado');
+    if (!planes.length) throw new NotFoundException(msg('planes_no_encontrado'));
     const plan = planes[0];
 
     const precioUsd = dto.facturacion_anual
@@ -252,7 +253,7 @@ export class PlanesService {
   ): Promise<void> {
     const secretKey = this.config.get<string>('STRIPE_SECRET_KEY');
     if (!secretKey) {
-      throw new BadRequestException('Pasarela de pago no configurada. Contacte al soporte.');
+      throw new BadRequestException(msg('planes_pasarela_no_configurada'));
     }
 
     const stripe = new Stripe(secretKey);
@@ -264,12 +265,12 @@ export class PlanesService {
         description: `Plan ${planNombre} — OCA Credit`,
       });
       if (charge.status !== 'succeeded') {
-        throw new BadRequestException(`Pago rechazado: ${charge.status}`);
+        throw new BadRequestException(msg('planes_pago_rechazado', { status: charge.status }));
       }
     } catch (err: unknown) {
       if (err instanceof BadRequestException) throw err;
-      const msg = (err as Stripe.errors.StripeError)?.message;
-      throw new BadRequestException(`Error procesando pago: ${msg ?? 'Intente nuevamente'}`);
+      const detalle = (err as Stripe.errors.StripeError)?.message;
+      throw new BadRequestException(msg('planes_error_procesando_pago', { detalle: detalle ?? 'Intente nuevamente' }));
     }
   }
 }

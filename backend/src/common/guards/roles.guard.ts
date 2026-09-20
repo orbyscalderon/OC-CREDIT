@@ -8,6 +8,7 @@ import { Reflector } from '@nestjs/core';
 import { Rol } from '../constants/roles.enum';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { JwtPayload } from '../decorators/current-user.decorator';
+import { msg } from '../i18n/messages';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -25,7 +26,7 @@ export class RolesGuard implements CanActivate {
 
     if (!requiredRoles.includes(user.rol as Rol)) {
       throw new ForbiddenException(
-        `Acceso denegado. Se requiere uno de los roles: ${requiredRoles.join(', ')}`,
+        msg('auth_acceso_denegado_roles', { roles: requiredRoles.join(', ') }),
       );
     }
 

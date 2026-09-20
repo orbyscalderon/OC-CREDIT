@@ -5,6 +5,7 @@ import { DataSource } from 'typeorm';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
+import { msg } from '../../common/i18n/messages';
 
 @Injectable()
 export class PortalService {
@@ -48,7 +49,7 @@ export class PortalService {
       GROUP BY cl.id, ts.simbolo_moneda
     `, [cedula, tenantId]);
 
-    if (!clientes.length) throw new NotFoundException('No se encontró cliente con esa cédula');
+    if (!clientes.length) throw new NotFoundException(msg('portal_cliente_no_encontrado_cedula'));
     return clientes[0];
   }
 
@@ -111,13 +112,13 @@ export class PortalService {
 
   /** HMAC-SHA256 verification. Fail-closed: rejects all requests when no secret is configured. */
   private verifyHmac(secret: string | undefined, rawBody: string, received: string | undefined): void {
-    if (!secret) throw new UnauthorizedException('Webhook gateway not configured');
-    if (!received) throw new UnauthorizedException('Missing webhook signature');
+    if (!secret) throw new UnauthorizedException(msg('portal_webhook_gateway_no_configurado'));
+    if (!received) throw new UnauthorizedException(msg('portal_webhook_firma_faltante'));
     const expected = createHmac('sha256', secret).update(rawBody).digest('hex');
     const expectedBuf = Buffer.from(expected);
     const receivedBuf = Buffer.from(received);
     if (expectedBuf.length !== receivedBuf.length || !timingSafeEqual(expectedBuf, receivedBuf)) {
-      throw new UnauthorizedException('Invalid webhook signature');
+      throw new UnauthorizedException(msg('portal_webhook_firma_invalida'));
     }
   }
 

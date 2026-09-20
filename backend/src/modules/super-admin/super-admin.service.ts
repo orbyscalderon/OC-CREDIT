@@ -3,6 +3,7 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { SuperAdmin } from './entities/super-admin.entity';
+import { msg } from '../../common/i18n/messages';
 
 @Injectable()
 export class SuperAdminService {
@@ -59,7 +60,7 @@ export class SuperAdminService {
        WHERE t.id = $1`,
       [id],
     );
-    if (!tenant) throw new NotFoundException('Tenant no encontrado');
+    if (!tenant) throw new NotFoundException(msg('super_admin_tenant_no_encontrado'));
 
     const usuarios = await this.ds.query(
       `SELECT id, email, rol, activo, ultimo_acceso FROM usuarios WHERE tenant_id = $1`,
@@ -74,7 +75,7 @@ export class SuperAdminService {
       `SELECT * FROM planes_saas WHERE id = $1 AND activo = TRUE`,
       [planId],
     );
-    if (!plan) throw new NotFoundException('Plan no encontrado');
+    if (!plan) throw new NotFoundException(msg('super_admin_plan_no_encontrado'));
 
     await this.ds.query(
       `UPDATE tenants
@@ -119,7 +120,7 @@ export class SuperAdminService {
 
   async crearAdmin(email: string, password: string, nombre: string) {
     const existe = await this.adminRepo.findOne({ where: { email: email.toLowerCase().trim() } });
-    if (existe) throw new BadRequestException('Ya existe una cuenta con ese email');
+    if (existe) throw new BadRequestException(msg('super_admin_email_duplicado'));
     const password_hash = await bcrypt.hash(password, 12);
     const saved = await this.adminRepo.save(
       this.adminRepo.create({ email: email.toLowerCase().trim(), password_hash, nombre, activo: true }),
@@ -132,17 +133,17 @@ export class SuperAdminService {
 
   async toggleAdminActivo(id: string, activo: boolean, actorId: string) {
     const admin = await this.adminRepo.findOne({ where: { id } });
-    if (!admin) throw new NotFoundException('Cuenta no encontrada');
+    if (!admin) throw new NotFoundException(msg('super_admin_cuenta_no_encontrada'));
 
     if (!activo) {
       if (id === actorId) {
-        throw new BadRequestException('No puedes desactivar tu propia cuenta');
+        throw new BadRequestException(msg('super_admin_no_desactivar_propia_cuenta'));
       }
       // Sin esto, desactivar la última cuenta activa deja el panel de
       // super-admin sin nadie que pueda volver a entrar y reactivarla.
       const activos = await this.adminRepo.count({ where: { activo: true } });
       if (activos <= 1) {
-        throw new BadRequestException('No puedes desactivar la última cuenta de super-admin activa');
+        throw new BadRequestException(msg('super_admin_no_desactivar_ultima_cuenta'));
       }
     }
 

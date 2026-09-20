@@ -14,6 +14,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser, JwtPayload } from '../../common/decorators/current-user.decorator';
 import { Rol } from '../../common/constants/roles.enum';
+import { msg } from '../../common/i18n/messages';
 
 const UPLOADS_DIR = process.env.UPLOADS_DIR ?? '/var/www/oc-credit/uploads';
 const LOGOS_DIR   = join(UPLOADS_DIR, 'logos');
@@ -70,7 +71,7 @@ export class TenantsController {
     @CurrentUser() user: JwtPayload,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    if (!file) throw new BadRequestException('No se recibió ningún archivo');
+    if (!file) throw new BadRequestException(msg('tenants_archivo_no_recibido'));
     const relativePath = join('logos', file.filename).replace(/\\/g, '/');
     await this.service.updateSettings(user.tenantId, { url_logo: relativePath });
     return { url_logo: relativePath };

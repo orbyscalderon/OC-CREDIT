@@ -10,6 +10,7 @@ import {
 import { Usuario } from './entities/usuario.entity';
 import { Empleado } from './entities/empleado.entity';
 import { Rol } from '../../common/constants/roles.enum';
+import { msg } from '../../common/i18n/messages';
 
 /* ── DTOs ───────────────────────────────────────────────────────────────── */
 
@@ -77,13 +78,13 @@ export class UsuariosService {
     const existeEmail = await this.usuarioRepo.findOne({
       where: { tenant_id: tenantId, email: dto.email },
     });
-    if (existeEmail) throw new ConflictException('Ya existe un usuario con ese email');
+    if (existeEmail) throw new ConflictException(msg('usuarios_email_duplicado'));
 
     if (dto.cedula) {
       const existeCedula = await this.empleadoRepo.findOne({
         where: { tenant_id: tenantId, cedula: dto.cedula },
       });
-      if (existeCedula) throw new ConflictException('Ya existe un empleado con esa cédula');
+      if (existeCedula) throw new ConflictException(msg('usuarios_cedula_duplicada'));
     }
 
     const password_hash = await bcrypt.hash(dto.password, 12);
@@ -128,7 +129,7 @@ export class UsuariosService {
       where: { id: empleadoId, tenant_id: tenantId },
       relations: ['usuario'],
     });
-    if (!empleado) throw new NotFoundException('Empleado no encontrado');
+    if (!empleado) throw new NotFoundException(msg('usuarios_empleado_no_encontrado'));
 
     empleado.activo = activo;
     empleado.usuario.activo = activo;
@@ -146,8 +147,8 @@ export class UsuariosService {
       where: { id: empleadoId, tenant_id: tenantId },
       relations: ['usuario'],
     });
-    if (!empleado) throw new NotFoundException('Empleado no encontrado');
-    if (nuevaPassword.length < 8) throw new BadRequestException('La contraseña debe tener al menos 8 caracteres');
+    if (!empleado) throw new NotFoundException(msg('usuarios_empleado_no_encontrado'));
+    if (nuevaPassword.length < 8) throw new BadRequestException(msg('usuarios_password_muy_corta'));
 
     empleado.usuario.password_hash = await bcrypt.hash(nuevaPassword, 12);
     await this.usuarioRepo.save(empleado.usuario);

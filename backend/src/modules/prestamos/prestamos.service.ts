@@ -29,6 +29,7 @@ import {
 } from './helpers/dias-habiles.helper';
 import { fechaHoyEnZona } from '../../common/utils/fecha-negocio.util';
 import { ZonaHorariaService } from '../../common/services/zona-horaria.service';
+import { msg } from '../../common/i18n/messages';
 
 const toCents = (n: number) => Math.round(n * 100);
 const fromCents = (c: number) => Math.round(c) / 100;
@@ -65,7 +66,7 @@ export class PrestamosService {
         where: { id: dto.ruta_id, tenant_id: tenantId, cobrador_id: cobradorIdSiAplica },
       });
       if (!ruta) {
-        throw new BadRequestException('Esa ruta no está asignada a este cobrador.');
+        throw new BadRequestException(msg('prestamos_ruta_no_asignada_cobrador'));
       }
     }
 
@@ -74,9 +75,7 @@ export class PrestamosService {
       where: { tenant_id: tenantId, cliente_id: dto.cliente_id, estado: EstadoPrestamo.ACTIVO },
     });
     if (prestamoActivo) {
-      throw new BadRequestException(
-        'El cliente ya tiene un préstamo activo. Use la opción de Renovación para re-enganchar.',
-      );
+      throw new BadRequestException(msg('prestamos_cliente_ya_tiene_activo'));
     }
 
     const prestamo = this.prestamoRepo.create({
@@ -109,7 +108,7 @@ export class PrestamosService {
         where: { id: prestamoId, tenant_id: tenantId, estado: EstadoPrestamo.PENDIENTE },
         lock: { mode: 'pessimistic_write' },
       });
-      if (!prestamo) throw new NotFoundException('Solicitud no encontrada o ya procesada');
+      if (!prestamo) throw new NotFoundException(msg('prestamos_solicitud_no_encontrada_o_procesada'));
 
       const hoy = fechaHoyEnZona(await this.zonaHorariaService.obtener(tenantId));
       const fechaInicio = new Date(dto.fecha_primer_pago);
@@ -202,9 +201,7 @@ export class PrestamosService {
         .getOne();
 
       if (!prestamoViejo) {
-        throw new NotFoundException(
-          'No se encontró préstamo activo para renovar. Use la opción de nuevo préstamo.',
-        );
+        throw new NotFoundException(msg('prestamos_no_encontrado_activo_para_renovar'));
       }
 
       // 2. Calcular saldo total pendiente (cuotas + mora)
@@ -232,10 +229,10 @@ export class PrestamosService {
         parseFloat(saldoCuotas.saldo) + parseFloat(saldoMora.saldo);
 
       if (dto.capital_aprobado <= saldoTotalDeuda) {
-        throw new BadRequestException(
-          `El capital aprobado (${dto.capital_aprobado}) debe ser mayor al saldo pendiente ` +
-          `(${saldoTotalDeuda.toFixed(2)}) para poder renovar.`,
-        );
+        throw new BadRequestException(msg('prestamos_capital_debe_ser_mayor_saldo', {
+          capital: dto.capital_aprobado,
+          saldo: saldoTotalDeuda.toFixed(2),
+        }));
       }
 
       const capitalNetoEntregado =
@@ -357,7 +354,7 @@ export class PrestamosService {
         where: { id: dto.prestamo_id, tenant_id: tenantId, estado: EstadoPrestamo.ACTIVO },
         lock: { mode: 'pessimistic_write' },
       });
-      if (!prestamo) throw new NotFoundException('Préstamo activo no encontrado');
+      if (!prestamo) throw new NotFoundException(msg('prestamos_activo_no_encontrado'));
 
       const cliente = await tx.findOne(Cliente, {
         where: { id: prestamo.cliente_id },
@@ -445,7 +442,7 @@ export class PrestamosService {
     const prestamo = await this.prestamoRepo.findOne({
       where: { id: prestamoId, tenant_id: tenantId },
     });
-    if (!prestamo) throw new NotFoundException('Préstamo no encontrado');
+    if (!prestamo) throw new NotFoundException(msg('prestamos_no_encontrado'));
 
     const cuotas = await this.cuotaRepo.find({
       where: { prestamo_id: prestamoId },
@@ -475,7 +472,7 @@ export class PrestamosService {
       GROUP BY p.id
     `, [prestamoId, tenantId]);
 
-    if (!result[0]) throw new NotFoundException('Préstamo no encontrado');
+    if (!result[0]) throw new NotFoundException(msg('prestamos_no_encontrado'));
 
     // Las columnas numeric/count de una query raw llegan como string desde
     // pg (no pasan por el transformer del entity) -- si el front las suma
@@ -541,7 +538,7 @@ export class PrestamosService {
       where,
       relations: ['cliente'],
     });
-    if (!prestamo) throw new NotFoundException('Préstamo no encontrado');
+    if (!prestamo) throw new NotFoundException(msg('prestamos_no_encontrado'));
 
     const cuotas = await this.cuotaRepo.find({
       where: { prestamo_id: prestamoId },
@@ -555,7 +552,7 @@ export class PrestamosService {
     const prestamo = await this.prestamoRepo.findOne({
       where: { id: prestamoId, tenant_id: tenantId, estado: EstadoPrestamo.PENDIENTE },
     });
-    if (!prestamo) throw new NotFoundException('Solicitud no encontrada o ya procesada');
+    if (!prestamo) throw new NotFoundException(msg('prestamos_solicitud_no_encontrada_o_procesada'));
 
     const hoyRechazo = fechaHoyEnZona(await this.zonaHorariaService.obtener(tenantId));
     prestamo.estado = EstadoPrestamo.RECHAZADO;

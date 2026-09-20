@@ -18,6 +18,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser, JwtPayload } from '../../common/decorators/current-user.decorator';
 import { Rol } from '../../common/constants/roles.enum';
+import { msg } from '../../common/i18n/messages';
 
 @ApiTags('Cobros')
 @ApiBearerAuth('JWT')
@@ -111,7 +112,7 @@ export class CobrosController {
     @Param('id', ParseUUIDPipe) id: string,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    if (!file) throw new BadRequestException('No se recibió ningún archivo');
+    if (!file) throw new BadRequestException(msg('upload_archivo_no_recibido'));
     return this.cobrosService.subirFotoEvidencia(user.tenantId, id, file.buffer, file.mimetype);
   }
 
@@ -128,7 +129,7 @@ export class CobrosController {
     @Res() res: ExpressResponse,
   ) {
     const url = await this.cobrosService.urlFotoEvidencia(user.tenantId, id);
-    if (!url) throw new NotFoundException('Este cobro no tiene foto de evidencia');
+    if (!url) throw new NotFoundException(msg('cobros_sin_foto_evidencia'));
     res.redirect(url);
   }
 }

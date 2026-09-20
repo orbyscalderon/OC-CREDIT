@@ -8,6 +8,7 @@ import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { requestContextMiddleware } from './common/context/request-context';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -19,6 +20,8 @@ async function bootstrap() {
   app.use(cookieParser());
 
   app.use(helmet({ contentSecurityPolicy: true }));
+
+  app.use(requestContextMiddleware);
 
   // '*' nunca debe combinarse con credentials:true (los navegadores lo
   // rechazan, y si algo lo "arregla" reflejando el origin literal sería un

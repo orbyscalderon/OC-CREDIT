@@ -5,6 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { SuperAdmin } from './entities/super-admin.entity';
+import { msg } from '../../common/i18n/messages';
 
 export interface SuperAdminJwtPayload {
   sub: string;
@@ -27,12 +28,12 @@ export class SuperAdminAuthService {
     // incorrecta — evita enumerar cuentas de super-admin (mismo criterio
     // aplicado en auth.service.ts para el login de tenants).
     if (!admin || !admin.activo) {
-      throw new UnauthorizedException('Credenciales inválidas');
+      throw new UnauthorizedException(msg('auth_credenciales_invalidas'));
     }
 
     const passwordOk = await bcrypt.compare(password, admin.password_hash);
     if (!passwordOk) {
-      throw new UnauthorizedException('Credenciales inválidas');
+      throw new UnauthorizedException(msg('auth_credenciales_invalidas'));
     }
 
     await this.repo.update(admin.id, { ultimo_acceso: new Date() });

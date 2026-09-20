@@ -13,6 +13,7 @@ import { Usuario } from '../usuarios/entities/usuario.entity';
 import { Empleado } from '../usuarios/entities/empleado.entity';
 import { TenantSettings } from '../tenants/entities/tenant-settings.entity';
 import { Tenant } from '../tenants/entities/tenant.entity';
+import { msg } from '../../common/i18n/messages';
 
 @Injectable()
 export class AuthService {
@@ -33,12 +34,12 @@ export class AuthService {
     // Mismo error y mismo status (401) si el email no existe o si la
     // contraseña es incorrecta — un status distinto (404 vs 401) permitiría
     // enumerar qué emails están registrados probando uno por uno.
-    if (!usuario) throw new UnauthorizedException('Credenciales inválidas');
-    if (!usuario.activo) throw new UnauthorizedException('Credenciales inválidas');
+    if (!usuario) throw new UnauthorizedException(msg('auth_credenciales_invalidas'));
+    if (!usuario.activo) throw new UnauthorizedException(msg('auth_credenciales_invalidas'));
 
     if (usuario.bloqueado_hasta && usuario.bloqueado_hasta > new Date()) {
       throw new UnauthorizedException(
-        `Cuenta bloqueada hasta ${usuario.bloqueado_hasta.toISOString()}`,
+        msg('auth_cuenta_bloqueada_hasta', { fecha: usuario.bloqueado_hasta.toISOString() }),
       );
     }
 
@@ -51,7 +52,7 @@ export class AuthService {
         actualizacion.bloqueado_hasta = new Date(Date.now() + 15 * 60 * 1000); // 15 min
       }
       await this.usuarioRepo.update(usuario.id, actualizacion);
-      throw new UnauthorizedException('Credenciales inválidas');
+      throw new UnauthorizedException(msg('auth_credenciales_invalidas'));
     }
 
     // Reset intentos fallidos y registrar acceso
@@ -64,10 +65,10 @@ export class AuthService {
     const empleado = await this.empleadoRepo.findOne({
       where: { usuario_id: usuario.id },
     });
-    if (!empleado) throw new NotFoundException('Perfil de empleado no encontrado');
+    if (!empleado) throw new NotFoundException(msg('auth_perfil_empleado_no_encontrado'));
 
     const tenant = await this.tenantRepo.findOne({ where: { id: usuario.tenant_id } });
-    if (!tenant || !tenant.activo) throw new UnauthorizedException('Empresa inactiva');
+    if (!tenant || !tenant.activo) throw new UnauthorizedException(msg('auth_empresa_inactiva'));
 
     const settings = await this.settingsRepo.findOne({
       where: { tenant_id: usuario.tenant_id },
@@ -113,7 +114,7 @@ export class AuthService {
 
   async loginWithGoogle(idToken: string): Promise<LoginResponseDto> {
     const clientId = this.config.get<string>('GOOGLE_CLIENT_ID');
-    if (!clientId) throw new UnauthorizedException('Google login no está configurado en este servidor');
+    if (!clientId) throw new UnauthorizedException(msg('auth_google_no_configurado'));
 
     const client = new OAuth2Client(clientId);
     let email: string;
@@ -123,19 +124,17 @@ export class AuthService {
       email = (payload?.email ?? '').toLowerCase().trim();
       if (!email) throw new Error('no email');
     } catch {
-      throw new UnauthorizedException('Token de Google inválido o expirado');
+      throw new UnauthorizedException(msg('auth_google_token_invalido'));
     }
 
     const usuario = await this.usuarioRepo.findOne({ where: { email } });
     if (!usuario) {
-      throw new UnauthorizedException(
-        'No existe una cuenta activa con ese email de Google. Regístrate primero seleccionando un plan.',
-      );
+      throw new UnauthorizedException(msg('auth_google_cuenta_no_existe'));
     }
-    if (!usuario.activo) throw new UnauthorizedException('Cuenta inactiva');
+    if (!usuario.activo) throw new UnauthorizedException(msg('auth_cuenta_inactiva'));
 
     if (usuario.bloqueado_hasta && usuario.bloqueado_hasta > new Date()) {
-      throw new UnauthorizedException(`Cuenta bloqueada hasta ${usuario.bloqueado_hasta.toISOString()}`);
+      throw new UnauthorizedException(msg('auth_cuenta_bloqueada_hasta', { fecha: usuario.bloqueado_hasta.toISOString() }));
     }
 
     await this.usuarioRepo.update(usuario.id, {
@@ -145,10 +144,10 @@ export class AuthService {
     });
 
     const empleado = await this.empleadoRepo.findOne({ where: { usuario_id: usuario.id } });
-    if (!empleado) throw new NotFoundException('Perfil de empleado no encontrado');
+    if (!empleado) throw new NotFoundException(msg('auth_perfil_empleado_no_encontrado'));
 
     const tenant = await this.tenantRepo.findOne({ where: { id: usuario.tenant_id } });
-    if (!tenant || !tenant.activo) throw new UnauthorizedException('Empresa inactiva');
+    if (!tenant || !tenant.activo) throw new UnauthorizedException(msg('auth_empresa_inactiva'));
 
     const settings = await this.settingsRepo.findOne({ where: { tenant_id: usuario.tenant_id } });
 
@@ -192,11 +191,11 @@ export class AuthService {
 
   async getMe(usuarioId: string) {
     const usuario = await this.usuarioRepo.findOne({ where: { id: usuarioId } });
-    if (!usuario || !usuario.activo) throw new UnauthorizedException('Sesión inválida');
+    if (!usuario || !usuario.activo) throw new UnauthorizedException(msg('auth_sesion_invalida'));
 
     const empleado = await this.empleadoRepo.findOne({ where: { usuario_id: usuarioId } });
     const tenant = await this.tenantRepo.findOne({ where: { id: usuario.tenant_id } });
-    if (!tenant || !tenant.activo) throw new UnauthorizedException('Empresa inactiva');
+    if (!tenant || !tenant.activo) throw new UnauthorizedException(msg('auth_empresa_inactiva'));
 
     const settings = await this.settingsRepo.findOne({ where: { tenant_id: usuario.tenant_id } });
 
@@ -227,12 +226,12 @@ export class AuthService {
 
   async cambiarPassword(usuarioId: string, passwordActual: string, nuevaPassword: string) {
     const usuario = await this.usuarioRepo.findOne({ where: { id: usuarioId } });
-    if (!usuario) throw new NotFoundException('Usuario no encontrado');
+    if (!usuario) throw new NotFoundException(msg('auth_usuario_no_encontrado'));
 
     const ok = await bcrypt.compare(passwordActual, usuario.password_hash);
-    if (!ok) throw new BadRequestException('La contraseña actual es incorrecta');
+    if (!ok) throw new BadRequestException(msg('auth_password_actual_incorrecta'));
 
-    if (nuevaPassword.length < 8) throw new BadRequestException('La nueva contraseña debe tener al menos 8 caracteres');
+    if (nuevaPassword.length < 8) throw new BadRequestException(msg('auth_password_nueva_muy_corta'));
 
     usuario.password_hash = await bcrypt.hash(nuevaPassword, 12);
     await this.usuarioRepo.save(usuario);

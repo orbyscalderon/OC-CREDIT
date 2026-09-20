@@ -10,6 +10,7 @@ import { CrearClienteDto, ActualizarClienteDto } from './dto/cliente.dto';
 import { ordenarPorCercania } from '../../common/utils/geo.util';
 import { StorageService } from '../../common/services/storage.service';
 import { normalizarDocumento } from '../../common/utils/normalizar-documento.util';
+import { msg } from '../../common/i18n/messages';
 
 export interface PaginatedClientes {
   data: Cliente[];
@@ -47,7 +48,7 @@ export class ClientesService {
       const existe = await this.repo.findOne({
         where: { tenant_id: tenantId, cedula },
       });
-      if (existe) throw new BadRequestException('Ya existe un cliente con esa cédula en esta agencia');
+      if (existe) throw new BadRequestException(msg('clientes_cedula_duplicada'));
     }
 
     return this.repo.save(
@@ -99,7 +100,7 @@ export class ClientesService {
 
   async obtener(tenantId: string, id: string): Promise<Cliente> {
     const c = await this.repo.findOne({ where: { id, tenant_id: tenantId } });
-    if (!c) throw new NotFoundException('Cliente no encontrado');
+    if (!c) throw new NotFoundException(msg('clientes_no_encontrado'));
     return c;
   }
 
@@ -135,7 +136,7 @@ export class ClientesService {
   async urlFotoCedula(tenantId: string, clienteId: string, lado: 'frontal' | 'trasera'): Promise<string> {
     const cliente = await this.obtener(tenantId, clienteId);
     const objectPath = lado === 'frontal' ? cliente.foto_cedula_frontal_url : cliente.foto_cedula_trasera_url;
-    if (!objectPath) throw new NotFoundException('Imagen no disponible');
+    if (!objectPath) throw new NotFoundException(msg('clientes_imagen_no_disponible'));
     return this.storageService.urlFirmada(objectPath);
   }
 
@@ -158,7 +159,7 @@ export class ClientesService {
     const idsValidos = new Set(clientesRuta.map((c) => c.id));
     const idsInvalidos = orden.filter((id) => !idsValidos.has(id));
     if (idsInvalidos.length > 0) {
-      throw new BadRequestException('Uno o más clientes no pertenecen a esta ruta');
+      throw new BadRequestException(msg('clientes_no_pertenecen_a_ruta'));
     }
 
     await this.dataSource.transaction(async (manager) => {
