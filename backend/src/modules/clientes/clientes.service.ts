@@ -2,7 +2,7 @@ import {
   BadRequestException, Injectable, NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, ILike, In, Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Cliente } from './entities/cliente.entity';
 import { Ruta } from '../rutas/entities/ruta.entity';
 import { BuroCreditoService } from '../buro-credito/buro-credito.service';
@@ -61,18 +61,21 @@ export class ClientesService {
   ) {
     if (rutaIds && rutaIds.length === 0) return []; // cobrador sin rutas asignadas
 
-    const rutaFiltro = rutaIds ? { ruta_id: In(rutaIds) } : {};
+    const qb = this.repo.createQueryBuilder('c')
+      .where('c.tenant_id = :tenantId', { tenantId })
+      // ver comentario equivalente en listar(): nombre/apellido/cedula por
+      // separado no matchea "Nombre Apellido" completo, se agrega concatenado.
+      .andWhere(
+        `(c.nombre ILIKE :b OR c.apellido ILIKE :b OR c.cedula ILIKE :b OR (c.nombre || ' ' || c.apellido) ILIKE :b)`,
+        { b: `%${busqueda}%` },
+      )
+      .take(20);
 
-    const clientes = await this.repo.find({
-      where: [
-        { tenant_id: tenantId, nombre: ILike(`%${busqueda}%`), ...rutaFiltro },
-        { tenant_id: tenantId, apellido: ILike(`%${busqueda}%`), ...rutaFiltro },
-        { tenant_id: tenantId, cedula: ILike(`%${busqueda}%`), ...rutaFiltro },
-      ],
-      take: 20,
-    });
+    if (rutaIds) {
+      qb.andWhere('c.ruta_id IN (:...rutaIds)', { rutaIds });
+    }
 
-    return clientes;
+    return qb.getMany();
   }
 
   /** Consulta buró antes de registrar un cliente nuevo */
@@ -173,20 +176,28 @@ export class ClientesService {
 
   async listar(tenantId: string, page = 1, limit = 30, q?: string): Promise<PaginatedClientes> {
     const skip = (page - 1) * limit;
-    const where = q && q.trim()
-      ? [
-          { tenant_id: tenantId, nombre: ILike(`%${q}%`) },
-          { tenant_id: tenantId, apellido: ILike(`%${q}%`) },
-          { tenant_id: tenantId, cedula: ILike(`%${q}%`) },
-        ]
-      : [{ tenant_id: tenantId }];
 
-    const [data, total] = await this.repo.findAndCount({
-      where,
-      skip,
-      take: limit,
-      order: { apellido: 'ASC', nombre: 'ASC' },
-    });
+    const qb = this.repo.createQueryBuilder('c')
+      .where('c.tenant_id = :tenantId', { tenantId });
+
+    if (q && q.trim()) {
+      // nombre/apellido/cedula por separado NO alcanza para "Nombre Apellido"
+      // completo (ninguna columna sola contiene la frase) -- se agrega el
+      // nombre completo concatenado para que buscar "Juan Pérez" encuentre
+      // al cliente aunque nombre='Juan' y apellido='Pérez' esten separados.
+      qb.andWhere(
+        `(c.nombre ILIKE :q OR c.apellido ILIKE :q OR c.cedula ILIKE :q OR (c.nombre || ' ' || c.apellido) ILIKE :q)`,
+        { q: `%${q.trim()}%` },
+      );
+    }
+
+    const [data, total] = await qb
+      .orderBy('c.apellido', 'ASC')
+      .addOrderBy('c.nombre', 'ASC')
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
+
     return { data, total, page, limit };
   }
 }

@@ -152,8 +152,9 @@ export class CajasService {
 
   async registrarGasto(
     tenantId: string,
-    cobradorId: string,
+    userEmpleadoId: string,
     dto: RegistrarGastoDto,
+    esAdminUSupervisor = false,
   ): Promise<Transaccion> {
     return this.em.transaction(async (tx) => {
       // Idempotencia
@@ -163,22 +164,30 @@ export class CajasService {
       });
       if (existente) return tx.findOne(Transaccion, { where: { id: existente.id } });
 
-      const caja = await tx
+      // Mismo patron que registrarCobro: admin/supervisor pueden registrar
+      // un gasto en la caja de CUALQUIER cobrador del tenant; un cobrador
+      // solo en la suya.
+      const cajaQuery = tx
         .createQueryBuilder(Caja, 'c')
         .where('c.id = :id', { id: dto.caja_id })
         .andWhere('c.tenant_id = :tid', { tid: tenantId })
-        .andWhere('c.cobrador_id = :cid', { cid: cobradorId })
-        .andWhere('c.estado = :estado', { estado: EstadoCaja.ABIERTA })
-        .setLock('pessimistic_write')
-        .getOne();
+        .andWhere('c.estado = :estado', { estado: EstadoCaja.ABIERTA });
+      if (!esAdminUSupervisor) {
+        cajaQuery.andWhere('c.cobrador_id = :cid', { cid: userEmpleadoId });
+      }
+      const caja = await cajaQuery.setLock('pessimistic_write').getOne();
 
       if (!caja) throw new NotFoundException('Caja activa no encontrada');
+
+      // El gasto se atribuye al DUEÑO de la caja, no a quien hace clic --
+      // mismo motivo que en registrarCobro.
+      const cobradorDeLaCaja = caja.cobrador_id;
 
       const gasto = tx.create(Transaccion, {
         uuid_idempotencia: dto.uuid_idempotencia,
         tenant_id: tenantId,
         caja_id: dto.caja_id,
-        cobrador_id: cobradorId,
+        cobrador_id: cobradorDeLaCaja,
         tipo: TipoTransaccion.GASTO,
         monto: dto.monto,
         descripcion: dto.descripcion,
@@ -278,5 +287,40 @@ export class CajasService {
       relations: ['cobrador', 'ruta'],
       order: { hora_apertura: 'ASC' },
     });
+  }
+
+  /**
+   * Movimientos (cobros + gastos) de una caja, orden cronológico. Mismo
+   * patrón de propiedad que registrarCobro/registrarGasto: un cobrador solo
+   * ve su propia caja, admin/supervisor pueden ver la de cualquiera.
+   */
+  async listarMovimientos(
+    tenantId: string,
+    cajaId: string,
+    userEmpleadoId: string,
+    esAdminUSupervisor: boolean,
+  ): Promise<any[]> {
+    const cajaQuery = this.em
+      .createQueryBuilder(Caja, 'c')
+      .where('c.id = :id', { id: cajaId })
+      .andWhere('c.tenant_id = :tid', { tid: tenantId });
+    if (!esAdminUSupervisor) {
+      cajaQuery.andWhere('c.cobrador_id = :cid', { cid: userEmpleadoId });
+    }
+    const caja = await cajaQuery.getOne();
+    if (!caja) throw new NotFoundException('Caja no encontrada');
+
+    const rows = await this.em.query<any[]>(`
+      SELECT
+        t.id, t.tipo, t.monto, t.descripcion, t.distribucion_pago,
+        t.foto_comprobante_url, t.timestamp_dispositivo, t.created_at,
+        cl.nombre AS cliente_nombre, cl.apellido AS cliente_apellido
+      FROM transacciones t
+      LEFT JOIN clientes cl ON cl.id = t.cliente_id
+      WHERE t.caja_id = $1 AND t.tenant_id = $2
+      ORDER BY t.timestamp_dispositivo ASC
+    `, [cajaId, tenantId]);
+
+    return rows;
   }
 }

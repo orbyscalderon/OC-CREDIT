@@ -39,14 +39,16 @@ export class CajasController {
   }
 
   @Post('gastos')
-  @Roles(Rol.COBRADOR_TENANT, Rol.ADMIN_TENANT)
+  @Roles(Rol.COBRADOR_TENANT, Rol.SUPERVISOR_TENANT, Rol.ADMIN_TENANT)
   @ApiOperation({
     summary: 'Registrar gasto de ruta (gasolina, reparación, etc.)',
     description:
-      'Soporta modo offline. El monto afecta directamente el arqueo final de la caja.',
+      'Soporta modo offline. El monto afecta directamente el arqueo final de la caja. ' +
+      'Admin/supervisor pueden registrar en la caja de cualquier cobrador del tenant.',
   })
   registrarGasto(@CurrentUser() user: JwtPayload, @Body() dto: RegistrarGastoDto) {
-    return this.service.registrarGasto(user.tenantId, user.empleadoId, dto);
+    const esAdminUSupervisor = user.rol === Rol.ADMIN_TENANT || user.rol === Rol.SUPERVISOR_TENANT;
+    return this.service.registrarGasto(user.tenantId, user.empleadoId, dto, esAdminUSupervisor);
   }
 
   @Get('activa')
@@ -78,5 +80,16 @@ export class CajasController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.service.obtenerArqueo(user.tenantId, id, user);
+  }
+
+  @Get(':id/movimientos')
+  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT)
+  @ApiOperation({ summary: 'Movimientos (cobros + gastos) de una caja, orden cronológico' })
+  movimientos(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    const esAdminUSupervisor = user.rol === Rol.ADMIN_TENANT || user.rol === Rol.SUPERVISOR_TENANT;
+    return this.service.listarMovimientos(user.tenantId, id, user.empleadoId, esAdminUSupervisor);
   }
 }

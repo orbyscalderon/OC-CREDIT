@@ -2,7 +2,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Lock } from 'lucide-react';
+import { ArrowLeft, Lock, Receipt, PiggyBank, MinusCircle } from 'lucide-react';
 import { cajasApi } from '@/api/cajas.api';
 import { Badge } from '@/components/common/Badge';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,11 +15,35 @@ export function CajaArqueoPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [montoCierre, setMontoCierre] = useState('');
+  const [montoGasto, setMontoGasto] = useState('');
+  const [descGasto, setDescGasto] = useState('');
 
   const { data: caja, isLoading } = useQuery({
     queryKey: ['arqueo', id],
     queryFn: () => cajasApi.obtenerArqueo(id!),
     enabled: !!id,
+  });
+
+  const { data: movimientos = [] } = useQuery({
+    queryKey: ['movimientos', id],
+    queryFn: () => cajasApi.movimientos(id!),
+    enabled: !!id,
+  });
+
+  const gastoMut = useMutation({
+    mutationFn: () =>
+      cajasApi.registrarGasto({
+        uuid_idempotencia: crypto.randomUUID(),
+        caja_id: id!,
+        monto: parseFloat(montoGasto) || 0,
+        descripcion: descGasto,
+      }),
+    onSuccess: () => {
+      setMontoGasto('');
+      setDescGasto('');
+      qc.invalidateQueries({ queryKey: ['arqueo', id] });
+      qc.invalidateQueries({ queryKey: ['movimientos', id] });
+    },
   });
 
   const cerrarMut = useMutation({
@@ -98,6 +122,46 @@ export function CajaArqueoPage() {
           </div>
         )}
 
+        {/* Registrar gasto */}
+        {caja.estado === 'Abierta' && (
+          <div className="border-t border-gray-100 pt-4 space-y-3">
+            <p className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <MinusCircle size={14} />
+              {t('cajas.registrar_gasto')}
+            </p>
+            <div className="flex gap-3">
+              <input
+                type="number"
+                step="0.01"
+                min="0.01"
+                value={montoGasto}
+                onChange={(e) => setMontoGasto(e.target.value)}
+                placeholder={t('cajas.monto_gasto_placeholder', { simbolo: user?.tenant_simbolo_moneda ?? 'RD$' })}
+                className="w-40 rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+              <input
+                value={descGasto}
+                onChange={(e) => setDescGasto(e.target.value)}
+                placeholder={t('cajas.descripcion_gasto_placeholder')}
+                maxLength={200}
+                className="flex-1 rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+              <button
+                onClick={() => gastoMut.mutate()}
+                disabled={!montoGasto || parseFloat(montoGasto) <= 0 || !descGasto.trim() || gastoMut.isPending}
+                className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60 flex-shrink-0"
+              >
+                {gastoMut.isPending ? t('cajas.registrando') : t('cajas.registrar')}
+              </button>
+            </div>
+            {gastoMut.isError && (
+              <p className="text-xs text-red-500">
+                {(gastoMut.error as any)?.response?.data?.message ?? t('cajas.error_registrar_gasto')}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Formulario de cierre */}
         {caja.estado === 'Abierta' && (
           <div className="border-t border-gray-100 pt-4 space-y-3">
@@ -130,6 +194,44 @@ export function CajaArqueoPage() {
                 {t('cajas.cuadre_revisado_admin')}
               </p>
             )}
+          </div>
+        )}
+      </div>
+
+      {/* Movimientos: cobros + gastos, orden cronológico */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-3">
+        <p className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+          <Receipt size={14} />
+          {t('cajas.movimientos_titulo')}
+        </p>
+        {movimientos.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-6">{t('cajas.sin_movimientos')}</p>
+        ) : (
+          <div className="divide-y divide-gray-50">
+            {movimientos.map((m) => (
+              <div key={m.id} className="flex items-center justify-between py-3">
+                <div className="flex items-center gap-3">
+                  {m.tipo === 'Cobro' ? (
+                    <PiggyBank size={16} className="text-emerald-500 flex-shrink-0" />
+                  ) : (
+                    <MinusCircle size={16} className="text-red-500 flex-shrink-0" />
+                  )}
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">
+                      {m.tipo === 'Cobro'
+                        ? (m.cliente_nombre ? `${m.cliente_nombre} ${m.cliente_apellido}` : t('cajas.cobro_generico'))
+                        : (m.descripcion || t('cajas.gasto_generico'))}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {new Date(m.timestamp_dispositivo ?? m.created_at).toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+                <span className={`text-sm font-semibold mono-nums ${m.tipo === 'Cobro' ? 'text-emerald-600' : 'text-red-500'}`}>
+                  {m.tipo === 'Cobro' ? '+' : '-'}{fmt(m.monto)}
+                </span>
+              </div>
+            ))}
           </div>
         )}
       </div>

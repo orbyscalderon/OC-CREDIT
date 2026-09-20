@@ -1,5 +1,5 @@
 import { api } from './axios';
-import type { Caja, ArqueoCaja } from '@/types';
+import type { Caja, ArqueoCaja, MovimientoCaja } from '@/types';
 
 export const cajasApi = {
   abrir: (dto: { ruta_id: string; monto_apertura: number; latitud?: number; longitud?: number }) =>
@@ -24,4 +24,7 @@ export const cajasApi = {
 
   registrarGasto: (dto: { uuid_idempotencia: string; caja_id: string; monto: number; descripcion: string }) =>
     api.post('/cajas/gastos', dto).then((r) => r.data),
+
+  movimientos: (id: string) =>
+    api.get<MovimientoCaja[]>(`/cajas/${id}/movimientos`).then((r) => r.data),
 };

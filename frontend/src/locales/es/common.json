@@ -546,7 +546,17 @@
     "monto_fisico_hint": "Introduce el monto en físico que tienes en caja ahora mismo.",
     "monto_declarado_placeholder": "Monto declarado",
     "cerrar": "Cerrar",
-    "cuadre_revisado_admin": "El resultado del cuadre es revisado por el administrador."
+    "cuadre_revisado_admin": "El resultado del cuadre es revisado por el administrador.",
+    "registrar_gasto": "Registrar gasto",
+    "monto_gasto_placeholder": "Monto ({{simbolo}})",
+    "descripcion_gasto_placeholder": "Descripción (gasolina, reparación, etc.)",
+    "registrando": "Registrando…",
+    "registrar": "Registrar",
+    "error_registrar_gasto": "No se pudo registrar el gasto.",
+    "movimientos_titulo": "Movimientos",
+    "sin_movimientos": "Sin movimientos todavía",
+    "cobro_generico": "Cobro",
+    "gasto_generico": "Gasto"
   },
   "buro": {
     "titulo": "Buró de Crédito",

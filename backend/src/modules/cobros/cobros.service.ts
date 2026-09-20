@@ -441,16 +441,19 @@ export class CobrosService {
     tenantId: string,
     cajaId: string,
     cobradorId: string,
+    esAdminUSupervisor = false,
   ) {
-    return this.em
+    const qb = this.em
       .createQueryBuilder(Transaccion, 't')
       .leftJoinAndSelect('t.cobrador', 'cobrador')
       .where('t.caja_id = :cajaId', { cajaId })
       .andWhere('t.tenant_id = :tenantId', { tenantId })
-      .andWhere('t.cobrador_id = :cobradorId', { cobradorId })
       .andWhere('t.tipo = :tipo', { tipo: TipoTransaccion.COBRO })
-      .orderBy('t.timestamp_dispositivo', 'ASC')
-      .getMany();
+      .orderBy('t.timestamp_dispositivo', 'ASC');
+    if (!esAdminUSupervisor) {
+      qb.andWhere('t.cobrador_id = :cobradorId', { cobradorId });
+    }
+    return qb.getMany();
   }
 
   /**

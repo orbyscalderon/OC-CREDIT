@@ -153,6 +153,19 @@ export interface ArqueoCaja {
   estado_cuadre?: 'Cuadrado' | 'Sobrante' | 'Faltante';
 }
 
+export interface MovimientoCaja {
+  id: string;
+  tipo: 'Cobro' | 'Gasto';
+  monto: number;
+  descripcion: string | null;
+  distribucion_pago: { mora: number; interes: number; capital: number; excedente: number } | null;
+  foto_comprobante_url: string | null;
+  timestamp_dispositivo: string | null;
+  created_at: string;
+  cliente_nombre: string | null;
+  cliente_apellido: string | null;
+}
+
 // ─── Empleado ─────────────────────────────────────────────────────────────────
 
 export interface Empleado {

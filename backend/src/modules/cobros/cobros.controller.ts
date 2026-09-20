@@ -65,7 +65,9 @@ export class CobrosController {
 
   /**
    * GET /api/v1/cobros/caja/:cajaId
-   * Lista los cobros realizados en una caja específica del cobrador autenticado.
+   * Lista los cobros realizados en una caja específica. Un cobrador solo ve
+   * su propia caja; admin/supervisor pueden ver la caja de cualquier
+   * cobrador del tenant.
    */
   @Get('caja/:cajaId')
   @Roles(Rol.COBRADOR_TENANT, Rol.SUPERVISOR_TENANT, Rol.ADMIN_TENANT)
@@ -75,10 +77,12 @@ export class CobrosController {
     @CurrentUser() user: JwtPayload,
     @Param('cajaId', ParseUUIDPipe) cajaId: string,
   ) {
+    const esAdminUSupervisor = user.rol === Rol.ADMIN_TENANT || user.rol === Rol.SUPERVISOR_TENANT;
     return this.cobrosService.getCobrosDeCaja(
       user.tenantId,
       cajaId,
       user.empleadoId,
+      esAdminUSupervisor,
     );
   }
 

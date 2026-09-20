@@ -146,7 +146,12 @@ export function CobroNuevoPage() {
             placeholder={t('cobros.buscar_placeholder')}
             className="input-field"
           />
-          {clienteSearch.length >= 2 && (
+          {/* Se oculta una vez que ya hay un cliente seleccionado -- si no,
+              al elegir un resultado el input se llena con "Nombre Apellido",
+              eso vuelve a disparar la busqueda, y como ninguna columna sola
+              contiene la frase completa, el dropdown reaparecia con
+              "Sin resultados" justo debajo del cliente que ya se eligio. */}
+          {clienteSearch.length >= 2 && !clienteIdSel && (
             <div className="mt-1 border border-gray-200 rounded-lg overflow-hidden shadow-sm">
               {buscando ? (
                 <div className="px-3 py-2 text-sm text-gray-400">{t('cobros.buscando')}</div>
