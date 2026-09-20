@@ -12,6 +12,7 @@ import {
   CheckCircle2, AlertCircle, KeyRound, Upload, X, MessageCircle, Link2, Copy, Check,
 } from 'lucide-react';
 import { ZONAS_HORARIAS, FORMATOS_FECHA } from '@/utils/zonasHorarias';
+import { MONEDAS, buscarMoneda } from '@/utils/currencies';
 
 type FormData = {
   color_primario: string;
@@ -137,6 +138,15 @@ export function ConfigPage() {
     : null;
 
   const whatsappActivo = watch('whatsapp_activo');
+  const monedaWatch = watch('moneda');
+
+  // Si la moneda guardada no está en la lista curada, se arranca en modo
+  // manual -- así no se pisa silenciosamente una moneda ya configurada que
+  // no está entre las más comunes.
+  const [monedaManual, setMonedaManual] = useState(false);
+  useEffect(() => {
+    if (settings) setMonedaManual(!buscarMoneda(settings.moneda ?? 'DOP'));
+  }, [settings]);
 
   return (
     <div className="p-6 space-y-6 max-w-2xl animate-fade-in">
@@ -229,17 +239,54 @@ export function ConfigPage() {
         </div>
 
         {/* Moneda */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">{t('config.codigo_moneda')}</label>
-            <input {...register('moneda')} placeholder="DOP" className="input-field" maxLength={3} />
-            {errors.moneda && <p className="mt-1 text-xs text-red-500">{errors.moneda.message}</p>}
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">{t('config.simbolo')}</label>
-            <input {...register('simbolo_moneda')} placeholder="RD$" className="input-field" maxLength={5} />
-            {errors.simbolo_moneda && <p className="mt-1 text-xs text-red-500">{errors.simbolo_moneda.message}</p>}
-          </div>
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">{t('config.moneda')}</label>
+          {!monedaManual ? (
+            <select
+              value={buscarMoneda(monedaWatch) ? monedaWatch : ''}
+              onChange={(e) => {
+                if (!e.target.value) {
+                  setMonedaManual(true);
+                  setValue('moneda', '');
+                  setValue('simbolo_moneda', '');
+                  return;
+                }
+                const m = buscarMoneda(e.target.value)!;
+                setValue('moneda', m.codigo, { shouldValidate: true });
+                setValue('simbolo_moneda', m.simbolo, { shouldValidate: true });
+              }}
+              className="input-field"
+            >
+              {MONEDAS.map((m) => (
+                <option key={m.codigo} value={m.codigo}>
+                  {m.codigo} — {m.nombre} ({m.simbolo})
+                </option>
+              ))}
+              <option value="">{t('config.moneda_otra')}</option>
+            </select>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <input {...register('moneda')} placeholder={t('config.codigo_moneda')} className="input-field" maxLength={3} />
+                {errors.moneda && <p className="mt-1 text-xs text-red-500">{errors.moneda.message}</p>}
+              </div>
+              <div>
+                <input {...register('simbolo_moneda')} placeholder={t('config.simbolo')} className="input-field" maxLength={5} />
+                {errors.simbolo_moneda && <p className="mt-1 text-xs text-red-500">{errors.simbolo_moneda.message}</p>}
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setMonedaManual(false);
+                  setValue('moneda', 'DOP');
+                  setValue('simbolo_moneda', 'RD$');
+                }}
+                className="col-span-2 text-left text-xs text-brand-600 underline"
+              >
+                {t('config.moneda_volver_lista')}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Zona horaria y formato de fecha */}
