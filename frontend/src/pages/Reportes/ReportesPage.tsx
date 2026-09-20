@@ -14,6 +14,14 @@ import {
 
 const AGING_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#f97316', '#ef4444'];
 
+const RANGO_LABELS: Record<string, string> = {
+  Al_Dia: 'Al día',
+  '1_a_30_dias': '1-30 días',
+  '31_a_60_dias': '31-60 días',
+  '61_a_90_dias': '61-90 días',
+  Mas_de_90_dias: '+90 días',
+};
+
 /* S2-12: función de variante para estado de cuadre */
 function cuadreVariant(estado: string) {
   const map: Record<string, 'green' | 'blue' | 'red' | 'gray'> = {
@@ -36,6 +44,18 @@ export function ReportesPage() {
   const simbolo = user?.tenant_simbolo_moneda ?? 'RD$';
   const fmt = (n: number) => formatCurrency(n, user);
 
+  // El backend devuelve { rango, prestamos, saldo_pendiente } -- se agrega
+  // acá la etiqueta legible y el porcentaje (sobre el total de préstamos),
+  // que no vienen del backend y antes se leían de campos que no existían
+  // en la respuesta (banda/cantidad_prestamos/monto_capital/porcentaje),
+  // dejando el gráfico y el pie siempre vacíos.
+  const totalPrestamosAging = (aging ?? []).reduce((s, r) => s + Number(r.prestamos), 0);
+  const agingConDatos = (aging ?? []).map((r) => ({
+    ...r,
+    etiqueta: RANGO_LABELS[r.rango] ?? r.rango,
+    porcentaje: totalPrestamosAging > 0 ? Math.round((Number(r.prestamos) / totalPrestamosAging) * 1000) / 10 : 0,
+  }));
+
   return (
     /* S1-6: animate-fade-in */
     <div className="p-6 space-y-8 animate-fade-in">
@@ -48,13 +68,13 @@ export function ReportesPage() {
       <section>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-semibold text-gray-800">{t('reportes.aging_titulo')}</h2>
-          {aging && aging.length > 0 && (
+          {agingConDatos.length > 0 && (
             <button
               onClick={() => exportarCSV(
-                aging.map((r: any) => ({
-                  [t('reportes.csv_banda')]: r.banda,
-                  [t('reportes.csv_cantidad_prestamos')]: r.cantidad_prestamos,
-                  [t('reportes.csv_capital', { simbolo })]: r.monto_capital,
+                agingConDatos.map((r) => ({
+                  [t('reportes.csv_banda')]: r.etiqueta,
+                  [t('reportes.csv_cantidad_prestamos')]: r.prestamos,
+                  [t('reportes.csv_capital', { simbolo })]: r.saldo_pendiente,
                   [t('reportes.csv_porcentaje')]: r.porcentaje + '%',
                 })),
                 `aging-cartera-${new Date().toISOString().slice(0, 10)}`
@@ -66,18 +86,24 @@ export function ReportesPage() {
             </button>
           )}
         </div>
-        {!loadingAging && aging && (
+        {loadingAging ? (
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {[0, 1].map((i) => <div key={i} className="card p-5 h-64 skeleton" />)}
+          </div>
+        ) : agingConDatos.length === 0 ? (
+          <div className="card p-6 text-center text-sm text-gray-400">{t('reportes.sin_cartera_pendiente')}</div>
+        ) : (
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div className="card p-5">
               <p className="text-xs font-medium text-gray-500 mb-3">{t('reportes.capital_por_banda')}</p>
               <ResponsiveContainer width="100%" height={240}>
-                <BarChart data={aging} barSize={36}>
+                <BarChart data={agingConDatos} barSize={36}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                  <XAxis dataKey="banda" tick={{ fontSize: 11 }} />
+                  <XAxis dataKey="etiqueta" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip formatter={(v: number) => fmt(v)} />
-                  <Bar dataKey="monto_capital" name={t('reportes.capital')} radius={[4,4,0,0]}>
-                    {aging.map((_: any, idx: number) => (
+                  <Bar dataKey="saldo_pendiente" name={t('reportes.capital')} radius={[4,4,0,0]}>
+                    {agingConDatos.map((_, idx) => (
                       <Cell key={idx} fill={AGING_COLORS[idx % AGING_COLORS.length]} />
                     ))}
                   </Bar>
@@ -90,16 +116,16 @@ export function ReportesPage() {
               <ResponsiveContainer width="100%" height={240}>
                 <PieChart>
                   <Pie
-                    data={aging}
-                    dataKey="cantidad_prestamos"
-                    nameKey="banda"
+                    data={agingConDatos}
+                    dataKey="prestamos"
+                    nameKey="etiqueta"
                     cx="50%"
                     cy="50%"
                     outerRadius={90}
-                    label={({ banda, porcentaje }: any) => `${banda}: ${porcentaje}%`}
+                    label={({ etiqueta, porcentaje }: { etiqueta: string; porcentaje: number }) => `${etiqueta}: ${porcentaje}%`}
                     labelLine={false}
                   >
-                    {aging.map((_: any, idx: number) => (
+                    {agingConDatos.map((_, idx) => (
                       <Cell key={idx} fill={AGING_COLORS[idx % AGING_COLORS.length]} />
                     ))}
                   </Pie>
@@ -107,11 +133,6 @@ export function ReportesPage() {
                 </PieChart>
               </ResponsiveContainer>
             </div>
-          </div>
-        )}
-        {loadingAging && (
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {[0, 1].map((i) => <div key={i} className="card p-5 h-64 skeleton" />)}
           </div>
         )}
       </section>

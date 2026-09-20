@@ -466,6 +466,7 @@
     "cobrado_tooltip": "Cobrado",
     "total_cobrado_legend": "Total cobrado",
     "sin_ingresos": "Sin datos de ingresos",
+    "sin_cartera_pendiente": "No hay cartera pendiente todavía (préstamos activos con cuotas por cobrar)",
     "cartera_mora": "Cartera en Mora",
     "prestamos_suffix": "préstamos",
     "pendiente_suffix": "pendiente",
