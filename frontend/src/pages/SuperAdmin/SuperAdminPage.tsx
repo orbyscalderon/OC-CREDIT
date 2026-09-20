@@ -17,8 +17,14 @@ import {
 // que no sobreviva más allá de la pestaña/sesión del navegador.
 const SESSION_KEY = 'oc_super_admin_token';
 
+// URL absoluta (no relativa): en producción el frontend (Cloudflare) y el
+// backend (Railway) viven en dominios distintos -- '/api/v1' a secas
+// nunca llegaba a la API real, devolvía el propio index.html de la SPA
+// como "200 OK" (mismo bug que ya se corrigió en PortalClientePage.tsx).
+const API_BASE_URL = `${import.meta.env.VITE_API_URL ?? ''}/api/v1`;
+
 const superApi = axios.create({
-  baseURL: '/api/v1',
+  baseURL: API_BASE_URL,
   timeout: 15_000,
 });
 
