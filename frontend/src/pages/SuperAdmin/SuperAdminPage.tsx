@@ -129,24 +129,33 @@ export function SuperAdminPage() {
     setAuthed(false);
   };
 
-  if (!authed) {
-    return <SuperAdminLogin onSuccess={() => setAuthed(true)} />;
-  }
-
+  // IMPORTANTE: ningún hook puede quedar después de un return condicional --
+  // React exige llamar exactamente los mismos hooks, en el mismo orden, en
+  // cada render. El `if (!authed) return` (login) vivía ANTES de estos
+  // useQuery/useState: mientras el login nunca funcionaba (bug de baseURL ya
+  // corregido) esto nunca se notaba, porque `authed` jamás cambiaba de valor
+  // en la misma instancia del componente. Apenas el login empezó a andar de
+  // verdad, pasar de "no autenticado" a "autenticado" cambiaba la cantidad
+  // de hooks llamados entre un render y el siguiente -> crash (React #310).
+  // Fix: todos los hooks se llaman siempre; `enabled: authed` evita que las
+  // queries disparen red mientras se ve la pantalla de login.
   const { data: dashboard } = useQuery({
     queryKey: ['sa-dashboard'],
     queryFn: () => superApi.get('/super-admin/dashboard').then(unwrap),
     refetchInterval: 60_000,
+    enabled: authed,
   });
 
   const { data: tenantsData, isLoading } = useQuery({
     queryKey: ['sa-tenants', page],
     queryFn: () => superApi.get(`/super-admin/tenants?page=${page}&limit=20`).then(unwrap),
+    enabled: authed,
   });
 
   const { data: mrr } = useQuery({
     queryKey: ['sa-mrr'],
     queryFn: () => superApi.get('/super-admin/mrr').then(unwrap),
+    enabled: authed,
   });
 
   const [showNuevoAdmin, setShowNuevoAdmin] = useState(false);
@@ -157,6 +166,7 @@ export function SuperAdminPage() {
   const { data: admins = [], refetch: refetchAdmins } = useQuery({
     queryKey: ['sa-admins'],
     queryFn: () => superApi.get('/super-admin/admins').then(unwrap),
+    enabled: authed,
   });
 
   const crearAdminMut = useMutation({
@@ -188,6 +198,10 @@ export function SuperAdminPage() {
       superApi.patch(`/super-admin/tenants/${id}/activo`, { activo }).then(unwrap),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['sa-tenants'] }),
   });
+
+  if (!authed) {
+    return <SuperAdminLogin onSuccess={() => setAuthed(true)} />;
+  }
 
   const tenants: any[] = tenantsData?.data ?? [];
 
