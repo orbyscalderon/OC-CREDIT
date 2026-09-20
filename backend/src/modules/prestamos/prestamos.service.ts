@@ -476,7 +476,20 @@ export class PrestamosService {
     `, [prestamoId, tenantId]);
 
     if (!result[0]) throw new NotFoundException('Préstamo no encontrado');
-    return result[0];
+
+    // Las columnas numeric/count de una query raw llegan como string desde
+    // pg (no pasan por el transformer del entity) -- si el front las suma
+    // con un número real (ej. saldo_mora + saldo_cuotas), JS concatena texto
+    // en vez de sumar. El contrato del endpoint (ResumenSaldo) promete number.
+    const row = result[0];
+    return {
+      ...row,
+      capital_aprobado: parseFloat(row.capital_aprobado),
+      saldo_cuotas: parseFloat(row.saldo_cuotas),
+      saldo_mora: parseFloat(row.saldo_mora),
+      cuotas_pendientes: parseInt(row.cuotas_pendientes, 10),
+      cuotas_vencidas: parseInt(row.cuotas_vencidas, 10),
+    };
   }
 
   // ─── PANEL WEB: LISTAR / OBTENER / RECHAZAR ────────────────────────────────

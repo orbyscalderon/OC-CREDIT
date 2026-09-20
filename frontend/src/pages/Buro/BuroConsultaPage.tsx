@@ -104,7 +104,7 @@ export function BuroConsultaPage() {
           {/* Perfil */}
           <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
             <h2 className="text-sm font-semibold text-gray-700 mb-3">
-              {data.nombre} {data.apellido} — {data.cedula}
+              {data.nombre || data.apellido ? `${data.nombre} ${data.apellido} — ${data.cedula}` : data.cedula}
             </h2>
             <div className="grid grid-cols-3 gap-4 text-sm">
               <div>

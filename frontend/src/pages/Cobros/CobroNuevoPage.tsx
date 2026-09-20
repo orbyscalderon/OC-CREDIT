@@ -89,7 +89,10 @@ export function CobroNuevoPage() {
 
   const cuotaPendiente = proximaCuota ? proximaCuota.monto_total - proximaCuota.monto_pagado : 0;
   const interesPendiente = proximaCuota ? proximaCuota.interes - proximaCuota.interes_pagado : 0;
-  const moraPendiente = saldoResp?.saldo_mora ?? 0;
+  // Number(...) por si algún endpoint devuelve el numeric como string (pg
+  // los da así en queries raw) -- si no, "+" concatena texto en vez de sumar
+  // y el .toFixed() de más abajo revienta la página en blanco.
+  const moraPendiente = Number(saldoResp?.saldo_mora ?? 0);
   const montoSugerido = cuotaPendiente + moraPendiente;
 
   // El cobro debe entrar en la caja del cobrador asignado a ESTE préstamo —
