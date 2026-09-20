@@ -3,9 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { Shield, ChevronRight } from 'lucide-react';
-import axios from 'axios';
-
-const portalApi = axios.create({ baseURL: '/api/v1', timeout: 15_000 });
+import { api } from '@/api/axios';
 
 interface ProximaCuota {
   numero: number;
@@ -43,9 +41,14 @@ export function PortalClientePage() {
   const [cliente, setCliente] = useState<ClientePortal | null>(null);
 
   const consultarMut = useMutation({
+    // `api` compartido: URL absoluta al backend en Railway (una relativa
+    // como '/api/v1' no existe en el dominio de Cloudflare del frontend --
+    // devolvía el propio index.html de la SPA como "200 OK" y todo esto
+    // crasheaba tratando esa página como si fueran los datos del cliente)
+    // y ya desenvuelve { success, data, timestamp } → data.
     mutationFn: async () => {
-      const r = await portalApi.get(`/portal/consultar/${cedula.trim()}?tenantId=${tenantId}`);
-      return (r.data as any).data ?? r.data;
+      const r = await api.get(`/portal/consultar/${cedula.trim()}`, { params: { tenantId } });
+      return r.data;
     },
     onSuccess: (data) => setCliente(data),
   });
