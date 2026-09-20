@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf';
+import i18n from '@/i18n/config';
 
 interface ReciboPagoData {
   transaccionId: string;
@@ -15,18 +16,23 @@ interface ReciboPagoData {
   piePagina?: string;
   simboloMoneda?: string;
   fecha?: string;
+  idioma?: 'es' | 'en';
 }
 
 export function generarReciboPDF(data: ReciboPagoData): void {
   const { simboloMoneda = 'RD$', piePagina } = data;
+  const lng = data.idioma ?? i18n.language ?? 'es';
+  const t = (key: string, params?: Record<string, unknown>) => i18n.t(key, { ...params, lng });
+  const locale = lng === 'en' ? 'en-US' : 'es-DO';
+
   const doc = new jsPDF({ unit: 'mm', format: [80, 140] }); // 80mm ticket
 
   const fmt = (n: number) =>
-    simboloMoneda + ' ' + Number(n).toLocaleString('es-DO', { minimumFractionDigits: 2 });
+    simboloMoneda + ' ' + Number(n).toLocaleString(locale, { minimumFractionDigits: 2 });
 
   const fecha = data.fecha
-    ? new Date(data.fecha).toLocaleString('es-DO')
-    : new Date().toLocaleString('es-DO');
+    ? new Date(data.fecha).toLocaleString(locale)
+    : new Date().toLocaleString(locale);
 
   let y = 8;
   const cx = 40; // centro del ticket
@@ -38,7 +44,7 @@ export function generarReciboPDF(data: ReciboPagoData): void {
 
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  doc.text('RECIBO DE PAGO', cx, y, { align: 'center' });
+  doc.text(t('recibo.titulo'), cx, y, { align: 'center' });
   y += 5;
 
   doc.setLineWidth(0.3);
@@ -46,38 +52,38 @@ export function generarReciboPDF(data: ReciboPagoData): void {
   y += 4;
 
   doc.setFontSize(8);
-  doc.text(`Ref: ${data.transaccionId.slice(-8).toUpperCase()}`, 5, y);
+  doc.text(t('recibo.ref', { ref: data.transaccionId.slice(-8).toUpperCase() }), 5, y);
   y += 4;
-  doc.text(`Fecha: ${fecha}`, 5, y);
+  doc.text(t('recibo.fecha', { fecha }), 5, y);
   y += 4;
-  doc.text(`Cliente: ${data.clienteNombre}`, 5, y);
+  doc.text(t('recibo.cliente', { nombre: data.clienteNombre }), 5, y);
   y += 4;
-  doc.text(`Cedula: ${data.clienteCedula}`, 5, y);
+  doc.text(t('recibo.cedula', { cedula: data.clienteCedula }), 5, y);
   y += 4;
-  doc.text(`Cobrador: ${data.cobrador}`, 5, y);
+  doc.text(t('recibo.cobrador', { nombre: data.cobrador }), 5, y);
   y += 5;
 
   doc.line(5, y, 75, y);
   y += 4;
 
   doc.setFont('helvetica', 'bold');
-  doc.text('Distribucion del pago:', 5, y);
+  doc.text(t('recibo.distribucion_titulo'), 5, y);
   y += 5;
 
   doc.setFont('helvetica', 'normal');
   const dist = data.distribucion;
   if (dist.mora > 0) {
-    doc.text('Mora:', 5, y);
+    doc.text(t('recibo.mora'), 5, y);
     doc.text(fmt(dist.mora), 75, y, { align: 'right' });
     y += 4;
   }
   if (dist.interes > 0) {
-    doc.text('Interes:', 5, y);
+    doc.text(t('recibo.interes'), 5, y);
     doc.text(fmt(dist.interes), 75, y, { align: 'right' });
     y += 4;
   }
   if (dist.capital > 0) {
-    doc.text('Capital:', 5, y);
+    doc.text(t('recibo.capital'), 5, y);
     doc.text(fmt(dist.capital), 75, y, { align: 'right' });
     y += 4;
   }
@@ -89,7 +95,7 @@ export function generarReciboPDF(data: ReciboPagoData): void {
 
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
-  doc.text('TOTAL PAGADO:', 5, y);
+  doc.text(t('recibo.total_pagado'), 5, y);
   doc.text(fmt(data.montoCobrado), 75, y, { align: 'right' });
   y += 8;
 
@@ -99,7 +105,7 @@ export function generarReciboPDF(data: ReciboPagoData): void {
     doc.text(piePagina, cx, y, { align: 'center', maxWidth: 68 });
     y += 8;
   }
-  doc.text(`© ${new Date().getFullYear()} ${data.tenantNombre}.`, cx, y, { align: 'center' });
+  doc.text(t('recibo.derechos_reservados', { year: new Date().getFullYear(), tenant: data.tenantNombre }), cx, y, { align: 'center' });
 
   doc.save(`recibo-${data.transaccionId.slice(-8).toUpperCase()}.pdf`);
 }
