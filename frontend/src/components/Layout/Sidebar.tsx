@@ -8,6 +8,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useTenantSettings } from '@/hooks/useTenantSettings';
+import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 import { prestamosApi } from '@/api/prestamos.api';
 import { Rol } from '@/types';
 import { clsx } from 'clsx';
@@ -153,6 +154,9 @@ export function Sidebar() {
         className="px-3 py-3 flex-shrink-0"
         style={{ borderTop: `1px solid ${SIDEBAR_HOVER}` }}
       >
+        <div className="flex justify-center pb-2">
+          <LanguageSwitcher dark />
+        </div>
         <div className="flex items-center gap-2.5 rounded-lg px-2 py-2">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-600 to-brand-800 flex items-center justify-center flex-shrink-0">
             <span className="text-white text-[10px] font-bold">{initials}</span>

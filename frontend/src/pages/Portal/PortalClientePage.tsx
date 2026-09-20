@@ -4,6 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { Shield, ChevronRight } from 'lucide-react';
 import { api } from '@/api/axios';
+import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 
 interface ProximaCuota {
   numero: number;
@@ -57,7 +58,10 @@ export function PortalClientePage() {
     `${cliente?.simbolo_moneda ?? 'RD$'} ` + Number(n).toLocaleString('es-DO', { minimumFractionDigits: 2 });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center p-4 relative">
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher dark />
+      </div>
       <div className="w-full max-w-lg">
         {/* Header */}
         <div className="text-center mb-6">

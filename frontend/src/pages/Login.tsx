@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { GoogleLogin } from '@react-oauth/google';
 import { Eye, EyeOff, ArrowRight, Shield } from 'lucide-react';
 import { useState } from 'react';
+import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 
 export function LoginPage() {
   const { t } = useTranslation();
@@ -33,7 +34,10 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex relative">
+      <div className="absolute top-4 right-4 z-10">
+        <LanguageSwitcher />
+      </div>
       {/* Panel izquierdo decorativo */}
       <div
         className="hidden lg:flex w-[420px] flex-shrink-0 flex-col justify-between p-10"

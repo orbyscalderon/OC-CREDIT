@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { Check, X, ArrowRight, Shield, MapPin, Smartphone, Zap } from 'lucide-react';
 import { planesApi, type Plan, type RegistrarTenantDto } from '@/api/planes.api';
 import { CalculadoraPrestamo } from '@/components/common/CalculadoraPrestamo';
+import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 import { PAISES } from '@/utils/paises';
 import { clsx } from 'clsx';
 
@@ -89,6 +90,7 @@ export function LandingPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
           <span className="text-lg sm:text-xl font-extrabold text-brand-600 whitespace-nowrap">OCA Credit</span>
           <div className="flex items-center gap-2 sm:gap-4">
+            <LanguageSwitcher />
             <Link to="/login" className="text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-900 whitespace-nowrap">
               {t('landing.nav_iniciar_sesion')}
             </Link>
