@@ -593,6 +593,7 @@
     "deuda_activa_total": "Deuda activa total",
     "riesgo_consolidado": "Riesgo consolidado",
     "sin_historial": "Sin historial",
+    "ya_es_cliente": "Ya es cliente tuyo",
     "reportes_individuales": "Reportes individuales ({{count}})",
     "saldada_badge": "Saldada",
     "deuda_original_reportado": "Deuda original: {{monto}} · Reportado: {{fecha}}"

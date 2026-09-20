@@ -68,6 +68,16 @@ export class BuroCreditoService {
       [cedulaNorm, tipoDocumento],
     );
 
+    // Si la cédula ya es cliente de ESTE tenant, se muestra su info básica
+    // aunque no tenga ningún reporte de buró activo -- si no, la pantalla
+    // queda vacía para el caso más común (consultar a alguien que ya conoces)
+    // porque el perfil cross-tenant solo existe cuando hay un reporte.
+    const clientePropio = await this.em.query<any[]>(
+      `SELECT id, nombre, apellido, telefono, direccion_casa
+       FROM clientes WHERE tenant_id = $1 AND cedula = $2 LIMIT 1`,
+      [user.tenantId, cedulaNorm],
+    );
+
     // Obtener reportes individuales (todos los tenants)
     const reportes = await this.buroRepo.find({
       where: { cedula: cedulaNorm, tipo_documento: tipoDocumento, activo: true },
@@ -114,6 +124,7 @@ export class BuroCreditoService {
         primer_reporte: null,
         max_dias_mora: 0,
         reportes: [],
+        cliente_propio: clientePropio[0] ?? null,
       } as any;
     }
 
@@ -126,6 +137,7 @@ export class BuroCreditoService {
       numero_agencias_reportantes: parseInt(perfil[0].numero_agencias_reportantes, 10),
       max_dias_mora: parseInt(perfil[0].max_dias_mora ?? '0', 10),
       reportes,
+      cliente_propio: clientePropio[0] ?? null,
     };
   }
 

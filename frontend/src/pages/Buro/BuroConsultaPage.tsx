@@ -101,6 +101,26 @@ export function BuroConsultaPage() {
           {/* Recomendación principal */}
           <RecomendacionBadge rec={data.recomendacion ?? ''} />
 
+          {/* Cliente propio -- si la cédula ya es cliente de este tenant, se
+              muestra su info aunque no tenga ningún reporte de buró activo */}
+          {data.cliente_propio && (
+            <div className="bg-white rounded-xl border border-brand-200 p-5 shadow-sm">
+              <p className="text-xs font-semibold text-brand-600 uppercase tracking-wide mb-2">
+                {t('buro.ya_es_cliente')}
+              </p>
+              <Link
+                to={`/clientes/${data.cliente_propio.id}`}
+                className="font-semibold text-gray-900 hover:text-brand-700"
+              >
+                {data.cliente_propio.nombre} {data.cliente_propio.apellido}
+              </Link>
+              <div className="flex items-center gap-4 text-xs text-gray-500 mt-1">
+                {data.cliente_propio.telefono && <span>{data.cliente_propio.telefono}</span>}
+                {data.cliente_propio.direccion_casa && <span>{data.cliente_propio.direccion_casa}</span>}
+              </div>
+            </div>
+          )}
+
           {/* Perfil */}
           <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
             <h2 className="text-sm font-semibold text-gray-700 mb-3">

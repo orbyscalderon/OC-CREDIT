@@ -165,4 +165,10 @@ export class PerfilBuroResponseDto {
 
   @ApiProperty({ description: 'Detalle de cada reporte individual' })
   reportes: any[];
+
+  @ApiProperty({
+    description: 'Datos del cliente si la cédula ya pertenece a este tenant (null si no)',
+    nullable: true,
+  })
+  cliente_propio: { id: string; nombre: string; apellido: string; telefono: string | null; direccion_casa: string | null } | null;
 }

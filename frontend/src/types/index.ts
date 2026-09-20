@@ -278,6 +278,7 @@ export interface PerfilBuro {
   nivel_riesgo_consolidado: NivelRiesgo | null;
   recomendacion: string | null;
   reportes: HistorialCredito[];
+  cliente_propio: { id: string; nombre: string; apellido: string; telefono: string | null; direccion_casa: string | null } | null;
 }
 
 // ─── Reportes ─────────────────────────────────────────────────────────────────
