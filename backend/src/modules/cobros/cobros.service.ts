@@ -152,16 +152,18 @@ export class CobrosService {
       }
 
       // ── 4b. GEOCERCA ANTIFRAUDE ──────────────────────────────────────────
-      // El GPS del cobro (obligatorio desde el DTO) debe estar dentro del
-      // radio configurado por el tenant respecto a la casa del cliente. Si
-      // el cliente no tiene coordenadas registradas, no hay contra qué
-      // comparar — se deja pasar (el GPS igual queda guardado como auditoría).
+      // El GPS del cobro (obligatorio en la app móvil, opcional en el panel
+      // web para cobros manuales) debe estar dentro del radio configurado
+      // por el tenant respecto a la casa del cliente. Si el cliente no tiene
+      // coordenadas registradas, o el cobro no trae GPS (cobro manual desde
+      // el panel), no hay contra qué comparar — se deja pasar.
       const cliente = await tx.findOne(Cliente, {
         where: { id: prestamo.cliente_id, tenant_id: tenantId },
         select: ['id', 'latitud_casa', 'longitud_casa'],
       });
 
-      if (cliente?.latitud_casa != null && cliente?.longitud_casa != null) {
+      if (dto.latitud != null && dto.longitud != null
+        && cliente?.latitud_casa != null && cliente?.longitud_casa != null) {
         const settings = await tx.findOne(TenantSettings, {
           where: { tenant_id: tenantId },
           select: ['radio_geocerca_metros'],
@@ -259,8 +261,8 @@ export class CobrosService {
           moras_pagadas: distribucion.moras_pagadas,
         },
         descripcion: dto.descripcion ?? null,
-        latitud_transaccion: dto.latitud,
-        longitud_transaccion: dto.longitud,
+        latitud_transaccion: dto.latitud ?? null,
+        longitud_transaccion: dto.longitud ?? null,
         precision_gps: dto.precision_gps ?? null,
         sincronizado_offline: dto.sincronizado_offline ?? false,
         timestamp_dispositivo: dto.timestamp_dispositivo

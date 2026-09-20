@@ -168,6 +168,25 @@ describe('POST /api/v1/cobros/registrar (E2E)', () => {
     ).toBeCloseTo(500, 1);
   });
 
+  it('201 cobro exitoso sin GPS — cobro manual desde el panel web', async () => {
+    // El endpoint limita a 5 cobros/seg por cobrador (@Throttle) -- el test
+    // anterior ya consumió parte de la ventana, se espera a que abra una nueva.
+    await new Promise((r) => setTimeout(r, 1100));
+    const uuid = uuidv4();
+    const resp = await request(app.getHttpServer())
+      .post('/api/v1/cobros/registrar')
+      .set('Authorization', `Bearer ${cobradoreToken}`)
+      .send({
+        uuid_idempotencia: uuid,
+        prestamo_id: prestamoActivoId,
+        monto_cobrado: 100,
+        caja_id: cajaId,
+      })
+      .expect(201);
+
+    expect(resp.body.data).toHaveProperty('transaccion_id');
+  });
+
   it('409 idempotencia — mismo UUID → DUPLICATE_UUID', async () => {
     // El endpoint tiene throttle de 5 req/seg (deliberado, ver auditoría de
     // seguridad); los tests anteriores ya consumieron ese cupo en el mismo

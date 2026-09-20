@@ -27,23 +27,26 @@ export class RegistrarCobroDto {
   @Max(9999999.99)
   monto_cobrado: number;
 
-  @ApiProperty({
-    description: 'Latitud GPS del punto de cobro — OBLIGATORIO para validar la visita física',
+  @ApiPropertyOptional({
+    description: 'Latitud GPS del punto de cobro — la app móvil siempre la envía (valida la ' +
+      'geocerca antifraude contra la casa del cliente); el panel web la omite en cobros manuales.',
     example: 18.4861,
   })
+  @IsOptional()
   @IsNumber()
   @Min(-90)
   @Max(90)
-  latitud: number;
+  latitud?: number;
 
-  @ApiProperty({
-    description: 'Longitud GPS del punto de cobro — OBLIGATORIO',
+  @ApiPropertyOptional({
+    description: 'Longitud GPS del punto de cobro — ver latitud.',
     example: -69.9312,
   })
+  @IsOptional()
   @IsNumber()
   @Min(-180)
   @Max(180)
-  longitud: number;
+  longitud?: number;
 
   @ApiPropertyOptional({ description: 'Precisión del GPS en metros', example: 10.5 })
   @IsOptional()
