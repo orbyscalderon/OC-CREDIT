@@ -131,8 +131,20 @@ export function CobroNuevoPage() {
 
       <div>
         <h1 className="text-2xl font-bold text-gray-900">{t('cobros.titulo')}</h1>
-        <p className="text-sm text-gray-500">{t('cobros.subtitulo')}</p>
+        <p className="text-sm text-gray-500">
+          {esCobrador ? t('cobros.subtitulo_cobrador') : t('cobros.subtitulo')}
+        </p>
       </div>
+
+      {esCobrador && !params.get('cliente_id') && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          {t('cobros.aviso_fuera_ruta')}{' '}
+          <Link to="/mi-ruta" className="font-semibold underline">
+            {t('cobros.aviso_fuera_ruta_link')}
+          </Link>
+          .
+        </div>
+      )}
 
       <div className="card p-6 space-y-5">
         {/* Paso 1: Cliente */}
