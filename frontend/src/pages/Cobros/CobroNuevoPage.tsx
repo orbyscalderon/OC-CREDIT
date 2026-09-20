@@ -103,9 +103,14 @@ export function CobroNuevoPage() {
     ? cajas.filter((c) => c.cobrador_id === prestamoSel.cobrador_id)
     : cajas;
 
+  // No solo [prestamoId]: cuando se llega con prestamo_id en la URL (sin
+  // cliente_id), prestamoSel/cajasRelevantes se resuelven un render después
+  // (una vez prestamoDirecto completa clienteIdSel) -- este efecto debe
+  // volver a correr en ese momento o cajaId se queda vacío para siempre y
+  // el Paso 4 nunca aparece, aunque la caja ya se vea bien en pantalla.
   useEffect(() => {
     setCajaId(cajasRelevantes.length === 1 ? cajasRelevantes[0].id : '');
-  }, [prestamoId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [prestamoId, cajasRelevantes.length, prestamoSel?.cobrador_id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Al cambiar de préstamo se limpia el monto -- se rellena solo una vez
   // que llegan las cuotas, con el sugerido (cuota + mora pendiente).
