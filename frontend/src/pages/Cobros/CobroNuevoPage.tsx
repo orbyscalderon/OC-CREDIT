@@ -50,6 +50,24 @@ export function CobroNuevoPage() {
     select: (d) => d.data.filter((p) => p.estado === 'Activo'),
   });
 
+  // Si se llega con prestamo_id en la URL (ej. desde "Registrar cobro" en el
+  // detalle del préstamo) pero sin cliente_id, prestamosResp nunca se dispara
+  // -- prestamoSel quedaría undefined y la caja se mostraría sin filtrar por
+  // el cobrador correcto. Se resuelve el préstamo directo para completar
+  // clienteIdSel y que el flujo normal (por cliente) tome el control.
+  const { data: prestamoDirecto } = useQuery({
+    queryKey: ['prestamo-directo', prestamoId],
+    queryFn: () => prestamosApi.obtener(prestamoId),
+    enabled: !!prestamoId && !clienteIdSel,
+  });
+
+  useEffect(() => {
+    if (prestamoDirecto && !clienteIdSel) {
+      setClienteIdSel(prestamoDirecto.cliente_id);
+      setClienteSearch(`${prestamoDirecto.cliente?.nombre ?? ''} ${prestamoDirecto.cliente?.apellido ?? ''}`.trim());
+    }
+  }, [prestamoDirecto]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const prestamoSel = prestamosResp?.find((p) => p.id === prestamoId);
 
   // Cuotas del préstamo elegido, para sugerir el monto a cobrar.
