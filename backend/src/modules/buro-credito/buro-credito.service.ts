@@ -302,6 +302,95 @@ export class BuroCreditoService {
     return { tenants_procesados: tenants.length, reportes_creados: reportesCreados };
   }
 
+  // ─── REPORTE AUTOMÁTICO POR UMBRAL DE DÍAS (control, no cierra el préstamo) ─
+  /**
+   * A diferencia de reportarAtrasadosFinMes() (fijo, fin de mes, para TODOS
+   * los tenants), esto corre a diario y solo actúa sobre tenants que
+   * configuraron explícitamente tenant_settings.dias_mora_reporte_auto
+   * (NULL = deshabilitado, default). Igual que el snapshot mensual, reporta
+   * pero NO cierra el préstamo -- sigue Activo y cobrable.
+   *
+   * No duplica mientras dure la MISMA racha de atraso: si ya existe un
+   * reporte activo y sin saldar para este préstamo con este motivo, se
+   * omite. Si esa racha se resuelve (deuda_saldada) y el préstamo cae en
+   * mora de nuevo más adelante, un futuro reporte SÍ se genera (es una
+   * racha distinta).
+   */
+  async reportarPorUmbralDiario(
+    soloTenantId?: string,
+  ): Promise<{ tenants_procesados: number; reportes_creados: number }> {
+    const tenants = await this.em.query<{ id: string; nombre_empresa: string; dias_mora_reporte_auto: number }[]>(
+      `SELECT t.id, t.nombre_empresa, ts.dias_mora_reporte_auto
+       FROM tenants t JOIN tenant_settings ts ON ts.tenant_id = t.id
+       WHERE t.activo = TRUE AND ts.dias_mora_reporte_auto IS NOT NULL
+         AND ($1::uuid IS NULL OR t.id = $1)`,
+      [soloTenantId ?? null],
+    );
+
+    let reportesCreados = 0;
+
+    for (const tenant of tenants) {
+      const atrasados = await this.em.query<any[]>(`
+        SELECT
+          cl.cedula, cl.nombre, cl.apellido, cl.telefono,
+          p.id AS prestamo_id, p.capital_aprobado,
+          MAX(cm.dias_mora) AS dias_mora,
+          SUM(cm.monto_mora - cm.monto_pagado) AS mora_pendiente,
+          COALESCE((
+            SELECT SUM(ca.monto_total - ca.monto_pagado)
+            FROM cuotas_amortizacion ca
+            WHERE ca.prestamo_id = p.id AND ca.estado IN ('Pendiente','Abonado','Vencida')
+          ), 0) AS saldo_pendiente
+        FROM prestamos p
+        JOIN clientes cl ON cl.id = p.cliente_id
+        JOIN cargos_mora cm ON cm.prestamo_id = p.id AND cm.estado = 'Pendiente'
+        WHERE p.tenant_id = $1 AND p.estado = 'Activo'
+          AND cl.cedula IS NOT NULL AND cl.cedula != ''
+        GROUP BY cl.cedula, cl.nombre, cl.apellido, cl.telefono, p.id, p.capital_aprobado
+        HAVING MAX(cm.dias_mora) >= $2
+      `, [tenant.id, tenant.dias_mora_reporte_auto]);
+
+      for (const row of atrasados) {
+        const yaReportadoActivo = await this.em.query<any[]>(`
+          SELECT 1 FROM buro_credito
+          WHERE prestamo_id = $1 AND motivo = 'MoraAutomaticaUmbral'
+            AND activo = TRUE AND deuda_saldada = FALSE
+          LIMIT 1
+        `, [row.prestamo_id]);
+        if (yaReportadoActivo.length > 0) continue;
+
+        const diasMora = parseInt(row.dias_mora, 10);
+        const nivel: NivelRiesgoBuro =
+          diasMora >= 60 ? 'Alto' : diasMora >= 15 ? 'Medio' : 'Bajo';
+
+        await this.reportarAutomatico({
+          cedula: row.cedula,
+          nombre: row.nombre,
+          apellido: row.apellido,
+          telefono: row.telefono,
+          tenantId: tenant.id,
+          tenantNombre: tenant.nombre_empresa,
+          prestamoId: row.prestamo_id,
+          capitalOriginal: parseFloat(row.capital_aprobado),
+          saldoImpagado: parseFloat(row.saldo_pendiente),
+          diasMora,
+          motivo: 'MoraAutomaticaUmbral',
+          nivelRiesgo: nivel,
+          descripcion: `Reporte automático — superó el umbral de ${tenant.dias_mora_reporte_auto} días de mora configurado (${diasMora} días, mora pendiente RD$${row.mora_pendiente})`,
+        });
+        reportesCreados++;
+      }
+    }
+
+    if (reportesCreados > 0) {
+      this.logger.warn(
+        `BURÓ UMBRAL DIARIO: ${tenants.length} tenants con umbral activo, ${reportesCreados} reportes creados`,
+      );
+    }
+
+    return { tenants_procesados: tenants.length, reportes_creados: reportesCreados };
+  }
+
   // ─── MARCAR DEUDA COMO SALDADA ─────────────────────────────────────────────
 
   async marcarDeudaSaldada(

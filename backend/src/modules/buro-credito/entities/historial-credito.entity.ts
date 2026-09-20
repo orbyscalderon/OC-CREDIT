@@ -6,6 +6,7 @@ import {
 export type NivelRiesgoBuro = 'Bajo' | 'Medio' | 'Alto' | 'CriticoNoPrestable';
 export type MotivoBuro =
   | 'MoraExtendida'
+  | 'MoraAutomaticaUmbral'
   | 'ImpagoParcial'
   | 'ImpagoTotal'
   | 'Fraude'

@@ -61,6 +61,11 @@ export class UpdateSettingsDto {
 
   @IsOptional() @IsBoolean()
   permite_cobro_domingo?: boolean;
+
+  // null = deshabilitado (@IsOptional() de class-validator ya deja pasar
+  // null sin exigir @IsInt/@Min/@Max, así el admin puede apagarlo de nuevo).
+  @IsOptional() @IsInt() @Min(1) @Max(365)
+  dias_mora_reporte_auto?: number | null;
 }
 
 export class CrearFeriadoDto {

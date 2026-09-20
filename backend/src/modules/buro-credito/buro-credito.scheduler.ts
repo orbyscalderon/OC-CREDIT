@@ -47,4 +47,39 @@ export class BuroCreditoScheduler {
       }
     }
   }
+
+  /**
+   * Corre cada hora en punto (a los :15, después del cálculo de mora a los
+   * :05) y, para cada tenant activo, actúa solo si en SU zona horaria es
+   * medianoche -- así se evalúa el umbral con la mora del día ya calculada.
+   * Solo tiene efecto en tenants que configuraron
+   * tenant_settings.dias_mora_reporte_auto (NULL = deshabilitado, default).
+   */
+  @Cron('15 * * * *', { name: 'buro-reporte-umbral-diario' })
+  async reportePorUmbralDiario(): Promise<void> {
+    const tenants = await this.ds.query<{ id: string; nombre_empresa: string; zona_horaria: string }[]>(`
+      SELECT t.id, t.nombre_empresa, COALESCE(ts.zona_horaria, 'America/Santo_Domingo') AS zona_horaria
+      FROM tenants t
+      JOIN tenant_settings ts ON ts.tenant_id = t.id
+      WHERE t.activo = TRUE AND ts.dias_mora_reporte_auto IS NOT NULL
+    `);
+
+    for (const tenant of tenants) {
+      if (horaActualEnZona(tenant.zona_horaria) !== 0) continue;
+
+      try {
+        const resultado = await this.buroService.reportarPorUmbralDiario(tenant.id);
+        if (resultado.reportes_creados > 0) {
+          this.logger.log(
+            `Reporte por umbral diario tenant=${tenant.nombre_empresa} — ${resultado.reportes_creados} reportes`,
+          );
+        }
+      } catch (err) {
+        this.logger.error(
+          `Error en reporte por umbral diario al buró para tenant=${tenant.nombre_empresa}: ${(err as Error).message}`,
+          (err as Error).stack,
+        );
+      }
+    }
+  }
 }

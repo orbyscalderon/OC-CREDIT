@@ -24,6 +24,16 @@ type FormData = {
   whatsapp_activo: boolean;
   zona_horaria: string;
   formato_fecha: string;
+  dias_mora_gracia: number;
+  // Editado como porcentaje (2 = 2%) -- se convierte a fracción (0.02) recién
+  // al enviar, que es como lo espera/guarda el backend.
+  tasa_mora_diaria_pct: number;
+  radio_geocerca_metros: number;
+  permite_cobro_domingo: boolean;
+  // Toggle solo de UI -- si está apagado se manda dias_mora_reporte_auto:
+  // null (deshabilitado) sin importar el número que quedó en el input.
+  reporte_buro_activo: boolean;
+  dias_mora_reporte_auto: number;
 };
 
 export function ConfigPage() {
@@ -41,6 +51,12 @@ export function ConfigPage() {
     whatsapp_activo:  z.boolean(),
     zona_horaria:     z.string().min(1, t('config.requerido')),
     formato_fecha:    z.string().min(1, t('config.requerido')),
+    dias_mora_gracia: z.coerce.number().int().min(0).max(30),
+    tasa_mora_diaria_pct: z.coerce.number().min(0).max(100),
+    radio_geocerca_metros: z.coerce.number().int().min(10).max(5000),
+    permite_cobro_domingo: z.boolean(),
+    reporte_buro_activo: z.boolean(),
+    dias_mora_reporte_auto: z.coerce.number().int().min(1).max(365),
   });
 
   // ── Portal link ────────────────────────────────────────────────────────────
@@ -108,6 +124,9 @@ export function ConfigPage() {
       nombre_comercial: '', texto_pie_recibo: '',
       whatsapp_activo: true,
       zona_horaria: 'America/Santo_Domingo', formato_fecha: 'DD/MM/YYYY',
+      dias_mora_gracia: 1, tasa_mora_diaria_pct: 2,
+      radio_geocerca_metros: 150, permite_cobro_domingo: false,
+      reporte_buro_activo: false, dias_mora_reporte_auto: 30,
     },
   });
 
@@ -123,13 +142,23 @@ export function ConfigPage() {
         whatsapp_activo:  settings.whatsapp_activo  ?? true,
         zona_horaria:     settings.zona_horaria     ?? 'America/Santo_Domingo',
         formato_fecha:    settings.formato_fecha    ?? 'DD/MM/YYYY',
+        dias_mora_gracia: settings.dias_mora_gracia ?? 1,
+        tasa_mora_diaria_pct: (settings.tasa_mora_diaria ?? 0.02) * 100,
+        radio_geocerca_metros: settings.radio_geocerca_metros ?? 150,
+        permite_cobro_domingo: settings.permite_cobro_domingo ?? false,
+        reporte_buro_activo: settings.dias_mora_reporte_auto != null,
+        dias_mora_reporte_auto: settings.dias_mora_reporte_auto ?? 30,
       });
       if (settings.url_logo && !logoFile) setLogoPreview(`/api/v1/tenants/logo`);
     }
   }, [settings, reset]);
 
   const saveMut = useMutation({
-    mutationFn: (dto: FormData) => api.put('/tenants/settings', dto).then((r) => r.data),
+    mutationFn: ({ tasa_mora_diaria_pct, reporte_buro_activo, dias_mora_reporte_auto, ...dto }: FormData) => api.put('/tenants/settings', {
+      ...dto,
+      tasa_mora_diaria: tasa_mora_diaria_pct / 100,
+      dias_mora_reporte_auto: reporte_buro_activo ? dias_mora_reporte_auto : null,
+    }).then((r) => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tenant-settings'] }),
   });
 
@@ -139,6 +168,7 @@ export function ConfigPage() {
 
   const whatsappActivo = watch('whatsapp_activo');
   const monedaWatch = watch('moneda');
+  const reporteBuroActivo = watch('reporte_buro_activo');
 
   // Si la moneda guardada no está en la lista curada, se arranca en modo
   // manual -- así no se pisa silenciosamente una moneda ya configurada que
@@ -327,6 +357,58 @@ export function ConfigPage() {
             placeholder={t('config.pie_recibo_placeholder')}
             className="input-field resize-none"
           />
+        </div>
+
+        {/* Mora y cobranza */}
+        <div className="rounded-xl border border-gray-200 p-4 space-y-3">
+          <p className="text-sm font-semibold text-gray-800">{t('config.mora_titulo')}</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                {t('config.dias_mora_gracia')}
+              </label>
+              <input type="number" min={0} max={30} step={1} {...register('dias_mora_gracia')} className="input-field" />
+              {errors.dias_mora_gracia && <p className="mt-1 text-xs text-red-500">{errors.dias_mora_gracia.message}</p>}
+              <p className="mt-1 text-xs text-gray-400">{t('config.dias_mora_gracia_hint')}</p>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                {t('config.tasa_mora_diaria')}
+              </label>
+              <input type="number" min={0} max={100} step={0.1} {...register('tasa_mora_diaria_pct')} className="input-field" />
+              {errors.tasa_mora_diaria_pct && <p className="mt-1 text-xs text-red-500">{errors.tasa_mora_diaria_pct.message}</p>}
+              <p className="mt-1 text-xs text-gray-400">{t('config.tasa_mora_diaria_hint')}</p>
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+              {t('config.radio_geocerca')}
+            </label>
+            <input type="number" min={10} max={5000} step={10} {...register('radio_geocerca_metros')} className="input-field w-40" />
+            {errors.radio_geocerca_metros && <p className="mt-1 text-xs text-red-500">{errors.radio_geocerca_metros.message}</p>}
+            <p className="mt-1 text-xs text-gray-400">{t('config.radio_geocerca_hint')}</p>
+          </div>
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <input type="checkbox" {...register('permite_cobro_domingo')} className="rounded border-gray-300" />
+            {t('config.permite_cobro_domingo')}
+          </label>
+
+          <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 space-y-2">
+            <label className="flex items-center gap-2 text-sm font-medium text-amber-900">
+              <input type="checkbox" {...register('reporte_buro_activo')} className="rounded border-amber-300" />
+              {t('config.reporte_buro_activo')}
+            </label>
+            <p className="text-xs text-amber-700">{t('config.reporte_buro_aviso')}</p>
+            {reporteBuroActivo && (
+              <div>
+                <label className="block text-xs font-semibold text-amber-700 uppercase tracking-wide mb-1">
+                  {t('config.dias_mora_reporte_auto')}
+                </label>
+                <input type="number" min={1} max={365} step={1} {...register('dias_mora_reporte_auto')} className="input-field w-32" />
+                {errors.dias_mora_reporte_auto && <p className="mt-1 text-xs text-red-500">{errors.dias_mora_reporte_auto.message}</p>}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* WhatsApp */}

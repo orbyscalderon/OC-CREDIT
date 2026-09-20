@@ -44,6 +44,15 @@ export class TenantSettings {
     transformer: { to: (v: number) => v, from: (v: string) => parseFloat(v) } })
   tasa_mora_diaria: number;
 
+  /**
+   * Días de mora sin acción del admin para reportar automáticamente al buró
+   * (sin cerrar el préstamo, igual que el snapshot mensual). NULL =
+   * deshabilitado -- es un reporte de crédito PERMANENTE y cross-tenant, así
+   * que el admin debe activarlo a propósito, nunca queda encendido por default.
+   */
+  @Column({ type: 'integer', nullable: true })
+  dias_mora_reporte_auto: number | null;
+
   @Column({ default: false })
   permite_cobro_domingo: boolean;
 

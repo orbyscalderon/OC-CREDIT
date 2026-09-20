@@ -120,4 +120,17 @@ export class BuroCreditoController {
   reporteMensual(@CurrentUser() user: JwtPayload) {
     return this.service.reportarAtrasadosFinMes(user.tenantId);
   }
+
+  @Post('reporte-umbral')
+  @Roles(Rol.ADMIN_TENANT)
+  @ApiOperation({
+    summary: 'Forzar el reporte por umbral diario de mi empresa (normalmente corre solo a medianoche)',
+    description:
+      'Reporta al buró los préstamos activos que superaron tenant_settings.dias_mora_reporte_auto. ' +
+      'No hace nada si ese umbral no está configurado. No cierra los préstamos, no duplica mientras ' +
+      'siga la misma racha de atraso.',
+  })
+  reporteUmbral(@CurrentUser() user: JwtPayload) {
+    return this.service.reportarPorUmbralDiario(user.tenantId);
+  }
 }

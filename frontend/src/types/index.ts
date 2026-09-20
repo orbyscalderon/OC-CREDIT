@@ -30,6 +30,11 @@ export interface TenantSettings {
   whatsapp_activo: boolean;
   zona_horaria: string;
   formato_fecha: string;
+  dias_mora_gracia: number;
+  tasa_mora_diaria: number;
+  radio_geocerca_metros: number;
+  permite_cobro_domingo: boolean;
+  dias_mora_reporte_auto: number | null;
 }
 
 // ─── Cliente ─────────────────────────────────────────────────────────────────
