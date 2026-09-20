@@ -52,6 +52,28 @@ export function CobroNuevoPage() {
 
   const prestamoSel = prestamosResp?.find((p) => p.id === prestamoId);
 
+  // Cuotas del préstamo elegido, para sugerir el monto a cobrar.
+  const { data: cuotasResp } = useQuery({
+    queryKey: ['cuotas-prestamo', prestamoId],
+    queryFn: () => prestamosApi.cuotas(prestamoId),
+    enabled: !!prestamoId,
+  });
+
+  const { data: saldoResp } = useQuery({
+    queryKey: ['saldo-prestamo', prestamoId],
+    queryFn: () => prestamosApi.saldo(prestamoId),
+    enabled: !!prestamoId,
+  });
+
+  const proximaCuota = cuotasResp?.cuotas
+    .filter((c) => c.estado !== 'Pagado')
+    .sort((a, b) => a.numero_cuota - b.numero_cuota)[0];
+
+  const cuotaPendiente = proximaCuota ? proximaCuota.monto_total - proximaCuota.monto_pagado : 0;
+  const interesPendiente = proximaCuota ? proximaCuota.interes - proximaCuota.interes_pagado : 0;
+  const moraPendiente = saldoResp?.saldo_mora ?? 0;
+  const montoSugerido = cuotaPendiente + moraPendiente;
+
   // El cobro debe entrar en la caja del cobrador asignado a ESTE préstamo —
   // mostrar las demás cajas del tenant solo confunde y el backend las
   // rechazaría igual. Si el cobrador tiene varias rutas/cajas hoy, se
@@ -63,6 +85,19 @@ export function CobroNuevoPage() {
   useEffect(() => {
     setCajaId(cajasRelevantes.length === 1 ? cajasRelevantes[0].id : '');
   }, [prestamoId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Al cambiar de préstamo se limpia el monto -- se rellena solo una vez
+  // que llegan las cuotas, con el sugerido (cuota + mora pendiente).
+  const [montoAutoPrestamoId, setMontoAutoPrestamoId] = useState('');
+  useEffect(() => {
+    setMonto('');
+  }, [prestamoId]);
+  useEffect(() => {
+    if (prestamoId && proximaCuota && montoAutoPrestamoId !== prestamoId) {
+      setMonto(montoSugerido > 0 ? montoSugerido.toFixed(2) : '');
+      setMontoAutoPrestamoId(prestamoId);
+    }
+  }, [prestamoId, proximaCuota, montoSugerido, montoAutoPrestamoId]);
 
   const fmt = (n: number) => formatCurrency(n, user);
 
@@ -236,6 +271,19 @@ export function CobroNuevoPage() {
                 {t('cobros.sin_caja_abierta')}{' '}
                 <Link to="/cajas" className="underline font-medium">{t('cobros.ver_cajas')}</Link>
               </p>
+            ) : cajasRelevantes.length === 1 ? (
+              // Única caja relevante (la del cobrador asignado a este préstamo) --
+              // no hay nada que elegir, mostrarla como fija evita que parezca
+              // editable cuando en realidad el backend solo aceptaría esta.
+              <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+                <span className="font-semibold">
+                  {cajasRelevantes[0].cobrador?.nombre} {cajasRelevantes[0].cobrador?.apellido}
+                </span>
+                {cajasRelevantes[0].ruta?.nombre && (
+                  <span className="text-gray-500"> — {cajasRelevantes[0].ruta.nombre}</span>
+                )}
+                <span className="text-gray-400"> — {t('cobros.apertura', { monto: fmt(cajasRelevantes[0].monto_apertura) })}</span>
+              </div>
             ) : (
               <select value={cajaId} onChange={(e) => setCajaId(e.target.value)} className="input-field">
                 <option value="">{t('cobros.seleccionar_caja')}</option>
@@ -266,6 +314,43 @@ export function CobroNuevoPage() {
                 placeholder="0.00"
                 className="input-field mono-nums"
               />
+              {proximaCuota && (
+                <>
+                  <p className="text-xs text-gray-400 mt-1.5">
+                    {t('cobros.monto_sugerido_hint', {
+                      cuota: fmt(cuotaPendiente),
+                      mora: moraPendiente > 0 ? ` + ${t('cobros.mora')} ${fmt(moraPendiente)}` : '',
+                    })}
+                  </p>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {interesPendiente > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setMonto(interesPendiente.toFixed(2))}
+                        className="rounded-full border border-gray-200 px-3 py-1 text-xs font-medium text-gray-600 hover:border-brand-300 hover:text-brand-700 transition-colors"
+                      >
+                        {t('cobros.chip_interes', { monto: fmt(interesPendiente) })}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setMonto(cuotaPendiente.toFixed(2))}
+                      className="rounded-full border border-gray-200 px-3 py-1 text-xs font-medium text-gray-600 hover:border-brand-300 hover:text-brand-700 transition-colors"
+                    >
+                      {t('cobros.chip_cuota', { monto: fmt(cuotaPendiente) })}
+                    </button>
+                    {moraPendiente > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setMonto(montoSugerido.toFixed(2))}
+                        className="rounded-full border border-gray-200 px-3 py-1 text-xs font-medium text-gray-600 hover:border-brand-300 hover:text-brand-700 transition-colors"
+                      >
+                        {t('cobros.chip_cuota_mora', { monto: fmt(montoSugerido) })}
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
