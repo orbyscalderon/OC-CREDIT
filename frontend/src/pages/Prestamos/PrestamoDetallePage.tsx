@@ -4,7 +4,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, RotateCcw, CheckCircle, XCircle,
-  FileText, PenLine, History, X, AlertCircle, ShieldAlert,
+  FileText, PenLine, History, X, AlertCircle, ShieldAlert, PiggyBank,
 } from 'lucide-react';
 import { generarPagarePDF } from '@/utils/pagare.pdf';
 import { useTenantSettings } from '@/hooks/useTenantSettings';
@@ -249,6 +249,13 @@ export function PrestamoDetallePage() {
 
         {prestamo.estado === 'Activo' && (
           <div className="mt-3 flex gap-3">
+            <Link
+              to={`/cobros/nuevo?prestamo_id=${id}`}
+              className="flex w-fit items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+            >
+              <PiggyBank size={15} />
+              {t('prestamos.registrar_cobro')}
+            </Link>
             <Link
               to={`/prestamos/${id}/renovar`}
               className="flex w-fit items-center gap-2 rounded-lg border border-brand-600 px-4 py-2 text-sm font-semibold text-brand-600 hover:bg-brand-50"
