@@ -10,6 +10,7 @@ import {
 import { Usuario } from './entities/usuario.entity';
 import { Empleado } from './entities/empleado.entity';
 import { Rol } from '../../common/constants/roles.enum';
+import { Permiso, permisosEfectivos } from '../../common/constants/permisos.enum';
 import { msg } from '../../common/i18n/messages';
 
 /* ── DTOs ───────────────────────────────────────────────────────────────── */
@@ -71,6 +72,11 @@ export class UsuariosService {
       email: e.usuario?.email,
       rol: e.usuario?.rol,
       ultimo_acceso: e.usuario?.ultimo_acceso,
+      // permisos_custom: null = usa el set por defecto de su rol (no personalizado).
+      // permisos_efectivos: el set real vigente, para que la UI de Empleados
+      // pinte los checkboxes sin tener que recalcular PERMISOS_POR_ROL ella misma.
+      permisos_custom: e.usuario?.permisos_custom ?? null,
+      permisos_efectivos: e.usuario ? permisosEfectivos(e.usuario.rol, e.usuario.permisos_custom) : [],
     }));
   }
 
@@ -154,5 +160,35 @@ export class UsuariosService {
     await this.usuarioRepo.save(empleado.usuario);
 
     return { mensaje: 'Contraseña actualizada correctamente' };
+  }
+
+  /**
+   * permisos = null -> vuelve al set por defecto de su rol (borra la
+   * personalización). permisos = [] o un array -> reemplaza por completo
+   * el set de este empleado puntual, sin importar su rol base.
+   */
+  async setPermisos(tenantId: string, empleadoId: string, permisos: Permiso[] | null) {
+    const empleado = await this.empleadoRepo.findOne({
+      where: { id: empleadoId, tenant_id: tenantId },
+      relations: ['usuario'],
+    });
+    if (!empleado) throw new NotFoundException(msg('usuarios_empleado_no_encontrado'));
+
+    if (permisos) {
+      const validos = new Set(Object.values(Permiso) as string[]);
+      const invalidos = permisos.filter((p) => !validos.has(p));
+      if (invalidos.length) {
+        throw new BadRequestException(msg('usuarios_permiso_invalido', { permisos: invalidos.join(', ') }));
+      }
+    }
+
+    empleado.usuario.permisos_custom = permisos;
+    await this.usuarioRepo.save(empleado.usuario);
+
+    return {
+      id: empleadoId,
+      permisos_custom: permisos,
+      permisos_efectivos: permisosEfectivos(empleado.usuario.rol, permisos),
+    };
   }
 }

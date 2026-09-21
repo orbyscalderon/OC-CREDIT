@@ -11,20 +11,21 @@ import {
   MarcarVencidoDto, RechazarPrestamoDto, RenovarPrestamoDto,
 } from './dto/prestamo.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
+import { PermisosGuard } from '../../common/guards/permisos.guard';
+import { RequierePermiso } from '../../common/decorators/permisos.decorator';
 import { CurrentUser, JwtPayload } from '../../common/decorators/current-user.decorator';
 import { Rol } from '../../common/constants/roles.enum';
+import { Permiso } from '../../common/constants/permisos.enum';
 
 @ApiTags('Préstamos')
 @ApiBearerAuth('JWT')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PermisosGuard)
 @Controller({ path: 'prestamos', version: '1' })
 export class PrestamosController {
   constructor(private readonly service: PrestamosService) {}
 
   @Get()
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT)
+  @RequierePermiso(Permiso.PRESTAMOS_VER)
   @ApiOperation({
     summary: 'Listar préstamos paginados (panel web)',
     description: 'Un cobrador solo ve sus propios préstamos asignados; admin/supervisor ven toda la cartera.',
@@ -47,7 +48,7 @@ export class PrestamosController {
   }
 
   @Post('solicitar')
-  @Roles(Rol.SUPERVISOR_TENANT, Rol.ADMIN_TENANT, Rol.COBRADOR_TENANT)
+  @RequierePermiso(Permiso.PRESTAMOS_SOLICITAR)
   @ApiOperation({
     summary: 'Crear solicitud de préstamo (estado Pendiente)',
     description:
@@ -60,7 +61,7 @@ export class PrestamosController {
   }
 
   @Post(':id/aprobar')
-  @Roles(Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.PRESTAMOS_APROBAR)
   @ApiOperation({
     summary: 'Aprobar préstamo y generar plan de amortización (solo Admin)',
     description:
@@ -77,7 +78,7 @@ export class PrestamosController {
   }
 
   @Post(':id/rechazar')
-  @Roles(Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.PRESTAMOS_APROBAR)
   @ApiOperation({ summary: 'Rechazar una solicitud de préstamo pendiente' })
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   rechazar(
@@ -89,7 +90,7 @@ export class PrestamosController {
   }
 
   @Post('renovar')
-  @Roles(Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.PRESTAMOS_APROBAR)
   @ApiOperation({
     summary: 'Renovar (re-enganchar) préstamo activo de un cliente',
     description:
@@ -103,7 +104,7 @@ export class PrestamosController {
 
   @Post('marcar-vencido')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Roles(Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.PRESTAMOS_APROBAR)
   @ApiOperation({
     summary: 'Marcar préstamo como vencido y reportar automáticamente al buró de crédito',
     description:
@@ -115,7 +116,7 @@ export class PrestamosController {
   }
 
   @Get('ruta/:rutaId')
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT)
+  @RequierePermiso(Permiso.PRESTAMOS_VER)
   @ApiParam({ name: 'rutaId', type: 'string', format: 'uuid' })
   @ApiOperation({ summary: 'Listar préstamos activos de una ruta (para App Móvil)' })
   porRuta(
@@ -126,7 +127,7 @@ export class PrestamosController {
   }
 
   @Get(':id/cuotas')
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT)
+  @RequierePermiso(Permiso.PRESTAMOS_VER)
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOperation({ summary: 'Obtener préstamo con plan completo de cuotas' })
   cuotas(
@@ -137,7 +138,7 @@ export class PrestamosController {
   }
 
   @Get(':id/saldo')
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT)
+  @RequierePermiso(Permiso.PRESTAMOS_VER)
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOperation({ summary: 'Resumen de saldo pendiente (cuotas + mora)' })
   saldo(
@@ -148,7 +149,7 @@ export class PrestamosController {
   }
 
   @Get(':id')
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT)
+  @RequierePermiso(Permiso.PRESTAMOS_VER)
   @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
   @ApiOperation({ summary: 'Obtener préstamo con plan de cuotas (panel web)' })
   obtener(

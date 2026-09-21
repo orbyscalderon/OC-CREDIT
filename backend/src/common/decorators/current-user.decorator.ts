@@ -5,6 +5,7 @@ export interface JwtPayload {
   tenantId: string;
   empleadoId: string;
   rol: string;
+  permisos: string[]; // efectivos: personalizados si los tiene, si no los del rol base -- ver permisos.enum.ts
   email: string;
   iat?: number;
   exp?: number;

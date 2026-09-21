@@ -14,15 +14,16 @@ import { Response as ExpressResponse } from 'express';
 import { CobrosService } from './cobros.service';
 import { RegistrarCobroDto, CobroResponseDto } from './dto/registrar-cobro.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
+import { PermisosGuard } from '../../common/guards/permisos.guard';
+import { RequierePermiso } from '../../common/decorators/permisos.decorator';
 import { CurrentUser, JwtPayload } from '../../common/decorators/current-user.decorator';
 import { Rol } from '../../common/constants/roles.enum';
+import { Permiso } from '../../common/constants/permisos.enum';
 import { msg } from '../../common/i18n/messages';
 
 @ApiTags('Cobros')
 @ApiBearerAuth('JWT')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PermisosGuard)
 @Controller({ path: 'cobros', version: '1' })
 export class CobrosController {
   constructor(private readonly cobrosService: CobrosService) {}
@@ -38,7 +39,7 @@ export class CobrosController {
    */
   @Post('registrar')
   @HttpCode(HttpStatus.CREATED)
-  @Roles(Rol.COBRADOR_TENANT, Rol.SUPERVISOR_TENANT, Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.COBROS_REGISTRAR)
   @Throttle({ short: { limit: 5, ttl: 1000 } }) // Máx 5 cobros/seg por cobrador
   @ApiOperation({
     summary: 'Registrar cobro en ruta (atómico + idempotente)',
@@ -71,7 +72,7 @@ export class CobrosController {
    * cobrador del tenant.
    */
   @Get('caja/:cajaId')
-  @Roles(Rol.COBRADOR_TENANT, Rol.SUPERVISOR_TENANT, Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.COBROS_REGISTRAR)
   @ApiOperation({ summary: 'Listar cobros de una caja' })
   @ApiParam({ name: 'cajaId', type: 'string', format: 'uuid' })
   getCobrosDeCaja(
@@ -96,7 +97,7 @@ export class CobrosController {
    * antes de siquiera intentar la foto.
    */
   @Post(':id/foto')
-  @Roles(Rol.COBRADOR_TENANT, Rol.SUPERVISOR_TENANT, Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.COBROS_REGISTRAR)
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Subir foto de evidencia de un cobro' })
   @UseInterceptors(FileInterceptor('foto', {
@@ -121,7 +122,7 @@ export class CobrosController {
    * Sirve la foto de evidencia de un cobro (si existe).
    */
   @Get(':id/foto')
-  @Roles(Rol.COBRADOR_TENANT, Rol.SUPERVISOR_TENANT, Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.COBROS_REGISTRAR)
   @ApiOperation({ summary: 'Ver foto de evidencia de un cobro' })
   async verFoto(
     @CurrentUser() user: JwtPayload,

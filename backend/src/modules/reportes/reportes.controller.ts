@@ -9,15 +9,15 @@ import { ReportesService } from './reportes.service';
 import { MoraService } from '../mora/mora.service';
 import { PlanesService } from '../planes/planes.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
+import { PermisosGuard } from '../../common/guards/permisos.guard';
+import { RequierePermiso } from '../../common/decorators/permisos.decorator';
 import { CurrentUser, JwtPayload } from '../../common/decorators/current-user.decorator';
 import { Lang, Idioma } from '../../common/decorators/lang.decorator';
-import { Rol } from '../../common/constants/roles.enum';
+import { Permiso } from '../../common/constants/permisos.enum';
 
 @ApiTags('Reportes')
 @ApiBearerAuth('JWT')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PermisosGuard)
 @Controller({ path: 'reportes', version: '1' })
 export class ReportesController {
   constructor(
@@ -27,28 +27,28 @@ export class ReportesController {
   ) {}
 
   @Get('uso-plan')
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT)
+  @RequierePermiso(Permiso.REPORTES_AVANZADOS)
   @ApiOperation({ summary: 'Uso actual del plan SaaS' })
   usoPlan(@CurrentUser() user: JwtPayload) {
     return this.planesService.getUsoTenant(user.tenantId);
   }
 
   @Get('dashboard')
-  @Roles(Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.REPORTES_ADMIN)
   @ApiOperation({ summary: 'Dashboard principal del Admin' })
   dashboard(@CurrentUser() user: JwtPayload) {
     return this.service.dashboardAdmin(user.tenantId);
   }
 
   @Get('aging')
-  @Roles(Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.REPORTES_ADMIN)
   @ApiOperation({ summary: 'Aging de cartera' })
   aging(@CurrentUser() user: JwtPayload) {
     return this.service.aging(user.tenantId);
   }
 
   @Get('cobrador/:cobradorId')
-  @Roles(Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.REPORTES_ADMIN)
   @ApiQuery({ name: 'desde', required: true })
   @ApiQuery({ name: 'hasta', required: true })
   cobrador(
@@ -61,7 +61,7 @@ export class ReportesController {
   }
 
   @Get('prestamo/:id/historial')
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT)
+  @RequierePermiso(Permiso.REPORTES_VER)
   @ApiOperation({ summary: 'Historial de pagos de un préstamo' })
   historial(
     @CurrentUser() user: JwtPayload,
@@ -71,21 +71,21 @@ export class ReportesController {
   }
 
   @Get('arqueos')
-  @Roles(Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.REPORTES_ADMIN)
   @ApiQuery({ name: 'fecha', required: false })
   arqueos(@CurrentUser() user: JwtPayload, @Query('fecha') fecha?: string) {
     return this.service.arqueosDia(user.tenantId, fecha);
   }
 
   @Get('mora/resumen')
-  @Roles(Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.REPORTES_ADMIN)
   moraSesumen(@CurrentUser() user: JwtPayload) {
     return this.moraService.resumenMoraTenant(user.tenantId);
   }
 
   /** Cuentas por cobrar — préstamos activos con cuota más antigua pendiente */
   @Get('cuentas-cobrar')
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT)
+  @RequierePermiso(Permiso.REPORTES_AVANZADOS)
   @ApiOperation({ summary: 'Cuentas por cobrar — todos los préstamos con saldo pendiente' })
   @ApiQuery({ name: 'solo_vencidos', required: false })
   cuentasCobrar(
@@ -97,7 +97,7 @@ export class ReportesController {
 
   /** Notificaciones in-app — mora, cuotas próximas a vencer */
   @Get('notificaciones')
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT)
+  @RequierePermiso(Permiso.REPORTES_VER)
   @ApiOperation({ summary: 'Alertas: cuotas vencidas, mora, clientes pendientes' })
   notificaciones(@CurrentUser() user: JwtPayload, @Lang() lang: Idioma) {
     return this.service.notificaciones(user.tenantId, lang);
@@ -105,7 +105,7 @@ export class ReportesController {
 
   /** Copia de seguridad — exporta datos del tenant en CSV dentro de un JSON */
   @Get('backup')
-  @Roles(Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.REPORTES_ADMIN)
   @ApiOperation({ summary: 'Exportar copia de seguridad de datos del tenant' })
   @Header('Content-Type', 'application/json')
   backup(@CurrentUser() user: JwtPayload) {
@@ -114,7 +114,7 @@ export class ReportesController {
 
   /** Restaura un backup (generado por GET /reportes/backup) dentro del mismo tenant */
   @Post('restaurar-backup')
-  @Roles(Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.REPORTES_ADMIN)
   @Throttle({ short: { limit: 2, ttl: 60_000 } })
   @ApiOperation({ summary: 'Restaura datos desde un backup -- solo inserta lo que falta, nunca pisa ni duplica' })
   restaurarBackup(@CurrentUser() user: JwtPayload, @Body() backup: any) {
@@ -123,7 +123,7 @@ export class ReportesController {
 
   /** Reporte de ingresos mensual (Capital + Interés + Mora) */
   @Get('ingresos-mensuales')
-  @Roles(Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.REPORTES_ADMIN)
   @ApiOperation({ summary: 'Ingresos mensuales: capital cobrado, interés y mora' })
   ingresosMensuales(@CurrentUser() user: JwtPayload) {
     return this.service.ingresosMensuales(user.tenantId);

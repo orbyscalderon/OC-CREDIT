@@ -10,10 +10,10 @@ import { Response } from 'express';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { TenantsService, UpdateSettingsDto, CrearFeriadoDto } from './tenants.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
+import { PermisosGuard } from '../../common/guards/permisos.guard';
+import { RequierePermiso } from '../../common/decorators/permisos.decorator';
 import { CurrentUser, JwtPayload } from '../../common/decorators/current-user.decorator';
-import { Rol } from '../../common/constants/roles.enum';
+import { Permiso } from '../../common/constants/permisos.enum';
 import { msg } from '../../common/i18n/messages';
 import { StorageService } from '../../common/services/storage.service';
 
@@ -27,7 +27,7 @@ const LOGO_BUCKET = 'logos';
 
 @ApiTags('Tenants')
 @ApiBearerAuth('JWT')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PermisosGuard)
 @Controller({ path: 'tenants', version: '1' })
 export class TenantsController {
   constructor(
@@ -38,21 +38,21 @@ export class TenantsController {
   /* ── Settings ──────────────────────────────────────────────────────────── */
 
   @Get('settings')
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT)
+  @RequierePermiso(Permiso.TENANT_VER_CONFIG)
   @ApiOperation({ summary: 'Obtener configuración white-label del tenant' })
   getSettings(@CurrentUser() user: JwtPayload) {
     return this.service.getSettings(user.tenantId);
   }
 
   @Put('settings')
-  @Roles(Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.TENANT_EDITAR_CONFIG)
   @ApiOperation({ summary: 'Actualizar configuración white-label del tenant' })
   updateSettings(@CurrentUser() user: JwtPayload, @Body() dto: UpdateSettingsDto) {
     return this.service.updateSettings(user.tenantId, dto);
   }
 
   @Post('logo')
-  @Roles(Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.TENANT_EDITAR_CONFIG)
   @ApiOperation({ summary: 'Subir logo del tenant (imagen) -- Supabase Storage, bucket público' })
   @UseInterceptors(FileInterceptor('logo', {
     storage: memoryStorage(),
@@ -89,7 +89,7 @@ export class TenantsController {
    * directo -- este endpoint deja de ser necesario para logos nuevos.
    */
   @Get('logo')
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT)
+  @RequierePermiso(Permiso.TENANT_VER_CONFIG, Permiso.RUTAS_VER_PROPIA)
   @ApiOperation({ summary: 'Obtener logo del tenant (legado -- rutas locales viejas)' })
   async getLogo(@CurrentUser() user: JwtPayload, @Res() res: Response) {
     const settings = await this.service.getSettings(user.tenantId);
@@ -102,21 +102,21 @@ export class TenantsController {
   /* ── Feriados ──────────────────────────────────────────────────────────── */
 
   @Get('feriados')
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT)
+  @RequierePermiso(Permiso.TENANT_VER_CONFIG)
   @ApiOperation({ summary: 'Listar feriados del tenant + feriados globales' })
   listarFeriados(@CurrentUser() user: JwtPayload) {
     return this.service.listarFeriados(user.tenantId);
   }
 
   @Post('feriados')
-  @Roles(Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.TENANT_EDITAR_CONFIG)
   @ApiOperation({ summary: 'Agregar feriado para este tenant' })
   crearFeriado(@CurrentUser() user: JwtPayload, @Body() dto: CrearFeriadoDto) {
     return this.service.crearFeriado(user.tenantId, dto);
   }
 
   @Delete('feriados/:fecha')
-  @Roles(Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.TENANT_EDITAR_CONFIG)
   @ApiOperation({ summary: 'Eliminar feriado de este tenant' })
   eliminarFeriado(@CurrentUser() user: JwtPayload, @Param('fecha') fecha: string) {
     return this.service.eliminarFeriado(user.tenantId, fecha);

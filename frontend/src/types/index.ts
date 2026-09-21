@@ -184,6 +184,10 @@ export interface Empleado {
   rol: Rol;
   usuario_id: string;
   ultimo_acceso: string | null;
+  /** null = usa el set por defecto de su rol (sin personalizar) */
+  permisos_custom: string[] | null;
+  /** El set realmente vigente (personalizado o el del rol) */
+  permisos_efectivos: string[];
 }
 
 // ─── Feriado ──────────────────────────────────────────────────────────────────

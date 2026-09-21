@@ -4,12 +4,13 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
-import { PlusCircle, UserCheck, UserX, KeyRound, X, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { PlusCircle, UserCheck, UserX, KeyRound, ShieldCheck, X, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { empleadosApi } from '@/api/empleados.api';
 import { Badge } from '@/components/common/Badge';
 import { ModalOverlay } from '@/components/common/ModalOverlay';
 import { useAuth } from '@/hooks/useAuth';
 import { tipoDocumentoPorPais } from '@/utils/documentosIdentidad';
+import { GRUPOS_PERMISOS } from '@/utils/permisos';
 import type { Empleado } from '@/types';
 
 type FormData = {
@@ -45,6 +46,9 @@ export function EmpleadosPage() {
   const [resetTarget, setResetTarget] = useState<Empleado | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [resetMsg, setResetMsg] = useState('');
+  const [permisosTarget, setPermisosTarget] = useState<Empleado | null>(null);
+  const [permisosSeleccionados, setPermisosSeleccionados] = useState<Set<string>>(new Set());
+  const [personalizado, setPersonalizado] = useState(false);
 
   const { data: empleados = [], isLoading } = useQuery({
     queryKey: ['empleados'],
@@ -79,6 +83,29 @@ export function EmpleadosPage() {
       setTimeout(() => { setResetTarget(null); setResetMsg(''); setNewPassword(''); }, 1500);
     },
   });
+
+  const permisosMut = useMutation({
+    mutationFn: ({ id, permisos }: { id: string; permisos: string[] | null }) =>
+      empleadosApi.setPermisos(id, permisos),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['empleados'] });
+      setPermisosTarget(null);
+    },
+  });
+
+  const abrirPermisos = (emp: Empleado) => {
+    setPermisosTarget(emp);
+    setPersonalizado(emp.permisos_custom !== null);
+    setPermisosSeleccionados(new Set(emp.permisos_efectivos));
+  };
+
+  const togglePermiso = (clave: string) => {
+    setPermisosSeleccionados((prev) => {
+      const next = new Set(prev);
+      if (next.has(clave)) next.delete(clave); else next.add(clave);
+      return next;
+    });
+  };
 
   const crearErr = crearMut.isError
     ? ((crearMut.error as any)?.response?.data?.message ?? t('empleados.error_crear'))
@@ -153,6 +180,16 @@ export function EmpleadosPage() {
                         className="p-1.5 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
                       >
                         <KeyRound size={15} />
+                      </button>
+                      <button
+                        onClick={() => abrirPermisos(emp)}
+                        title={t('empleados.permisos')}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50 transition-colors relative"
+                      >
+                        <ShieldCheck size={15} />
+                        {emp.permisos_custom !== null && (
+                          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-brand-500" />
+                        )}
                       </button>
                     </div>
                   </td>
@@ -277,6 +314,84 @@ export function EmpleadosPage() {
                 {t('empleados.cancelar')}
               </button>
             </div>
+          </div>
+        </ModalOverlay>
+      )}
+
+      {/* Modal permisos personalizados */}
+      {permisosTarget && (
+        <ModalOverlay>
+          <div className="w-full max-w-xl rounded-2xl bg-white shadow-2xl p-6 space-y-4 animate-fade-in overflow-y-auto max-h-[90vh]">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">{t('empleados.permisos_titulo')}</h2>
+                <p className="text-sm text-gray-500">{permisosTarget.nombre} {permisosTarget.apellido} — {ROL_LABELS[permisosTarget.rol] ?? permisosTarget.rol}</p>
+              </div>
+              <button onClick={() => setPermisosTarget(null)} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100" aria-label={t('empleados.cerrar')}>
+                <X size={16} />
+              </button>
+            </div>
+
+            {!personalizado ? (
+              <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 flex items-center justify-between gap-3">
+                <span>{t('empleados.permisos_usando_defecto')}</span>
+                <button
+                  onClick={() => setPersonalizado(true)}
+                  className="text-brand-600 font-semibold text-xs whitespace-nowrap hover:text-brand-700"
+                >
+                  {t('empleados.permisos_personalizar')}
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-sm text-brand-700 flex items-center justify-between gap-3">
+                  <span>{t('empleados.permisos_personalizado_activo')}</span>
+                  <button
+                    onClick={() => {
+                      setPersonalizado(false);
+                      permisosMut.mutate({ id: permisosTarget.id, permisos: null });
+                    }}
+                    className="text-brand-700 font-semibold text-xs whitespace-nowrap hover:text-brand-900 underline"
+                  >
+                    {t('empleados.permisos_volver_defecto')}
+                  </button>
+                </div>
+
+                <div className="space-y-4 max-h-[45vh] overflow-y-auto pr-1">
+                  {GRUPOS_PERMISOS.map((grupo) => (
+                    <div key={grupo.categoria}>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{grupo.categoria}</p>
+                      <div className="space-y-1.5">
+                        {grupo.items.map((item) => (
+                          <label key={item.clave} className="flex items-center gap-2.5 text-sm text-gray-700 cursor-pointer py-0.5">
+                            <input
+                              type="checkbox"
+                              checked={permisosSeleccionados.has(item.clave)}
+                              onChange={() => togglePermiso(item.clave)}
+                              className="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                            />
+                            {item.etiqueta}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex gap-3 pt-1">
+                  <button
+                    onClick={() => permisosMut.mutate({ id: permisosTarget.id, permisos: Array.from(permisosSeleccionados) })}
+                    disabled={permisosMut.isPending}
+                    className="btn-primary flex-1 justify-center"
+                  >
+                    {permisosMut.isPending ? t('empleados.actualizando') : t('empleados.guardar')}
+                  </button>
+                  <button onClick={() => setPermisosTarget(null)} className="btn-secondary">
+                    {t('empleados.cancelar')}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </ModalOverlay>
       )}

@@ -395,7 +395,14 @@
     "error_crear": "Error creating employee",
     "rol_cobrador": "Collector",
     "rol_supervisor": "Supervisor",
-    "rol_admin": "Administrator"
+    "rol_admin": "Administrator",
+    "permisos": "Customize permissions",
+    "permisos_titulo": "Employee permissions",
+    "permisos_usando_defecto": "Using the default permissions for their role.",
+    "permisos_personalizar": "Customize",
+    "permisos_personalizado_activo": "Has custom permissions (not the role's defaults).",
+    "permisos_volver_defecto": "Revert to role defaults",
+    "guardar": "Save changes"
   },
   "feriados": {
     "volver_config": "Back to Settings",

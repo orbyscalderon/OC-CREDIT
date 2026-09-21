@@ -32,6 +32,14 @@ export const MESSAGES: Record<string, Entrada> = {
     es: 'Acceso denegado. Se requiere uno de los roles: {{roles}}',
     en: 'Access denied. One of the following roles is required: {{roles}}',
   },
+  auth_acceso_denegado_permisos: {
+    es: 'No tenés permiso para hacer esto. Pedile a un administrador que te habilite el acceso.',
+    en: "You don't have permission to do this. Ask an administrator to enable access for you.",
+  },
+  usuarios_permiso_invalido: {
+    es: 'Permiso(s) inválido(s): {{permisos}}',
+    en: 'Invalid permission(s): {{permisos}}',
+  },
   super_admin_token_requerido: { es: 'Token de super-admin requerido', en: 'Super-admin token required' },
   super_admin_token_invalido_recurso: {
     es: 'Token inválido para este recurso',

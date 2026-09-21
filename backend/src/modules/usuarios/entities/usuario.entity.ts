@@ -49,6 +49,10 @@ export class Usuario {
   @Column({ default: false })
   must_change_pwd: boolean;
 
+  /** Permisos personalizados (ver permisos.enum.ts). NULL = usa el set por defecto de su rol base. */
+  @Column({ type: 'text', array: true, nullable: true })
+  permisos_custom: string[] | null;
+
   /** sha256 del token de recuperación de contraseña vigente. NULL si no hay solicitud pendiente. */
   @Column({ type: 'varchar', length: 64, nullable: true })
   @Exclude()

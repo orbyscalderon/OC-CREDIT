@@ -16,15 +16,15 @@ import {
   ReportarDeudorDto,
 } from './dto/buro.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
+import { PermisosGuard } from '../../common/guards/permisos.guard';
+import { RequierePermiso } from '../../common/decorators/permisos.decorator';
 import { CurrentUser, JwtPayload } from '../../common/decorators/current-user.decorator';
-import { Rol } from '../../common/constants/roles.enum';
+import { Permiso } from '../../common/constants/permisos.enum';
 import { Tenant } from '../tenants/entities/tenant.entity';
 
 @ApiTags('Buró de Crédito')
 @ApiBearerAuth('JWT')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PermisosGuard)
 @Controller({ path: 'buro', version: '1' })
 export class BuroCreditoController {
   constructor(
@@ -40,7 +40,7 @@ export class BuroCreditoController {
 
   @Post('consultar')
   @HttpCode(HttpStatus.OK)
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT)
+  @RequierePermiso(Permiso.BURO_CONSULTAR)
   @ApiOperation({
     summary: 'Consultar historial crediticio por cédula (cross-tenant)',
     description:
@@ -57,7 +57,7 @@ export class BuroCreditoController {
   }
 
   @Post('reportar')
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT)
+  @RequierePermiso(Permiso.BURO_REPORTAR)
   @ApiOperation({
     summary: 'Reportar cliente con mal crédito (PERMANENTE)',
     description:
@@ -75,7 +75,7 @@ export class BuroCreditoController {
 
   @Post('marcar-saldada')
   @HttpCode(HttpStatus.OK)
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT)
+  @RequierePermiso(Permiso.BURO_REPORTAR)
   @ApiOperation({
     summary: 'Registrar que el deudor saldó su deuda',
     description:
@@ -90,7 +90,7 @@ export class BuroCreditoController {
   }
 
   @Get('mis-reportes')
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT)
+  @RequierePermiso(Permiso.BURO_REPORTAR)
   @ApiOperation({ summary: 'Listar reportes de mal crédito emitidos por mi empresa' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
@@ -103,14 +103,14 @@ export class BuroCreditoController {
   }
 
   @Get('estadisticas')
-  @Roles(Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.BURO_ADMIN)
   @ApiOperation({ summary: 'Estadísticas globales del buró (solo admin)' })
   estadisticas() {
     return this.service.estadisticasGlobales();
   }
 
   @Post('reporte-mensual')
-  @Roles(Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.BURO_ADMIN)
   @ApiOperation({
     summary: 'Forzar el reporte mensual de atrasados de mi empresa (normalmente corre solo el último día del mes)',
     description:
@@ -122,7 +122,7 @@ export class BuroCreditoController {
   }
 
   @Post('reporte-umbral')
-  @Roles(Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.BURO_ADMIN)
   @ApiOperation({
     summary: 'Forzar el reporte por umbral diario de mi empresa (normalmente corre solo a medianoche)',
     description:

@@ -6,27 +6,27 @@ import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger'
 import { RutasService } from './rutas.service';
 import { CrearRutaDto, RegistrarNovedadDto, ToggleActivaRutaDto } from './dto/rutas.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
+import { PermisosGuard } from '../../common/guards/permisos.guard';
+import { RequierePermiso } from '../../common/decorators/permisos.decorator';
 import { CurrentUser, JwtPayload } from '../../common/decorators/current-user.decorator';
-import { Rol } from '../../common/constants/roles.enum';
+import { Permiso } from '../../common/constants/permisos.enum';
 
 @ApiTags('Rutas')
 @ApiBearerAuth('JWT')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PermisosGuard)
 @Controller({ path: 'rutas', version: '1' })
 export class RutasController {
   constructor(private readonly service: RutasService) {}
 
   @Post()
-  @Roles(Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.RUTAS_GESTIONAR)
   @ApiOperation({ summary: 'Crear ruta de cobranza' })
   crear(@CurrentUser() user: JwtPayload, @Body() dto: CrearRutaDto) {
     return this.service.crear(user.tenantId, dto);
   }
 
   @Get()
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT)
+  @RequierePermiso(Permiso.RUTAS_GESTIONAR)
   @ApiQuery({ name: 'incluir_inactivas', required: false, type: Boolean })
   @ApiOperation({ summary: 'Listar rutas (por defecto solo activas; incluir_inactivas=true trae todas)' })
   listar(@CurrentUser() user: JwtPayload, @Query('incluir_inactivas') incluirInactivas?: string) {
@@ -34,21 +34,21 @@ export class RutasController {
   }
 
   @Get('mis-rutas')
-  @Roles(Rol.COBRADOR_TENANT)
+  @RequierePermiso(Permiso.RUTAS_VER_PROPIA)
   @ApiOperation({ summary: 'Rutas asignadas al cobrador autenticado' })
   misRutas(@CurrentUser() user: JwtPayload) {
     return this.service.listarDeCobrador(user.tenantId, user.empleadoId);
   }
 
   @Get(':id')
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT)
+  @RequierePermiso(Permiso.RUTAS_GESTIONAR)
   @ApiOperation({ summary: 'Obtener una ruta por id' })
   obtener(@CurrentUser() user: JwtPayload, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.obtener(user.tenantId, id);
   }
 
   @Patch(':id/activa')
-  @Roles(Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.RUTAS_GESTIONAR)
   @ApiOperation({ summary: 'Activar o desactivar una ruta (no se elimina, conserva el historial asociado)' })
   toggleActiva(
     @CurrentUser() user: JwtPayload,
@@ -59,7 +59,7 @@ export class RutasController {
   }
 
   @Put(':id/asignar-cobrador/:cobradorId')
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT)
+  @RequierePermiso(Permiso.RUTAS_GESTIONAR)
   @ApiOperation({ summary: 'Asignar cobrador a una ruta' })
   asignar(
     @CurrentUser() user: JwtPayload,
@@ -70,14 +70,14 @@ export class RutasController {
   }
 
   @Get(':id/historial-cobrador')
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT)
+  @RequierePermiso(Permiso.RUTAS_GESTIONAR)
   @ApiOperation({ summary: 'Historial de reasignaciones de cobrador de una ruta (auditoría)' })
   historialCobrador(@CurrentUser() user: JwtPayload, @Param('id', ParseUUIDPipe) id: string) {
     return this.service.historialCobrador(user.tenantId, id);
   }
 
   @Post('novedades')
-  @Roles(Rol.COBRADOR_TENANT, Rol.SUPERVISOR_TENANT, Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.NOVEDADES_REGISTRAR)
   @ApiOperation({
     summary: 'Registrar novedad de ruta (cliente no estaba / sin dinero)',
     description:
@@ -88,7 +88,7 @@ export class RutasController {
   }
 
   @Get('novedades/dia')
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT)
+  @RequierePermiso(Permiso.NOVEDADES_VER)
   @ApiQuery({ name: 'fecha', required: false })
   @ApiOperation({ summary: 'Novedades del día (panel Admin)' })
   novedadesDia(@CurrentUser() user: JwtPayload, @Query('fecha') fecha?: string) {
@@ -96,7 +96,7 @@ export class RutasController {
   }
 
   @Get('mapa/gps')
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT)
+  @RequierePermiso(Permiso.RUTAS_GESTIONAR)
   @ApiQuery({ name: 'fecha', required: false })
   @ApiQuery({ name: 'ruta_id', required: false })
   @ApiOperation({

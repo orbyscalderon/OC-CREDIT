@@ -21,4 +21,7 @@ export const empleadosApi = {
 
   resetPassword: (id: string, nueva_password: string) =>
     api.patch(`/usuarios/${id}/reset-password`, { nueva_password }).then((r) => r.data),
+
+  setPermisos: (id: string, permisos: string[] | null) =>
+    api.patch(`/usuarios/${id}/permisos`, { permisos }).then((r) => r.data),
 };

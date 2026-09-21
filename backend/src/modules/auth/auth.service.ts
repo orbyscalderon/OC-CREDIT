@@ -16,6 +16,7 @@ import { TenantSettings } from '../tenants/entities/tenant-settings.entity';
 import { Tenant } from '../tenants/entities/tenant.entity';
 import { msg } from '../../common/i18n/messages';
 import { Rol } from '../../common/constants/roles.enum';
+import { permisosEfectivos } from '../../common/constants/permisos.enum';
 import { EmailService } from '../../common/services/email.service';
 import { plantillaRecuperarPassword } from '../../common/services/email-templates/templates';
 
@@ -81,11 +82,14 @@ export class AuthService {
       where: { tenant_id: usuario.tenant_id },
     });
 
+    const permisos = permisosEfectivos(usuario.rol, usuario.permisos_custom);
+
     const payload = {
       sub: usuario.id,
       tenantId: usuario.tenant_id,
       empleadoId: empleado.id,
       rol: usuario.rol,
+      permisos,
       email: usuario.email,
     };
 
@@ -99,6 +103,7 @@ export class AuthService {
         id: usuario.id,
         email: usuario.email,
         rol: usuario.rol,
+        permisos,
         nombre: empleado.nombre,
         apellido: empleado.apellido,
         empleado_id: empleado.id,
@@ -159,11 +164,14 @@ export class AuthService {
 
     const settings = await this.settingsRepo.findOne({ where: { tenant_id: usuario.tenant_id } });
 
+    const permisos = permisosEfectivos(usuario.rol, usuario.permisos_custom);
+
     const jwtPayload = {
       sub: usuario.id,
       tenantId: usuario.tenant_id,
       empleadoId: empleado.id,
       rol: usuario.rol,
+      permisos,
       email: usuario.email,
     };
 
@@ -177,6 +185,7 @@ export class AuthService {
         id: usuario.id,
         email: usuario.email,
         rol: usuario.rol,
+        permisos,
         nombre: empleado.nombre,
         apellido: empleado.apellido,
         empleado_id: empleado.id,
@@ -213,6 +222,7 @@ export class AuthService {
         id: usuario.id,
         email: usuario.email,
         rol: usuario.rol,
+        permisos: permisosEfectivos(usuario.rol, usuario.permisos_custom),
         nombre: empleado?.nombre ?? '',
         apellido: empleado?.apellido ?? '',
         empleado_id: empleado?.id ?? '',

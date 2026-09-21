@@ -6,20 +6,21 @@ import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger'
 import { CajasService } from './cajas.service';
 import { AbrirCajaDto, CerrarCajaDto, RegistrarGastoDto } from './dto/cajas.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
+import { PermisosGuard } from '../../common/guards/permisos.guard';
+import { RequierePermiso } from '../../common/decorators/permisos.decorator';
 import { CurrentUser, JwtPayload } from '../../common/decorators/current-user.decorator';
 import { Rol } from '../../common/constants/roles.enum';
+import { Permiso } from '../../common/constants/permisos.enum';
 
 @ApiTags('Cajas')
 @ApiBearerAuth('JWT')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PermisosGuard)
 @Controller({ path: 'cajas', version: '1' })
 export class CajasController {
   constructor(private readonly service: CajasService) {}
 
   @Post('abrir')
-  @Roles(Rol.COBRADOR_TENANT, Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.CAJAS_OPERAR)
   @ApiOperation({ summary: 'Abrir caja del día (inicio de jornada)' })
   abrir(@CurrentUser() user: JwtPayload, @Body() dto: AbrirCajaDto) {
     return this.service.abrir(user.tenantId, user.empleadoId, dto);
@@ -27,7 +28,7 @@ export class CajasController {
 
   @Post('cerrar')
   @HttpCode(HttpStatus.OK)
-  @Roles(Rol.COBRADOR_TENANT, Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.CAJAS_OPERAR)
   @ApiOperation({
     summary: 'Cierre ciego de caja',
     description:
@@ -39,7 +40,7 @@ export class CajasController {
   }
 
   @Post('gastos')
-  @Roles(Rol.COBRADOR_TENANT, Rol.SUPERVISOR_TENANT, Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.CAJAS_OPERAR)
   @ApiOperation({
     summary: 'Registrar gasto de ruta (gasolina, reparación, etc.)',
     description:
@@ -52,7 +53,7 @@ export class CajasController {
   }
 
   @Get('activa')
-  @Roles(Rol.COBRADOR_TENANT, Rol.SUPERVISOR_TENANT, Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.CAJAS_OPERAR)
   @ApiQuery({ name: 'ruta_id', required: false, description: 'Filtra a la caja activa de esa ruta. Sin filtro, devuelve todas las cajas activas del cobrador (puede tener una por ruta).' })
   @ApiOperation({ summary: 'Obtener caja(s) activa(s) del cobrador autenticado' })
   activa(@CurrentUser() user: JwtPayload, @Query('ruta_id') rutaId?: string) {
@@ -60,7 +61,7 @@ export class CajasController {
   }
 
   @Get('dia')
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT)
+  @RequierePermiso(Permiso.CAJAS_SUPERVISAR)
   @ApiOperation({ summary: 'Listar todas las cajas de un día (panel Admin)' })
   @ApiQuery({ name: 'fecha', required: false, description: 'YYYY-MM-DD (defecto: hoy)' })
   dia(@CurrentUser() user: JwtPayload, @Query('fecha') fecha?: string) {
@@ -68,7 +69,7 @@ export class CajasController {
   }
 
   @Get(':id/arqueo')
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT)
+  @RequierePermiso(Permiso.CAJAS_OPERAR)
   @ApiOperation({
     summary: 'Arqueo detallado de una caja',
     description:
@@ -83,7 +84,7 @@ export class CajasController {
   }
 
   @Get(':id/movimientos')
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT)
+  @RequierePermiso(Permiso.CAJAS_OPERAR)
   @ApiOperation({ summary: 'Movimientos (cobros + gastos) de una caja, orden cronológico' })
   movimientos(
     @CurrentUser() user: JwtPayload,

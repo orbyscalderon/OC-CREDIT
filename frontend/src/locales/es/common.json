@@ -395,7 +395,14 @@
     "error_crear": "Error al crear empleado",
     "rol_cobrador": "Cobrador",
     "rol_supervisor": "Supervisor",
-    "rol_admin": "Administrador"
+    "rol_admin": "Administrador",
+    "permisos": "Personalizar permisos",
+    "permisos_titulo": "Permisos del empleado",
+    "permisos_usando_defecto": "Usando los permisos por defecto de su rol.",
+    "permisos_personalizar": "Personalizar",
+    "permisos_personalizado_activo": "Tiene permisos personalizados (no los de su rol).",
+    "permisos_volver_defecto": "Volver a los del rol",
+    "guardar": "Guardar cambios"
   },
   "feriados": {
     "volver_config": "Volver a Configuración",

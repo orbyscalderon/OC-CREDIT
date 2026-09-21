@@ -22,6 +22,7 @@ export class LoginResponseDto {
     id: string;
     email: string;
     rol: string;
+    permisos: string[];
     nombre: string;
     apellido: string;
     empleado_id: string;

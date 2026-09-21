@@ -10,20 +10,21 @@ import { Response as ExpressResponse } from 'express';
 import { ClientesService } from './clientes.service';
 import { CrearClienteDto, ActualizarClienteDto, ReordenarClientesDto } from './dto/cliente.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
+import { PermisosGuard } from '../../common/guards/permisos.guard';
+import { RequierePermiso } from '../../common/decorators/permisos.decorator';
 import { CurrentUser, JwtPayload } from '../../common/decorators/current-user.decorator';
 import { Rol } from '../../common/constants/roles.enum';
+import { Permiso } from '../../common/constants/permisos.enum';
 
 @ApiTags('Clientes')
 @ApiBearerAuth('JWT')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PermisosGuard)
 @Controller({ path: 'clientes', version: '1' })
 export class ClientesController {
   constructor(private readonly service: ClientesService) {}
 
   @Get()
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT)
+  @RequierePermiso(Permiso.CLIENTES_VER)
   @ApiOperation({ summary: 'Listar clientes con paginación' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
@@ -38,14 +39,14 @@ export class ClientesController {
   }
 
   @Post()
-  @Roles(Rol.SUPERVISOR_TENANT, Rol.ADMIN_TENANT, Rol.COBRADOR_TENANT)
+  @RequierePermiso(Permiso.CLIENTES_CREAR)
   @ApiOperation({ summary: 'Registrar nuevo cliente' })
   crear(@CurrentUser() user: JwtPayload, @Body() dto: CrearClienteDto) {
     return this.service.crear(user.tenantId, dto);
   }
 
   @Get('buscar')
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT)
+  @RequierePermiso(Permiso.CLIENTES_VER, Permiso.CLIENTES_CREAR, Permiso.PRESTAMOS_SOLICITAR)
   @ApiQuery({ name: 'q', description: 'Nombre, apellido o cédula' })
   @ApiOperation({
     summary: 'Buscar clientes por nombre, apellido o cédula',
@@ -59,7 +60,7 @@ export class ClientesController {
   }
 
   @Get('ruta/:rutaId')
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT)
+  @RequierePermiso(Permiso.RUTAS_VER_PROPIA, Permiso.CLIENTES_VER)
   @ApiOperation({ summary: 'Clientes de una ruta ordenados por orden_visita (App Móvil)' })
   porRuta(
     @CurrentUser() user: JwtPayload,
@@ -69,7 +70,7 @@ export class ClientesController {
   }
 
   @Put('ruta/:rutaId/orden')
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT)
+  @RequierePermiso(Permiso.CLIENTES_EDITAR)
   @ApiOperation({ summary: 'Guardar el orden de visita de todos los clientes de una ruta (drag-and-drop)' })
   reordenar(
     @CurrentUser() user: JwtPayload,
@@ -80,7 +81,7 @@ export class ClientesController {
   }
 
   @Post('ruta/:rutaId/orden/auto')
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT)
+  @RequierePermiso(Permiso.CLIENTES_EDITAR)
   @ApiOperation({ summary: 'Reordenar automáticamente los clientes de una ruta por cercanía geográfica' })
   ordenarAutomatico(
     @CurrentUser() user: JwtPayload,
@@ -90,7 +91,7 @@ export class ClientesController {
   }
 
   @Get(':id')
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT)
+  @RequierePermiso(Permiso.CLIENTES_VER, Permiso.RUTAS_VER_PROPIA)
   uno(
     @CurrentUser() user: JwtPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -99,7 +100,7 @@ export class ClientesController {
   }
 
   @Put(':id')
-  @Roles(Rol.SUPERVISOR_TENANT, Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.CLIENTES_EDITAR)
   @ApiOperation({ summary: 'Actualizar datos del cliente' })
   actualizar(
     @CurrentUser() user: JwtPayload,
@@ -110,7 +111,7 @@ export class ClientesController {
   }
 
   @Put(':id/reasignar-ruta/:rutaId')
-  @Roles(Rol.SUPERVISOR_TENANT, Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.CLIENTES_EDITAR)
   @ApiOperation({ summary: 'Reasignar cliente a una ruta diferente' })
   reasignar(
     @CurrentUser() user: JwtPayload,
@@ -121,7 +122,7 @@ export class ClientesController {
   }
 
   @Post(':id/cedula')
-  @Roles(Rol.SUPERVISOR_TENANT, Rol.ADMIN_TENANT)
+  @RequierePermiso(Permiso.CLIENTES_EDITAR)
   @ApiOperation({ summary: 'Subir fotos de cédula (frontal y/o trasera)' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileFieldsInterceptor(
@@ -150,7 +151,7 @@ export class ClientesController {
   }
 
   @Get(':id/cedula/:lado')
-  @Roles(Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT)
+  @RequierePermiso(Permiso.CLIENTES_VER, Permiso.RUTAS_VER_PROPIA)
   @ApiOperation({ summary: 'Ver foto de cédula (frontal o trasera)' })
   async verCedula(
     @CurrentUser() user: JwtPayload,

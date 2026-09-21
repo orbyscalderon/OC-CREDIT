@@ -3,11 +3,11 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Public } from '../../common/decorators/public.decorator';
 import { SkipSubscriptionCheck } from '../../common/decorators/skip-subscription-check.decorator';
-import { Roles } from '../../common/decorators/roles.decorator';
+import { RequierePermiso } from '../../common/decorators/permisos.decorator';
 import { CurrentUser, JwtPayload } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Rol } from '../../common/constants/roles.enum';
+import { PermisosGuard } from '../../common/guards/permisos.guard';
+import { Permiso } from '../../common/constants/permisos.enum';
 import { PlanesService } from './planes.service';
 import { RegistrarTenantDto } from './dto/registrar-tenant.dto';
 import { GooglePayRegistroDto } from './dto/google-pay-registro.dto';
@@ -48,8 +48,8 @@ export class PlanesController {
    * vencer la prueba de 7 días). Se salta el chequeo de suscripción vigente
    * para que un tenant bloqueado pueda pagar y desbloquearse.
    */
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Rol.ADMIN_TENANT)
+  @UseGuards(JwtAuthGuard, PermisosGuard)
+  @RequierePermiso(Permiso.PLANES_ADMIN)
   @SkipSubscriptionCheck()
   @Post('suscribir')
   @Throttle({ short: { limit: 3, ttl: 60_000 }, long: { limit: 10, ttl: 3_600_000 } })
