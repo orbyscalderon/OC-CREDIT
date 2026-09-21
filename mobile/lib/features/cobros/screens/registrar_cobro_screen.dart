@@ -142,6 +142,7 @@ class _RegistrarCobroScreenState extends ConsumerState<RegistrarCobroScreen> {
     // carga async del provider y ve "Debes abrir una caja primero" aunque sí
     // tenga una caja abierta.
     await ref.read(cajaActivaProvider.notifier).listo;
+    if (!mounted) return;
     final cajaId = ref.read(cajaActivaProvider)?.id;
     if (cajaId == null) {
       setState(() { _loading = false; _error = l10n.errorDebesAbrirCajaPrimero; });

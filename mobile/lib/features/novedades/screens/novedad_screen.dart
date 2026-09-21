@@ -56,21 +56,29 @@ class _NovedadScreenState extends ConsumerState<NovedadScreen> {
 
   Future<void> _enviar() async {
     final l10n = AppLocalizations.of(context)!;
+    setState(() => _loading = true);
+
+    // Igual que en registrar_cobro_screen.dart: sin esperar esto, un
+    // cobrador que entra directo a "Registrar novedad" sin haber tocado
+    // antes el provider (offline o no) puede perder la carrera contra la
+    // carga async del cache/red y ver el error aunque la caja sí esté abierta.
+    await ref.read(cajaActivaProvider.notifier).listo;
+    if (!mounted) return;
     final caja = ref.read(cajaActivaProvider);
     if (caja == null) {
+      setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.errorDebesAbrirCajaAntesNovedad)),
       );
       return;
     }
     if (_seleccionado == null) {
+      setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.errorSeleccionaClienteNovedad)),
       );
       return;
     }
-
-    setState(() => _loading = true);
     final uuid = const Uuid().v4();
 
     Position? pos;
