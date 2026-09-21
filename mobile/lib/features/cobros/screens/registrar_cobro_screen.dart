@@ -134,13 +134,19 @@ class _RegistrarCobroScreenState extends ConsumerState<RegistrarCobroScreen> {
       return;
     }
 
+    setState(() { _loading = true; _error = null; });
+
+    // Espera a que el provider termine de cargar (cache local u online) antes
+    // de decidir si hay caja abierta -- si se lee de inmediato, un cobrador
+    // que nunca visitó "Mi caja" en esta sesión pierde la carrera contra la
+    // carga async del provider y ve "Debes abrir una caja primero" aunque sí
+    // tenga una caja abierta.
+    await ref.read(cajaActivaProvider.notifier).listo;
     final cajaId = ref.read(cajaActivaProvider)?.id;
     if (cajaId == null) {
-      setState(() => _error = l10n.errorDebesAbrirCajaPrimero);
+      setState(() { _loading = false; _error = l10n.errorDebesAbrirCajaPrimero; });
       return;
     }
-
-    setState(() { _loading = true; _error = null; });
 
     final uuid = const Uuid().v4();
     final pos = await _getLocation();
