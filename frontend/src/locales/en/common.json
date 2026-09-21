@@ -804,7 +804,9 @@
     "por_ano": " / year",
     "por_mes": " / month",
     "error_pago": "Error processing the payment",
-    "cerrar_sesion": "Log out"
+    "cerrar_sesion": "Log out",
+    "solo_admin_titulo": "Subscription expired",
+    "solo_admin_subtitulo": "Only your company's administrator can renew the subscription. Ask them to log in and choose a plan so everyone can use the account again."
   },
   "superadmin": {
     "marca": "Super Admin",

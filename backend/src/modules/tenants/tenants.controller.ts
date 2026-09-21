@@ -57,9 +57,12 @@ export class TenantsController {
   @UseInterceptors(FileInterceptor('logo', {
     storage: memoryStorage(),
     fileFilter: (_req, file, cb) => {
-      const allowed = ['.png', '.jpg', '.jpeg', '.webp', '.svg'];
+      // SVG queda fuera a propósito -- puede llevar <script> embebido, y el
+      // bucket es público (cualquiera con la URL lo abre directo en el
+      // navegador, fuera del <img> "seguro" que usa el panel).
+      const allowed = ['.png', '.jpg', '.jpeg', '.webp'];
       if (!allowed.includes(extname(file.originalname).toLowerCase())) {
-        return cb(new BadRequestException('Formato no permitido. Usa PNG, JPG, WEBP o SVG'), false);
+        return cb(new BadRequestException('Formato no permitido. Usa PNG, JPG o WEBP'), false);
       }
       cb(null, true);
     },

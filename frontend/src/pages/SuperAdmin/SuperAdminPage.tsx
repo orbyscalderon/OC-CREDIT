@@ -79,7 +79,7 @@ function SuperAdminLogin({ onSuccess }: { onSuccess: () => void }) {
             <Lock size={16} className="text-white" />
           </div>
           <div>
-            <h1 className="text-base font-bold text-white">{t('superadmin.marca')}</h1>
+            <p className="text-base font-bold text-white">{t('superadmin.marca')}</p>
             <p className="text-xs text-gray-500">OCA HOLDING GROUP LLC</p>
           </div>
         </div>

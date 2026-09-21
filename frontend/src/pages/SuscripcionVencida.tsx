@@ -5,6 +5,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { planesApi, type Plan } from '@/api/planes.api';
 import { GooglePayButton } from '@/components/common/GooglePayButton';
 import { authStore } from '@/stores/auth.store';
+import { Rol } from '@/types';
 import { clsx } from 'clsx';
 
 export function SuscripcionVencidaPage() {
@@ -14,9 +15,16 @@ export function SuscripcionVencidaPage() {
   const [anual, setAnual] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Renovar la suscripción es una acción de facturación -- el backend solo
+  // la permite a admin_tenant. Un cobrador/supervisor con la empresa
+  // vencida llega aquí igual (a cualquiera lo bloquea el vencimiento), pero
+  // mostrarle el formulario de pago solo terminaría en un 403 confuso.
+  const esAdmin = authStore.getUser()?.rol === Rol.ADMIN_TENANT;
+
   const { data: planes = [] } = useQuery<Plan[]>({
     queryKey: ['planes-publicos'],
     queryFn: planesApi.listar,
+    enabled: esAdmin,
   });
 
   const suscribirMut = useMutation({
@@ -27,6 +35,23 @@ export function SuscripcionVencidaPage() {
 
   const planActual = planes.find((p) => p.id === planSeleccionado);
   const precio = planActual ? (anual ? Number(planActual.precio_anual_usd) : Number(planActual.precio_mensual_usd)) : 0;
+
+  if (!esAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6 py-12">
+        <div className="max-w-md w-full text-center">
+          <h1 className="text-2xl font-extrabold text-gray-900 mb-2">{t('suscripcion.solo_admin_titulo')}</h1>
+          <p className="text-gray-500">{t('suscripcion.solo_admin_subtitulo')}</p>
+          <button
+            onClick={() => { authStore.clearSession(); navigate('/login'); }}
+            className="mt-8 text-sm text-gray-400 hover:text-gray-600"
+          >
+            {t('suscripcion.cerrar_sesion')}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6 py-12">

@@ -12,7 +12,9 @@ import '../../../data/remote/api_client.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../providers/auth_provider.dart';
 
-const _extensionesLogoPermitidas = ['.png', '.jpg', '.jpeg', '.webp', '.svg'];
+// SVG queda fuera a propósito -- puede llevar <script> embebido y el
+// bucket de logos es público. Debe coincidir con tenants.controller.ts.
+const _extensionesLogoPermitidas = ['.png', '.jpg', '.jpeg', '.webp'];
 const _maxLogoBytes = 2 * 1024 * 1024;
 
 const Map<String, String> _zonasHorarias = {

@@ -30,7 +30,7 @@
     "react-hook-form": "^7.52.0",
     "react-i18next": "^17.0.14",
     "react-leaflet": "^4.2.1",
-    "react-router-dom": "^6.23.1",
+    "react-router-dom": "^7.18.4",
     "recharts": "^2.12.7",
     "tailwind-merge": "^2.3.0",
     "zod": "^3.23.8"

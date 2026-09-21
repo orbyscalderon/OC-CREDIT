@@ -804,7 +804,9 @@
     "por_ano": " / año",
     "por_mes": " / mes",
     "error_pago": "Error al procesar el pago",
-    "cerrar_sesion": "Cerrar sesión"
+    "cerrar_sesion": "Cerrar sesión",
+    "solo_admin_titulo": "Suscripción vencida",
+    "solo_admin_subtitulo": "Solo el administrador de tu empresa puede renovar la suscripción. Pídele que inicie sesión y elija un plan para que todos puedan volver a usar la cuenta."
   },
   "superadmin": {
     "marca": "Super Admin",
