@@ -95,6 +95,15 @@ export function CobroNuevoPage() {
   const moraPendiente = Number(saldoResp?.saldo_mora ?? 0);
   const montoSugerido = cuotaPendiente + moraPendiente;
 
+  // Saldo TOTAL del préstamo (todas las cuotas + mora, no solo la próxima
+  // cuota) -- el tope real contra el que no se puede cobrar de más. Usa
+  // saldoResp completo, no montoSugerido, porque un préstamo puede tener
+  // varias cuotas vencidas y montoSugerido solo cubre la primera.
+  const saldoTotalPrestamo = saldoResp
+    ? Number(saldoResp.saldo_cuotas ?? 0) + Number(saldoResp.saldo_mora ?? 0)
+    : null;
+  const montoExcedeSaldo = saldoTotalPrestamo !== null && (parseFloat(monto) || 0) > saldoTotalPrestamo;
+
   // El cobro debe entrar en la caja del cobrador asignado a ESTE préstamo —
   // mostrar las demás cajas del tenant solo confunde y el backend las
   // rechazaría igual. Si el cobrador tiene varias rutas/cajas hoy, se
@@ -148,7 +157,7 @@ export function CobroNuevoPage() {
     ? ((registrarMut.error as any)?.response?.data?.message ?? t('cobros.error_registrar'))
     : null;
 
-  const canSubmit = prestamoId && cajaId && parseFloat(monto) > 0;
+  const canSubmit = prestamoId && cajaId && parseFloat(monto) > 0 && !montoExcedeSaldo;
 
   if (resultado) {
     return (
@@ -335,11 +344,17 @@ export function CobroNuevoPage() {
                 type="number"
                 step="0.01"
                 min="1"
+                max={saldoTotalPrestamo ?? undefined}
                 value={monto}
                 onChange={(e) => setMonto(e.target.value)}
                 placeholder="0.00"
-                className="input-field mono-nums"
+                className={`input-field mono-nums ${montoExcedeSaldo ? 'border-red-400 focus:border-red-500' : ''}`}
               />
+              {montoExcedeSaldo && saldoTotalPrestamo !== null && (
+                <p className="text-xs text-red-600 mt-1.5 font-medium">
+                  {t('cobros.monto_excede_saldo', { monto: fmt(parseFloat(monto) || 0), saldo: fmt(saldoTotalPrestamo) })}
+                </p>
+              )}
               {proximaCuota && (
                 <>
                   <p className="text-xs text-gray-400 mt-1.5">

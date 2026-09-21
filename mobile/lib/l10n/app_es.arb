@@ -72,6 +72,8 @@
   "errorIngresaMontoValido": "Ingresa un monto válido",
   "errorDebesAbrirCajaPrimero": "Debes abrir una caja primero",
   "errorGpsObligatorio": "No se pudo obtener el GPS. Actívalo e intenta de nuevo — es obligatorio para registrar el cobro.",
+  "errorMontoMayorASaldo": "El monto ({monto}) supera el saldo pendiente del préstamo ({saldo}). Verifica antes de continuar.",
+  "@errorMontoMayorASaldo": { "placeholders": { "monto": { "type": "String" }, "saldo": { "type": "String" } } },
   "cobroRegistradoCorrectamente": "Cobro registrado correctamente",
   "sinRedCobroGuardado": "Sin red — cobro guardado y se enviará automáticamente",
   "registrarCoboTitulo": "Registrar cobro",
@@ -230,5 +232,11 @@
   "contrasenaNuevaLabel": "Contraseña nueva",
   "confirmarContrasenaLabel": "Confirmar contraseña nueva",
   "contrasenaActualizada": "Contraseña actualizada correctamente",
-  "errorCambiarContrasena": "No se pudo cambiar la contraseña. Verifica tu conexión."
+  "errorCambiarContrasena": "No se pudo cambiar la contraseña. Verifica tu conexión.",
+
+  "zonaPeligroTitulo": "Zona de peligro",
+  "eliminarMiCuentaTitulo": "Eliminar mi cuenta",
+  "eliminarCuentaAviso": "Se eliminan tu nombre, correo, contraseña y foto de perfil. Los préstamos y cobros que gestionaste quedan en el historial de la empresa (obligación contable), pero ya sin tu cuenta asociada. Esta acción no se puede deshacer.",
+  "eliminarCuentaConfirmarLabel": "Escribí ELIMINAR para confirmar",
+  "eliminarDefinitivamenteBoton": "Eliminar definitivamente"
 }

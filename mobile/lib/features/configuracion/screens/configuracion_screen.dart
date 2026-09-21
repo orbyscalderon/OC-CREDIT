@@ -282,6 +282,8 @@ class _ConfiguracionScreenState extends ConsumerState<ConfiguracionScreen> {
                       ),
                       const SizedBox(height: 20),
                       const _CambiarPasswordCard(),
+                      const SizedBox(height: 20),
+                      const _EliminarCuentaCard(),
                     ],
                   ),
       ),
@@ -667,6 +669,115 @@ class _CambiarPasswordCardState extends ConsumerState<_CambiarPasswordCard> {
                       child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                   : Text(l10n.cambiarContrasenaTitulo),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Requisito de Google Play: el usuario tiene que poder eliminar su cuenta
+// sin depender de soporte. El backend anonimiza (no borra físicamente) para
+// preservar préstamos/cobros por obligaciones contables de la empresa, y
+// bloquea el borrado si es el único admin_tenant activo del tenant.
+class _EliminarCuentaCard extends ConsumerStatefulWidget {
+  const _EliminarCuentaCard();
+  @override
+  ConsumerState<_EliminarCuentaCard> createState() => _EliminarCuentaCardState();
+}
+
+class _EliminarCuentaCardState extends ConsumerState<_EliminarCuentaCard> {
+  bool _expandido = false;
+  final _passwordCtrl = TextEditingController();
+  final _confirmarCtrl = TextEditingController();
+  bool _eliminando = false;
+
+  @override
+  void dispose() {
+    _passwordCtrl.dispose();
+    _confirmarCtrl.dispose();
+    super.dispose();
+  }
+
+  bool get _puedeEliminar => _passwordCtrl.text.isNotEmpty && _confirmarCtrl.text == 'ELIMINAR';
+
+  Future<void> _eliminarCuenta() async {
+    setState(() => _eliminando = true);
+    try {
+      await ApiClient.instance.dio.delete('/auth/mi-cuenta', data: {'password': _passwordCtrl.text});
+      if (mounted) await ref.read(authStateProvider.notifier).logout();
+    } catch (e) {
+      if (mounted) {
+        setState(() => _eliminando = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_mensajeError(context, e))));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: AppTheme.danger.withValues(alpha: 0.3)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(l10n.zonaPeligroTitulo,
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppTheme.danger)),
+                ),
+                OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppTheme.danger,
+                    side: const BorderSide(color: AppTheme.danger),
+                  ),
+                  onPressed: () => setState(() => _expandido = !_expandido),
+                  child: Text(l10n.eliminarMiCuentaTitulo),
+                ),
+              ],
+            ),
+            if (_expandido) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppTheme.warning.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(l10n.eliminarCuentaAviso, style: const TextStyle(fontSize: 12)),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _passwordCtrl,
+                obscureText: true,
+                decoration: InputDecoration(labelText: l10n.contrasenaActualLabel),
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _confirmarCtrl,
+                decoration: InputDecoration(labelText: l10n.eliminarCuentaConfirmarLabel),
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 14),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.danger),
+                onPressed: (_puedeEliminar && !_eliminando) ? _eliminarCuenta : null,
+                child: _eliminando
+                    ? const SizedBox(
+                        height: 18, width: 18,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : Text(l10n.eliminarDefinitivamenteBoton),
+              ),
+            ],
           ],
         ),
       ),

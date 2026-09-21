@@ -120,6 +120,20 @@ class _RegistrarCobroScreenState extends ConsumerState<RegistrarCobroScreen> {
       return;
     }
 
+    // No permitir cobrar más de lo que realmente se debe -- mismo tope que
+    // el backend (saldo_pendiente_total = todas las cuotas + mora), validado
+    // también aquí porque el cobrador puede estar sin red y el rechazo del
+    // servidor solo se vería al reintentar el envío encolado.
+    final saldoTotal = _prestamo?.saldoTotalPendiente ?? 0;
+    if (saldoTotal > 0 && monto > saldoTotal) {
+      final simbolo = ref.read(authStateProvider).tenantConfig.simboloMoneda;
+      setState(() => _error = l10n.errorMontoMayorASaldo(
+            '$simbolo ${monto.toStringAsFixed(2)}',
+            '$simbolo ${saldoTotal.toStringAsFixed(2)}',
+          ));
+      return;
+    }
+
     final cajaId = ref.read(cajaActivaProvider)?.id;
     if (cajaId == null) {
       setState(() => _error = l10n.errorDebesAbrirCajaPrimero);

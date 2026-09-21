@@ -22,26 +22,29 @@ export class PortalService {
       SELECT
         cl.id, cl.nombre, cl.apellido, cl.cedula, cl.telefono,
         COALESCE(ts.simbolo_moneda, 'RD$') AS simbolo_moneda,
-        json_agg(json_build_object(
-          'prestamo_id',   pr.id,
-          'capital',       pr.capital_aprobado,
-          'estado',        pr.estado,
-          'modalidad',     pr.modalidad,
-          'cuotas_pendientes', (
-            SELECT COUNT(*) FROM cuotas_amortizacion c
-            WHERE c.prestamo_id = pr.id AND c.estado IN ('Pendiente','Abonado','Vencida')
-          ),
-          'proxima_cuota', (
-            SELECT json_build_object(
-              'numero', c.numero_cuota,
-              'monto',  c.monto_total,
-              'vence',  c.fecha_vencimiento
+        COALESCE(
+          json_agg(json_build_object(
+            'prestamo_id',   pr.id,
+            'capital',       pr.capital_aprobado,
+            'estado',        pr.estado,
+            'modalidad',     pr.modalidad,
+            'cuotas_pendientes', (
+              SELECT COUNT(*) FROM cuotas_amortizacion c
+              WHERE c.prestamo_id = pr.id AND c.estado IN ('Pendiente','Abonado','Vencida')
+            ),
+            'proxima_cuota', (
+              SELECT json_build_object(
+                'numero', c.numero_cuota,
+                'monto',  c.monto_total,
+                'vence',  c.fecha_vencimiento
+              )
+              FROM cuotas_amortizacion c
+              WHERE c.prestamo_id = pr.id AND c.estado IN ('Pendiente','Abonado')
+              ORDER BY c.fecha_vencimiento ASC LIMIT 1
             )
-            FROM cuotas_amortizacion c
-            WHERE c.prestamo_id = pr.id AND c.estado IN ('Pendiente','Abonado')
-            ORDER BY c.fecha_vencimiento ASC LIMIT 1
-          )
-        ) ORDER BY pr.created_at DESC) AS prestamos
+          ) ORDER BY pr.created_at DESC) FILTER (WHERE pr.id IS NOT NULL),
+          '[]'
+        ) AS prestamos
       FROM clientes cl
       LEFT JOIN prestamos pr ON pr.cliente_id = cl.id AND pr.estado IN ('Activo','Vencido')
       LEFT JOIN tenant_settings ts ON ts.tenant_id = cl.tenant_id

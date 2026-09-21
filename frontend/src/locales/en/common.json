@@ -1008,7 +1008,8 @@
     "observacion_placeholder": "E.g.: Paid in cash at the office",
     "error_registrar": "Error recording payment",
     "registrando": "Recording…",
-    "registrar_cobro": "Record payment"
+    "registrar_cobro": "Record payment",
+    "monto_excede_saldo": "The amount ({{monto}}) exceeds the loan's outstanding balance ({{saldo}}). Check before recording."
   },
   "login": {
     "email_invalido": "Invalid email",

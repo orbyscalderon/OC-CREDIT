@@ -16,6 +16,11 @@ class PrestamoCache {
   final double montoMora;
   final String? rutaId;
   final int? ordenVisita;
+  // Saldo pendiente TOTAL del préstamo (todas las cuotas + mora, no solo la
+  // próxima cuota) -- el tope real contra el que no se puede cobrar de más,
+  // usado en registrar_cobro_screen para bloquear un monto excesivo incluso
+  // sin conexión.
+  final double saldoTotalPendiente;
 
   const PrestamoCache({
     required this.id,
@@ -32,6 +37,7 @@ class PrestamoCache {
     required this.montoMora,
     this.rutaId,
     this.ordenVisita,
+    this.saldoTotalPendiente = 0,
   });
 
   factory PrestamoCache.fromMap(Map<String, dynamic> m) => PrestamoCache(
@@ -49,6 +55,7 @@ class PrestamoCache {
         montoMora: (m['monto_mora'] as num).toDouble(),
         rutaId: m['ruta_id'] as String?,
         ordenVisita: m['orden_visita'] as int?,
+        saldoTotalPendiente: (m['saldo_total_pendiente'] as num?)?.toDouble() ?? 0,
       );
 
   Map<String, dynamic> toMap() => {
@@ -66,6 +73,7 @@ class PrestamoCache {
         'monto_mora': montoMora,
         'ruta_id': rutaId,
         'orden_visita': ordenVisita,
+        'saldo_total_pendiente': saldoTotalPendiente,
         'synced_at': DateTime.now().toIso8601String(),
       };
 }

@@ -158,6 +158,10 @@ export const MESSAGES: Record<string, Entrada> = {
     es: 'El préstamo no tiene cuotas pendientes de cobro.',
     en: 'The loan has no pending installments to collect.',
   },
+  cobros_monto_mayor_a_saldo: {
+    es: 'El monto ({{monto}}) es mayor al saldo pendiente del préstamo ({{saldo}}). Verifica el monto antes de registrar el cobro.',
+    en: 'The amount ({{monto}}) exceeds the loan\'s outstanding balance ({{saldo}}). Check the amount before registering the payment.',
+  },
   cobros_no_encontrado_para_tenant: {
     es: 'Cobro no encontrado para este tenant',
     en: 'Payment not found for this tenant',

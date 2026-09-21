@@ -42,6 +42,7 @@ export class PrestamosService {
     @InjectEntityManager() private readonly em: EntityManager,
     @InjectRepository(Prestamo) private readonly prestamoRepo: Repository<Prestamo>,
     @InjectRepository(CuotaAmortizacion) private readonly cuotaRepo: Repository<CuotaAmortizacion>,
+    @InjectRepository(CargoMora) private readonly moraRepo: Repository<CargoMora>,
     @InjectRepository(Ruta) private readonly rutaRepo: Repository<Ruta>,
     private readonly buroCreditoService: BuroCreditoService,
     private readonly planesService: PlanesService,
@@ -506,7 +507,7 @@ export class PrestamosService {
 
     const [data, total] = await this.prestamoRepo.findAndCount({
       where,
-      relations: ['cliente'],
+      relations: ['cliente', 'cuotas'],
       order: { created_at: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
@@ -527,7 +528,27 @@ export class PrestamosService {
       });
     }
 
-    return { data: data.map((p) => this.mapPrestamo(p)), total, page, limit };
+    // Mora pendiente por préstamo, en un único query -- la app móvil (única
+    // consumidora de cuota_monto/monto_mora en este listado, para el cache
+    // offline de la ruta) necesita saber si hay mora sin traer el detalle
+    // completo de cada préstamo uno por uno.
+    const prestamoIds = data.map((p) => p.id);
+    const moraPorPrestamo = new Map<string, number>();
+    if (prestamoIds.length > 0) {
+      const morasPendientes = await this.moraRepo.find({
+        where: { prestamo_id: In(prestamoIds), estado: EstadoCargoMora.PENDIENTE },
+      });
+      for (const m of morasPendientes) {
+        moraPorPrestamo.set(m.prestamo_id, (moraPorPrestamo.get(m.prestamo_id) ?? 0) + m.saldo_mora);
+      }
+    }
+
+    return {
+      data: data.map((p) => this.mapPrestamo(p, undefined, moraPorPrestamo.get(p.id) ?? 0)),
+      total,
+      page,
+      limit,
+    };
   }
 
   async obtener(tenantId: string, prestamoId: string, cobradorId?: string) {
@@ -545,7 +566,12 @@ export class PrestamosService {
       order: { numero_cuota: 'ASC' },
     });
 
-    return this.mapPrestamo(prestamo, cuotas);
+    const morasPendientes = await this.moraRepo.find({
+      where: { prestamo_id: prestamoId, estado: EstadoCargoMora.PENDIENTE },
+    });
+    const moraPendiente = morasPendientes.reduce((acc, m) => acc + m.saldo_mora, 0);
+
+    return this.mapPrestamo(prestamo, cuotas, moraPendiente);
   }
 
   async rechazar(tenantId: string, prestamoId: string, dto: RechazarPrestamoDto) {
@@ -562,8 +588,20 @@ export class PrestamosService {
     return this.mapPrestamo(guardado);
   }
 
-  /** Adapta la entidad Prestamo al formato consumido por el panel web. */
-  mapPrestamo(p: Prestamo, cuotas?: CuotaAmortizacion[]) {
+  /**
+   * Adapta la entidad Prestamo al formato consumido por el panel web y la
+   * app móvil. `moraPendiente`, cuando se pasa, viene ya calculado por el
+   * caller (listar/obtener) para evitar un query de mora por préstamo.
+   */
+  mapPrestamo(p: Prestamo, cuotas?: CuotaAmortizacion[], moraPendiente?: number) {
+    const cuotasList = cuotas ?? p.cuotas ?? [];
+    const proximaCuota = [...cuotasList]
+      .sort((a, b) => a.numero_cuota - b.numero_cuota)
+      .find((c) => c.estado !== EstadoCuota.PAGADO);
+    const cuotasPagadas = cuotasList.filter((c) => c.estado === EstadoCuota.PAGADO).length;
+    const mora = moraPendiente ?? 0;
+    const saldoCuotasPendiente = cuotasList.reduce((acc, c) => acc + c.saldo_pendiente, 0);
+
     return {
       id: p.id,
       cliente_id: p.cliente_id,
@@ -576,6 +614,16 @@ export class PrestamosService {
       capital_aprobado: p.capital_aprobado ?? p.capital_solicitado,
       tasa_interes: p.tasa_interes_pactada,
       num_cuotas: p.numero_cuotas,
+      cuotas_pagadas: cuotasPagadas,
+      // Monto pendiente de la próxima cuota sin pagar -- lo que la app móvil
+      // usa como sugerido al registrar un cobro en ruta.
+      cuota_monto: proximaCuota ? proximaCuota.saldo_pendiente : 0,
+      tiene_mora: mora > 0,
+      monto_mora: mora,
+      // Saldo pendiente TOTAL (todas las cuotas + mora) -- distinto de
+      // cuota_monto (solo la próxima cuota). Lo usa la app móvil como tope
+      // para no permitir un cobro mayor a lo que realmente se debe.
+      saldo_pendiente_total: saldoCuotasPendiente + mora,
       modalidad: p.modalidad,
       estado: p.estado,
       fecha_aprobacion: p.fecha_aprobacion,

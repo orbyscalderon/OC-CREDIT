@@ -230,6 +230,11 @@ class AppLocalizationsEs extends AppLocalizations {
       'No se pudo obtener el GPS. Actívalo e intenta de nuevo — es obligatorio para registrar el cobro.';
 
   @override
+  String errorMontoMayorASaldo(String monto, String saldo) {
+    return 'El monto ($monto) supera el saldo pendiente del préstamo ($saldo). Verifica antes de continuar.';
+  }
+
+  @override
   String get cobroRegistradoCorrectamente => 'Cobro registrado correctamente';
 
   @override
@@ -707,4 +712,20 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get errorCambiarContrasena =>
       'No se pudo cambiar la contraseña. Verifica tu conexión.';
+
+  @override
+  String get zonaPeligroTitulo => 'Zona de peligro';
+
+  @override
+  String get eliminarMiCuentaTitulo => 'Eliminar mi cuenta';
+
+  @override
+  String get eliminarCuentaAviso =>
+      'Se eliminan tu nombre, correo, contraseña y foto de perfil. Los préstamos y cobros que gestionaste quedan en el historial de la empresa (obligación contable), pero ya sin tu cuenta asociada. Esta acción no se puede deshacer.';
+
+  @override
+  String get eliminarCuentaConfirmarLabel => 'Escribí ELIMINAR para confirmar';
+
+  @override
+  String get eliminarDefinitivamenteBoton => 'Eliminar definitivamente';
 }

@@ -85,6 +85,7 @@ class SyncService {
                 montoMora: (json['monto_mora'] as num? ?? 0).toDouble(),
                 rutaId: json['ruta_id'] as String?,
                 ordenVisita: json['orden_visita'] as int?,
+                saldoTotalPendiente: (json['saldo_pendiente_total'] as num? ?? 0).toDouble(),
               ))
           .toList();
       await _cacheDao.upsertAll(items);

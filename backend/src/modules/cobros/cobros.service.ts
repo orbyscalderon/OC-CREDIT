@@ -217,6 +217,28 @@ export class CobrosService {
         );
       }
 
+      // ── 6b. NO PERMITIR COBRAR MÁS DE LO QUE SE DEBE ────────────────────
+      // Se compara en centavos contra el saldo total (cuotas + mora) para
+      // evitar que un error de tipeo (ej. 5000 en vez de 500) quede
+      // registrado como "excedente" silencioso -- si el cliente de verdad
+      // quiere saldar con algo de vuelto, que sea decisión explícita del
+      // admin/supervisor vía "Saldar cuenta", no un cobro de ruta normal.
+      const saldoTotalCents = toCents(
+        cuotasPendientes.reduce((acc, c) => acc + c.saldo_pendiente, 0)
+        + morasPendientes.reduce((acc, m) => acc + m.saldo_mora, 0),
+      );
+      const montoCobradoCents = toCents(dto.monto_cobrado);
+      if (montoCobradoCents > saldoTotalCents) {
+        throw new BadRequestException({
+          code: 'MONTO_MAYOR_A_SALDO',
+          message: msg('cobros_monto_mayor_a_saldo', {
+            monto: dto.monto_cobrado.toFixed(2),
+            saldo: fromCents(saldoTotalCents).toFixed(2),
+          }),
+          saldo_pendiente: fromCents(saldoTotalCents),
+        });
+      }
+
       // ── 7. ALGORITMO DE DISTRIBUCIÓN EN CASCADA ─────────────────────────
       const hoyCobro = fechaHoyEnZona(await this.zonaHorariaService.obtener(tenantId));
       const distribucion = await this.aplicarCascada(

@@ -1008,7 +1008,8 @@
     "observacion_placeholder": "Ej: Pagó en efectivo en oficina",
     "error_registrar": "Error al registrar cobro",
     "registrando": "Registrando…",
-    "registrar_cobro": "Registrar cobro"
+    "registrar_cobro": "Registrar cobro",
+    "monto_excede_saldo": "El monto ({{monto}}) supera el saldo pendiente del préstamo ({{saldo}}). Verifica antes de registrar."
   },
   "login": {
     "email_invalido": "Email inválido",

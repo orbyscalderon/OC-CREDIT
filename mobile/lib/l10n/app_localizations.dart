@@ -490,6 +490,12 @@ abstract class AppLocalizations {
   /// **'No se pudo obtener el GPS. Actívalo e intenta de nuevo — es obligatorio para registrar el cobro.'**
   String get errorGpsObligatorio;
 
+  /// No description provided for @errorMontoMayorASaldo.
+  ///
+  /// In es, this message translates to:
+  /// **'El monto ({monto}) supera el saldo pendiente del préstamo ({saldo}). Verifica antes de continuar.'**
+  String errorMontoMayorASaldo(String monto, String saldo);
+
   /// No description provided for @cobroRegistradoCorrectamente.
   ///
   /// In es, this message translates to:
@@ -1407,6 +1413,36 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'No se pudo cambiar la contraseña. Verifica tu conexión.'**
   String get errorCambiarContrasena;
+
+  /// No description provided for @zonaPeligroTitulo.
+  ///
+  /// In es, this message translates to:
+  /// **'Zona de peligro'**
+  String get zonaPeligroTitulo;
+
+  /// No description provided for @eliminarMiCuentaTitulo.
+  ///
+  /// In es, this message translates to:
+  /// **'Eliminar mi cuenta'**
+  String get eliminarMiCuentaTitulo;
+
+  /// No description provided for @eliminarCuentaAviso.
+  ///
+  /// In es, this message translates to:
+  /// **'Se eliminan tu nombre, correo, contraseña y foto de perfil. Los préstamos y cobros que gestionaste quedan en el historial de la empresa (obligación contable), pero ya sin tu cuenta asociada. Esta acción no se puede deshacer.'**
+  String get eliminarCuentaAviso;
+
+  /// No description provided for @eliminarCuentaConfirmarLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Escribí ELIMINAR para confirmar'**
+  String get eliminarCuentaConfirmarLabel;
+
+  /// No description provided for @eliminarDefinitivamenteBoton.
+  ///
+  /// In es, this message translates to:
+  /// **'Eliminar definitivamente'**
+  String get eliminarDefinitivamenteBoton;
 }
 
 class _AppLocalizationsDelegate
