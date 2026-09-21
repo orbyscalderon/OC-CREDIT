@@ -7,7 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { randomUUID } from 'crypto';
+import { createHash, randomBytes, randomUUID } from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
 import { LoginDto, LoginResponseDto } from './dto/login.dto';
 import { Usuario } from '../usuarios/entities/usuario.entity';
@@ -16,6 +16,10 @@ import { TenantSettings } from '../tenants/entities/tenant-settings.entity';
 import { Tenant } from '../tenants/entities/tenant.entity';
 import { msg } from '../../common/i18n/messages';
 import { Rol } from '../../common/constants/roles.enum';
+import { EmailService } from '../../common/services/email.service';
+import { plantillaRecuperarPassword } from '../../common/services/email-templates/templates';
+
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hora
 
 @Injectable()
 export class AuthService {
@@ -26,6 +30,7 @@ export class AuthService {
     @InjectRepository(Empleado) private readonly empleadoRepo: Repository<Empleado>,
     @InjectRepository(TenantSettings) private readonly settingsRepo: Repository<TenantSettings>,
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
+    private readonly emailService: EmailService,
   ) {}
 
   async login(dto: LoginDto): Promise<LoginResponseDto> {
@@ -286,6 +291,54 @@ export class AuthService {
       password_hash: await bcrypt.hash(randomUUID(), 12),
       activo: false,
       token_refresh: null,
+    });
+  }
+
+  /**
+   * No revela si el email existe (mismo criterio anti-enumeración que
+   * login()) -- siempre responde éxito, pero solo envía el email si el
+   * usuario realmente existe y está activo.
+   */
+  async olvidePassword(email: string): Promise<void> {
+    const usuario = await this.usuarioRepo.findOne({
+      where: { email: email.toLowerCase().trim() },
+    });
+    if (!usuario || !usuario.activo) return;
+
+    const token = randomBytes(32).toString('hex');
+    const tokenHash = createHash('sha256').update(token).digest('hex');
+
+    await this.usuarioRepo.update(usuario.id, {
+      reset_password_token_hash: tokenHash,
+      reset_password_expira: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+    });
+
+    const empleado = await this.empleadoRepo.findOne({ where: { usuario_id: usuario.id } });
+    const nombre = empleado?.nombre ?? usuario.email;
+    const frontendUrl = this.config.get<string>('FRONTEND_URL') ?? 'https://ocaruta.com';
+    const link = `${frontendUrl}/resetear-password?token=${token}`;
+
+    const { subject, html } = plantillaRecuperarPassword({ nombre, link });
+    await this.emailService.enviar({ to: usuario.email, subject, html });
+  }
+
+  async resetearPassword(token: string, nuevaPassword: string): Promise<void> {
+    if (nuevaPassword.length < 8) throw new BadRequestException(msg('auth_password_nueva_muy_corta'));
+
+    const tokenHash = createHash('sha256').update(token).digest('hex');
+    const usuario = await this.usuarioRepo.findOne({
+      where: { reset_password_token_hash: tokenHash },
+    });
+
+    if (!usuario || !usuario.reset_password_expira || usuario.reset_password_expira < new Date()) {
+      throw new BadRequestException(msg('auth_reset_token_invalido'));
+    }
+
+    await this.usuarioRepo.update(usuario.id, {
+      password_hash: await bcrypt.hash(nuevaPassword, 12),
+      reset_password_token_hash: null,
+      reset_password_expira: null,
+      token_refresh: null, // invalida sesiones activas -- coherente con un cambio de contraseña
     });
   }
 }

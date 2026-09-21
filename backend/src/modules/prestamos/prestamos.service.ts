@@ -3,6 +3,7 @@ import {
   Logger, NotFoundException,
 } from '@nestjs/common';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
+import { ConfigService } from '@nestjs/config';
 import { EntityManager, In, Repository } from 'typeorm';
 import { Prestamo } from './entities/prestamo.entity';
 import { CuotaAmortizacion } from './entities/cuota-amortizacion.entity';
@@ -29,6 +30,8 @@ import {
 } from './helpers/dias-habiles.helper';
 import { fechaHoyEnZona } from '../../common/utils/fecha-negocio.util';
 import { ZonaHorariaService } from '../../common/services/zona-horaria.service';
+import { EmailService } from '../../common/services/email.service';
+import { plantillaAvisoAdmin } from '../../common/services/email-templates/templates';
 import { msg } from '../../common/i18n/messages';
 
 const toCents = (n: number) => Math.round(n * 100);
@@ -47,6 +50,8 @@ export class PrestamosService {
     private readonly buroCreditoService: BuroCreditoService,
     private readonly planesService: PlanesService,
     private readonly zonaHorariaService: ZonaHorariaService,
+    private readonly emailService: EmailService,
+    private readonly config: ConfigService,
   ) {}
 
   // ─── CREAR SOLICITUD ───────────────────────────────────────────────────────
@@ -112,7 +117,50 @@ export class PrestamosService {
       fecha_solicitud: fechaHoyEnZona(await this.zonaHorariaService.obtener(tenantId)),
     });
 
-    return this.prestamoRepo.save(prestamo);
+    const guardado = await this.prestamoRepo.save(prestamo);
+
+    // Avisar a los admins del tenant SOLO cuando la solicitud vino de un
+    // cobrador en la calle -- si el propio admin/supervisor la creó desde
+    // el panel, ya sabe que existe, notificarle sería ruido.
+    if (cobradorIdSiAplica) {
+      await this.notificarSolicitudPendiente(tenantId, guardado.id, dto.cliente_id, cobradorIdSiAplica);
+    }
+
+    return guardado;
+  }
+
+  private async notificarSolicitudPendiente(
+    tenantId: string,
+    prestamoId: string,
+    clienteId: string,
+    cobradorId: string,
+  ): Promise<void> {
+    const [admins, cliente, cobrador] = await Promise.all([
+      this.em.query(
+        `SELECT u.email, e.nombre FROM usuarios u
+         JOIN empleados e ON e.usuario_id = u.id
+         WHERE u.tenant_id = $1 AND u.rol = 'admin_tenant' AND u.activo = TRUE`,
+        [tenantId],
+      ),
+      this.em.query(`SELECT nombre, apellido FROM clientes WHERE id = $1`, [clienteId]),
+      this.em.query(`SELECT nombre, apellido FROM empleados WHERE id = $1`, [cobradorId]),
+    ]);
+    if (!admins.length) return;
+
+    const nombreCliente = cliente[0] ? `${cliente[0].nombre} ${cliente[0].apellido}` : 'un cliente';
+    const nombreCobrador = cobrador[0] ? `${cobrador[0].nombre} ${cobrador[0].apellido}` : 'un cobrador';
+    const frontendUrl = this.config.get<string>('FRONTEND_URL') ?? 'https://ocaruta.com';
+
+    await Promise.all(admins.map((admin: { email: string; nombre: string }) => {
+      const { subject, html } = plantillaAvisoAdmin({
+        nombreAdmin: admin.nombre,
+        titulo: 'Nueva solicitud de préstamo para aprobar',
+        mensaje: `${nombreCobrador} solicitó un préstamo para ${nombreCliente}. Revisala en el panel para aprobarla o rechazarla.`,
+        link: `${frontendUrl}/prestamos/${prestamoId}`,
+        textoLink: 'Revisar solicitud',
+      });
+      return this.emailService.enviar({ to: admin.email, subject, html });
+    }));
   }
 
   // ─── APROBAR + GENERAR PLAN DE AMORTIZACIÓN ────────────────────────────────

@@ -5,6 +5,7 @@ import { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { OlvidePasswordDto, ResetearPasswordDto } from './dto/reset-password.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, JwtPayload } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
@@ -120,5 +121,26 @@ export class AuthController {
   ) {
     await this.authService.logout(user.sub);
     res.clearCookie(COOKIE_NAME, { path: '/api' });
+  }
+
+  @Public()
+  @Post('olvide-password')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ long: { limit: 5, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Solicitar email de recuperación de contraseña' })
+  async olvidePassword(@Body() dto: OlvidePasswordDto) {
+    await this.authService.olvidePassword(dto.email);
+    // Mismo mensaje exista o no el email -- ver comentario en el service.
+    return { mensaje: 'Si el email existe, se envió un enlace para recuperar la contraseña.' };
+  }
+
+  @Public()
+  @Post('resetear-password')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ long: { limit: 8, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Establecer nueva contraseña con el token del email' })
+  async resetearPassword(@Body() dto: ResetearPasswordDto) {
+    await this.authService.resetearPassword(dto.token, dto.nueva_password);
+    return { mensaje: 'Contraseña actualizada correctamente' };
   }
 }

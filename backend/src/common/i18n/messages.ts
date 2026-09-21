@@ -74,6 +74,10 @@ export const MESSAGES: Record<string, Entrada> = {
     es: 'La nueva contraseña debe tener al menos 8 caracteres',
     en: 'The new password must be at least 8 characters long',
   },
+  auth_reset_token_invalido: {
+    es: 'El enlace no es válido o ya venció. Solicitá uno nuevo.',
+    en: 'The link is invalid or has expired. Request a new one.',
+  },
   auth_ultimo_admin_no_puede_eliminarse: {
     es: 'Sos el único administrador de esta empresa — no podés eliminar tu cuenta vos mismo. Contactá a soporte para cerrar la cuenta de la empresa completa.',
     en: 'You are the only administrator of this company — you cannot delete your own account. Contact support to close the entire company account.',

@@ -114,9 +114,14 @@ export function LoginPage() {
 
             {/* Password */}
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
-                {t('login.contrasena')}
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                  {t('login.contrasena')}
+                </label>
+                <Link to="/olvide-password" className="text-xs text-brand-600 hover:text-brand-700 font-medium">
+                  {t('login.olvidaste_password')}
+                </Link>
+              </div>
               <div className="relative">
                 <input
                   {...register('password')}

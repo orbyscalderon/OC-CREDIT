@@ -15,6 +15,8 @@ import { monedaPorPais } from '../../common/constants/monedas-por-pais';
 import { zonaHorariaPorPais } from '../../common/constants/zona-horaria-por-pais';
 import { fechaHoyEnZona } from '../../common/utils/fecha-negocio.util';
 import { ZonaHorariaService } from '../../common/services/zona-horaria.service';
+import { EmailService } from '../../common/services/email.service';
+import { plantillaBienvenida } from '../../common/services/email-templates/templates';
 import { msg } from '../../common/i18n/messages';
 
 @Injectable()
@@ -27,6 +29,7 @@ export class PlanesService {
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
     @InjectRepository(Usuario) private readonly usuarioRepo: Repository<Usuario>,
     private readonly zonaHorariaService: ZonaHorariaService,
+    private readonly emailService: EmailService,
   ) {}
 
   async listarPlanes() {
@@ -94,7 +97,7 @@ export class PlanesService {
     const zonaHoraria = zonaHorariaPorPais(pais);
     const hoy = fechaHoyEnZona(zonaHoraria);
 
-    return this.ds.transaction(async (em) => {
+    const resultado = await this.ds.transaction(async (em) => {
       const tenant = em.create(Tenant, {
         nombre_empresa: dto.nombre_empresa,
         ruc_cedula: dto.ruc_cedula || `TEMP-${Date.now()}`,
@@ -157,6 +160,19 @@ export class PlanesService {
           : `Empresa "${dto.nombre_empresa}" registrada con 7 días de prueba gratis del plan ${plan.nombre}. Ya puedes iniciar sesión.`,
       };
     });
+
+    // Fuera de la transacción a propósito -- un email que falla no debe
+    // revertir el registro, que ya tuvo éxito en la BD.
+    const frontendUrl = this.config.get<string>('FRONTEND_URL') ?? 'https://ocaruta.com';
+    const { subject, html } = plantillaBienvenida({
+      nombreEmpresa: dto.nombre_empresa,
+      nombreAdmin: dto.nombre_admin,
+      email: dto.email_admin.toLowerCase(),
+      loginUrl: `${frontendUrl}/login`,
+    });
+    await this.emailService.enviar({ to: dto.email_admin.toLowerCase(), subject, html });
+
+    return resultado;
   }
 
   /**

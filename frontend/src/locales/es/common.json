@@ -1028,6 +1028,29 @@
     "contrasena": "Contraseña",
     "iniciando_sesion": "Iniciando sesión…",
     "iniciar_sesion": "Iniciar sesión",
-    "o_continua_con": "o continúa con"
+    "o_continua_con": "o continúa con",
+    "olvidaste_password": "¿Olvidaste tu contraseña?"
+  },
+  "olvide_password": {
+    "titulo": "Recuperar contraseña",
+    "subtitulo": "Ingresá tu email y te mandamos un enlace para restablecerla.",
+    "enviar": "Enviar enlace",
+    "enviando": "Enviando…",
+    "volver_login": "← Volver a iniciar sesión",
+    "exito_titulo": "Revisá tu email",
+    "exito_mensaje": "Si el email existe en nuestro sistema, te mandamos un enlace para restablecer tu contraseña. Revisá también la carpeta de spam."
+  },
+  "resetear_password": {
+    "titulo": "Nueva contraseña",
+    "subtitulo": "Elegí una contraseña nueva para tu cuenta.",
+    "nueva_password": "Contraseña nueva",
+    "confirmar_password": "Confirmar contraseña",
+    "no_coinciden": "Las contraseñas no coinciden",
+    "guardar": "Guardar nueva contraseña",
+    "guardando": "Guardando…",
+    "exito_titulo": "Contraseña actualizada",
+    "exito_mensaje": "Ya podés iniciar sesión con tu contraseña nueva.",
+    "ir_login": "Ir a iniciar sesión",
+    "token_faltante": "Este enlace no es válido. Solicitá uno nuevo desde la pantalla de inicio de sesión."
   }
 }

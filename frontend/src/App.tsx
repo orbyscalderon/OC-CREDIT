@@ -9,6 +9,8 @@ import { LandingPage } from '@/pages/Landing/LandingPage';
 // exportación de PDF antes de ver nada. Afecta LCP/TTI real y, para la
 // landing, es señal de ranking (Core Web Vitals).
 const LoginPage = lazy(() => import('@/pages/Login').then((m) => ({ default: m.LoginPage })));
+const OlvidePasswordPage = lazy(() => import('@/pages/OlvidePassword').then((m) => ({ default: m.OlvidePasswordPage })));
+const ResetearPasswordPage = lazy(() => import('@/pages/ResetearPassword').then((m) => ({ default: m.ResetearPasswordPage })));
 const DashboardPage = lazy(() => import('@/pages/Dashboard').then((m) => ({ default: m.DashboardPage })));
 const ClientesPage = lazy(() => import('@/pages/Clientes/ClientesPage').then((m) => ({ default: m.ClientesPage })));
 const ClienteDetallePage = lazy(() => import('@/pages/Clientes/ClienteDetallePage').then((m) => ({ default: m.ClienteDetallePage })));
@@ -58,6 +60,8 @@ export default function App() {
           {/* Rutas públicas */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/olvide-password" element={<OlvidePasswordPage />} />
+          <Route path="/resetear-password" element={<ResetearPasswordPage />} />
           <Route path="/portal" element={<PortalClientePage />} />
           <Route path="/super-admin" element={<SuperAdminPage />} />
           <Route path="/suscripcion-vencida" element={<SuscripcionVencidaPage />} />

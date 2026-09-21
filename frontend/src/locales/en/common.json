@@ -1028,6 +1028,29 @@
     "contrasena": "Password",
     "iniciando_sesion": "Signing in…",
     "iniciar_sesion": "Log in",
-    "o_continua_con": "or continue with"
+    "o_continua_con": "or continue with",
+    "olvidaste_password": "Forgot your password?"
+  },
+  "olvide_password": {
+    "titulo": "Reset your password",
+    "subtitulo": "Enter your email and we'll send you a link to reset it.",
+    "enviar": "Send link",
+    "enviando": "Sending…",
+    "volver_login": "← Back to sign in",
+    "exito_titulo": "Check your email",
+    "exito_mensaje": "If that email exists in our system, we've sent a link to reset your password. Check your spam folder too."
+  },
+  "resetear_password": {
+    "titulo": "New password",
+    "subtitulo": "Choose a new password for your account.",
+    "nueva_password": "New password",
+    "confirmar_password": "Confirm password",
+    "no_coinciden": "Passwords don't match",
+    "guardar": "Save new password",
+    "guardando": "Saving…",
+    "exito_titulo": "Password updated",
+    "exito_mensaje": "You can now sign in with your new password.",
+    "ir_login": "Go to sign in",
+    "token_faltante": "This link isn't valid. Request a new one from the sign-in screen."
   }
 }

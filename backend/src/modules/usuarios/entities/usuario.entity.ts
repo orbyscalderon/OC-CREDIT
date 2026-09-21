@@ -49,6 +49,15 @@ export class Usuario {
   @Column({ default: false })
   must_change_pwd: boolean;
 
+  /** sha256 del token de recuperación de contraseña vigente. NULL si no hay solicitud pendiente. */
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  @Exclude()
+  reset_password_token_hash: string;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  @Exclude()
+  reset_password_expira: Date;
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 
