@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../data/local/prestamos_cache_dao.dart';
 import '../data/remote/api_client.dart';
 
 class TenantConfig {
@@ -149,6 +150,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> logout() async {
     await ApiClient.instance.deleteToken();
+    // Sin esto, el próximo login (de otro cobrador u otro tenant en el mismo
+    // equipo) seguía mostrando préstamos cacheados de la sesión anterior,
+    // porque refreshCache() solo hace upsert y nunca borra lo que el server
+    // ya no devuelve.
+    await PrestamoCacheDao().clear();
     state = const AuthState();
   }
 }

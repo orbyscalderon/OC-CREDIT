@@ -81,9 +81,15 @@ class PrestamoCache {
 class PrestamoCacheDao {
   Future<Database> get _db => DatabaseHelper.instance.database;
 
+  /// Reemplaza TODO el cache con [items] -- refreshCache() llama esto con la
+  /// lista completa de préstamos activos del cobrador, así que un préstamo
+  /// que ya no viene en la respuesta (pagado, transferido a otro cobrador,
+  /// u otro tenant tras un cambio de sesión) debe desaparecer del cache, no
+  /// quedar mostrándose como si siguiera activo.
   Future<void> upsertAll(List<PrestamoCache> items) async {
     final db = await _db;
     final batch = db.batch();
+    batch.delete('prestamos_cache');
     for (final item in items) {
       batch.insert('prestamos_cache', item.toMap(),
           conflictAlgorithm: ConflictAlgorithm.replace);
