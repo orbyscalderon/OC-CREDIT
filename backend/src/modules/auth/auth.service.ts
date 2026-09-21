@@ -7,6 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import { randomUUID } from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
 import { LoginDto, LoginResponseDto } from './dto/login.dto';
 import { Usuario } from '../usuarios/entities/usuario.entity';
@@ -14,6 +15,7 @@ import { Empleado } from '../usuarios/entities/empleado.entity';
 import { TenantSettings } from '../tenants/entities/tenant-settings.entity';
 import { Tenant } from '../tenants/entities/tenant.entity';
 import { msg } from '../../common/i18n/messages';
+import { Rol } from '../../common/constants/roles.enum';
 
 @Injectable()
 export class AuthService {
@@ -240,5 +242,47 @@ export class AuthService {
 
   async logout(usuarioId: string): Promise<void> {
     await this.usuarioRepo.update(usuarioId, { token_refresh: null });
+  }
+
+  /**
+   * Auto-borrado de cuenta (requisito de Google Play: el usuario debe poder
+   * eliminar su cuenta sin depender de soporte). Es una anonimización, no un
+   * DELETE físico: préstamos/cobros que el usuario gestionó quedan intactos
+   * por las obligaciones contables de la empresa prestamista (igual que se
+   * le informa al usuario en /privacidad#eliminar-cuenta). Si es el único
+   * admin_tenant activo del tenant, se bloquea -- borrarlo dejaría la
+   * empresa sin nadie que administre la cuenta.
+   */
+  async eliminarMiCuenta(usuarioId: string, password: string): Promise<void> {
+    const usuario = await this.usuarioRepo.findOne({ where: { id: usuarioId } });
+    if (!usuario) throw new NotFoundException(msg('auth_usuario_no_encontrado'));
+
+    const ok = await bcrypt.compare(password, usuario.password_hash);
+    if (!ok) throw new BadRequestException(msg('auth_password_actual_incorrecta'));
+
+    if (usuario.rol === Rol.ADMIN_TENANT) {
+      const otrosAdmins = await this.usuarioRepo.count({
+        where: { tenant_id: usuario.tenant_id, rol: usuario.rol, activo: true },
+      });
+      if (otrosAdmins <= 1) {
+        throw new BadRequestException(msg('auth_ultimo_admin_no_puede_eliminarse'));
+      }
+    }
+
+    const empleado = await this.empleadoRepo.findOne({ where: { usuario_id: usuario.id } });
+    if (empleado) {
+      await this.empleadoRepo.update(empleado.id, {
+        nombre: 'Usuario', apellido: 'eliminado',
+        cedula: null, telefono: null, direccion: null, foto_url: null,
+        activo: false,
+      });
+    }
+
+    await this.usuarioRepo.update(usuario.id, {
+      email: `eliminado-${usuario.id.slice(0, 8)}@deleted.ocaruta.com`,
+      password_hash: await bcrypt.hash(randomUUID(), 12),
+      activo: false,
+      token_refresh: null,
+    });
   }
 }

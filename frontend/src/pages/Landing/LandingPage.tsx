@@ -88,7 +88,7 @@ export function LandingPage() {
       {/* ── NAV ──────────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
-          <span className="text-lg sm:text-xl font-extrabold text-brand-600 whitespace-nowrap">OCA Credit</span>
+          <span className="text-lg sm:text-xl font-extrabold text-brand-600 whitespace-nowrap">OCA Ruta</span>
           <div className="flex items-center gap-2 sm:gap-4">
             <LanguageSwitcher />
             <Link to="/login" className="text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-900 whitespace-nowrap">
@@ -132,7 +132,9 @@ export function LandingPage() {
 
       {/* ── FEATURES ─────────────────────────────────────────────── */}
       <section className="py-16 px-6 bg-gray-50">
-        <div className="max-w-5xl mx-auto grid grid-cols-2 gap-6 md:grid-cols-4">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="sr-only">{t('landing.features_titulo')}</h2>
+          <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
           {[
             { icon: <Smartphone size={24} />, titulo: t('landing.feat1_titulo'), d: t('landing.feat1_desc') },
             { icon: <Shield size={24} />, titulo: t('landing.feat2_titulo'), d: t('landing.feat2_desc') },
@@ -147,6 +149,7 @@ export function LandingPage() {
               <p className="mt-1 text-xs text-gray-500">{d}</p>
             </div>
           ))}
+          </div>
         </div>
       </section>
 

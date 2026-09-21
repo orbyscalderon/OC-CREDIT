@@ -11,14 +11,15 @@ import 'l10n/app_localizations.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Abort on rooted/emulated device — solo en release: el modo desarrollador
-  // (developerMode) tiene que estar activado para poder instalar builds de
-  // debug via USB/Android Studio, asi que este chequeo bloquearia CUALQUIER
-  // prueba en desarrollo si tambien corriera en debug.
+  // Abort on rooted/emulated device — solo en release (en debug este chequeo
+  // bloquearía cualquier prueba en desarrollo). No se bloquea por "modo
+  // desarrollador" activado: muchos usuarios reales lo tienen encendido por
+  // motivos ajenos a seguridad (otra app, ajustes del teléfono), y bloquearlos
+  // a ellos también sería más dañino que el riesgo que se busca evitar.
   if (kReleaseMode) {
     final bool jailbroken = await SafeDevice.isJailBroken;
-    final bool developerMode = await SafeDevice.isDevelopmentModeEnable;
-    if (jailbroken || developerMode) {
+    final bool isRealDevice = await SafeDevice.isRealDevice;
+    if (jailbroken || !isRealDevice) {
       runApp(const _BlockedApp());
       return;
     }
@@ -35,7 +36,7 @@ class OcCreditApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     return MaterialApp.router(
-      title: 'OCA Credit',
+      title: 'OCA Ruta',
       theme: AppTheme.light,
       routerConfig: router,
       debugShowCheckedModeBanner: false,

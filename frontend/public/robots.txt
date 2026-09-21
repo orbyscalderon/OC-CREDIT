@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Allow: /legal
+Allow: /terminos
+Allow: /privacidad
+Disallow: /login
+Disallow: /portal
+Disallow: /super-admin
+
+Sitemap: https://ocaruta.com/sitemap.xml

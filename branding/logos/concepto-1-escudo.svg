@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" role="img" aria-labelledby="t1 d1">
+  <title id="t1">OC Holding Group — Concepto Escudo</title>
+  <desc id="d1">Insignia azul con el monograma OC en blanco</desc>
+  <rect x="0" y="0" width="200" height="200" rx="46" fill="#2563EB" />
+  <path d="M0,46 A46,46 0 0 1 46,0 L200,0 L200,60 L0,60 Z" fill="#1D4ED8" opacity="0.35" />
+  <text x="100" y="128" text-anchor="middle" font-family="'Space Grotesk', 'Arial', sans-serif" font-weight="700" font-size="88" fill="#FFFFFF" letter-spacing="-2">OC</text>
+</svg>

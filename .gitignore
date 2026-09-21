@@ -39,3 +39,9 @@ skills-lock.json
 # backend y el client ID de Google (público por diseño) -- Vite lo necesita
 # disponible en el build de Cloudflare, que solo tiene lo que está en git.
 !frontend/.env.production
+
+# Backup local de credenciales (keystore, SHA-1, client IDs) -- NUNCA subir.
+# ".env*" de arriba no cubre esto porque ahí ".env" es el SUFIJO, no el
+# prefijo del nombre.
+*.env
+!frontend/.env.production

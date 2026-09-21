@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150" width="200" height="200" role="img" aria-labelledby="t3 d3">
+  <title id="t3">OC Holding Group — Concepto Crecimiento</title>
+  <desc id="d3">Anillo con barras ascendentes representando crecimiento</desc>
+  <circle cx="75" cy="75" r="58" fill="none" stroke="#2563EB" stroke-width="15" />
+  <rect x="48" y="82" width="15" height="38" rx="4" fill="#1D4ED8" />
+  <rect x="68" y="64" width="15" height="56" rx="4" fill="#1D4ED8" />
+  <rect x="88" y="46" width="15" height="74" rx="4" fill="#1D4ED8" />
+</svg>

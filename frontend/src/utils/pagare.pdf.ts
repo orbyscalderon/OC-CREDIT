@@ -145,7 +145,7 @@ export function generarPagarePDF(data: PagareData): void {
 
   // ── Pie ────────────────────────────────────────────────────
   // Este es un documento legal del PRESTAMISTA (el tenant), no del proveedor
-  // del software -- el pie no debe llevar la marca de OCA Credit.
+  // del software -- el pie no debe llevar la marca de OCA Ruta.
   doc.setFontSize(8);
   doc.setTextColor(150);
   doc.text(

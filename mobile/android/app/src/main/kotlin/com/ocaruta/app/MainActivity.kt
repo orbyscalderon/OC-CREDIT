@@ -1,4 +1,4 @@
-package com.example.oc_credit_mobile
+package com.ocaruta.app
 
 import io.flutter.embedding.android.FlutterActivity
 

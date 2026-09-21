@@ -474,4 +474,237 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get mapaSinPrestamosActivos => 'Sin préstamos activos';
+
+  @override
+  String get reportesTitulo => 'Reportes';
+
+  @override
+  String get configuracionTitulo => 'Configuración';
+
+  @override
+  String get agingCarteraTitulo => 'Aging de cartera';
+
+  @override
+  String get arqueosDelDiaTitulo => 'Arqueos del día';
+
+  @override
+  String get ingresosMensualesTitulo => 'Ingresos mensuales';
+
+  @override
+  String get moraDetalladaTitulo => 'Mora detallada';
+
+  @override
+  String get alertasTitulo => 'Alertas';
+
+  @override
+  String get agingAlDia => 'Al día';
+
+  @override
+  String get aging1a30 => '1-30 días';
+
+  @override
+  String get aging31a60 => '31-60 días';
+
+  @override
+  String get aging61a90 => '61-90 días';
+
+  @override
+  String get agingMas90 => 'Más de 90 días';
+
+  @override
+  String get exportar => 'Exportar';
+
+  @override
+  String get csvGenerado => 'CSV generado — elige dónde compartirlo';
+
+  @override
+  String get sinDatosDisponibles => 'Sin datos disponibles';
+
+  @override
+  String get aperturaLabel => 'Apertura';
+
+  @override
+  String get diferenciaLabel => 'Diferencia';
+
+  @override
+  String get sinArqueosHoy => 'No hay arqueos registrados hoy';
+
+  @override
+  String get estadoCuadrado => 'Cuadrado';
+
+  @override
+  String get estadoSobrante => 'Sobrante';
+
+  @override
+  String get estadoFaltante => 'Faltante';
+
+  @override
+  String get estadoSinCerrar => 'Sin cerrar';
+
+  @override
+  String get kpiEnMora => 'En mora';
+
+  @override
+  String get kpiDiasMaximoMora => 'Días máx. mora';
+
+  @override
+  String get sinPrestamosEnMora => 'No hay préstamos en mora';
+
+  @override
+  String get cedulaLabel => 'Cédula';
+
+  @override
+  String badgeDiasMora(int dias) {
+    return '$dias días';
+  }
+
+  @override
+  String get csvBanda => 'Banda';
+
+  @override
+  String get csvCantidadPrestamos => 'Cantidad de préstamos';
+
+  @override
+  String get csvCapital => 'Capital';
+
+  @override
+  String get csvPorcentaje => 'Porcentaje';
+
+  @override
+  String get logoTitulo => 'Logo';
+
+  @override
+  String get cambiarLogo => 'Cambiar logo';
+
+  @override
+  String get logoActualizado => 'Logo actualizado';
+
+  @override
+  String get errorLogoFormato =>
+      'Formato no permitido. Usa PNG, JPG, WEBP o SVG';
+
+  @override
+  String get errorLogoTamano => 'La imagen no puede superar 2MB';
+
+  @override
+  String get errorSubirLogo => 'No se pudo subir el logo';
+
+  @override
+  String get nombreComercialLabel => 'Nombre comercial';
+
+  @override
+  String get hintNombreComercial => 'Nombre que verán tus clientes';
+
+  @override
+  String get colorPrimarioLabel => 'Color primario';
+
+  @override
+  String get colorSecundarioLabel => 'Color secundario';
+
+  @override
+  String get errorColorInvalido => 'Color hex inválido (ej. #2563EB)';
+
+  @override
+  String get monedaLabel => 'Moneda';
+
+  @override
+  String get simboloMonedaLabel => 'Símbolo';
+
+  @override
+  String get zonaHorariaLabel => 'Zona horaria';
+
+  @override
+  String get formatoFechaLabel => 'Formato de fecha';
+
+  @override
+  String get pieDeReciboLabel => 'Pie de recibo';
+
+  @override
+  String get hintPieRecibo => 'Texto que aparece al final del recibo impreso';
+
+  @override
+  String get moraYCobranzaTitulo => 'Mora y cobranza';
+
+  @override
+  String get diasDeGraciaLabel => 'Días de gracia';
+
+  @override
+  String get tasaMoraDiariaLabel => 'Tasa de mora diaria (%)';
+
+  @override
+  String get radioGeocercaLabel => 'Radio de geocerca (metros)';
+
+  @override
+  String get permiteCobroDomingoLabel => 'Permite cobro en domingo';
+
+  @override
+  String get reporteAutoBuroTitulo => 'Reporte automático a buró';
+
+  @override
+  String get reportarBuroAutomaticamenteLabel =>
+      'Reportar a buró automáticamente';
+
+  @override
+  String get diasMoraReporteAutoLabel => 'Días de mora para reporte automático';
+
+  @override
+  String get whatsappActivoLabel => 'WhatsApp activo';
+
+  @override
+  String get guardarCambios => 'Guardar cambios';
+
+  @override
+  String get configuracionGuardada => 'Configuración guardada correctamente';
+
+  @override
+  String get errorGuardarConfiguracion => 'No se pudo guardar la configuración';
+
+  @override
+  String get soloAdminPuedeEditar =>
+      'Solo el administrador puede editar la configuración';
+
+  @override
+  String get errorDiasGraciaRango => 'Debe ser un entero entre 0 y 30';
+
+  @override
+  String get errorTasaMoraRango => 'Debe ser un número entre 0 y 100';
+
+  @override
+  String get errorRadioGeocercaRango => 'Debe ser un entero entre 10 y 5000';
+
+  @override
+  String get errorDiasReporteAutoRango => 'Debe ser un entero entre 1 y 365';
+
+  @override
+  String errorMaxCaracteres(int max) {
+    return 'Máximo $max caracteres';
+  }
+
+  @override
+  String get errorMonedaLongitud => 'Entre 1 y 3 caracteres';
+
+  @override
+  String get errorSimboloLongitud => 'Entre 1 y 5 caracteres';
+
+  @override
+  String get errorCampoRequerido => 'Este campo es obligatorio';
+
+  @override
+  String get cambiarContrasenaTitulo => 'Cambiar contraseña';
+
+  @override
+  String get contrasenaActualLabel => 'Contraseña actual';
+
+  @override
+  String get contrasenaNuevaLabel => 'Contraseña nueva';
+
+  @override
+  String get confirmarContrasenaLabel => 'Confirmar contraseña nueva';
+
+  @override
+  String get contrasenaActualizada => 'Contraseña actualizada correctamente';
+
+  @override
+  String get errorCambiarContrasena =>
+      'No se pudo cambiar la contraseña. Verifica tu conexión.';
 }

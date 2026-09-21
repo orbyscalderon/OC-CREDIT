@@ -8,7 +8,7 @@ export function LegalPage() {
   return (
     <div className="min-h-screen bg-white">
       <header className="border-b border-gray-100 py-4 px-6">
-        <Link to="/" className="text-xl font-extrabold text-brand-600">OCA Credit</Link>
+        <Link to="/" className="text-xl font-extrabold text-brand-600">OCA Ruta</Link>
       </header>
 
       <div className="max-w-3xl mx-auto px-6 py-12 text-sm text-gray-600 leading-relaxed">
@@ -80,6 +80,17 @@ export function LegalPage() {
         <p>
           {t('legal.s2_5_texto')}
         </p>
+
+        <h3 id="eliminar-cuenta" className="font-semibold text-gray-900 mt-6 mb-2">{t('legal.s2_6_titulo')}</h3>
+        <p>{t('legal.s2_6_intro')}</p>
+        <ol className="list-decimal pl-5 mt-2 space-y-1">
+          <li>{t('legal.s2_6_paso1')}</li>
+          <li>{t('legal.s2_6_paso2')}</li>
+          <li>{t('legal.s2_6_paso3')}</li>
+        </ol>
+        <p className="mt-2">{t('legal.s2_6_datos_eliminados')}</p>
+        <p className="mt-2">{t('legal.s2_6_datos_conservados')}</p>
+        <p className="mt-2">{t('legal.s2_6_plazo')}</p>
 
         <h2 className="text-xl font-bold text-gray-900 mt-12 mb-3">{t('legal.seccion3_titulo')}</h2>
         <p>

@@ -12,7 +12,7 @@ class ApiClient {
   // Si pruebas en un emulador (no dispositivo fisico via USB), cambia esto
   // por 'http://10.0.2.2:4000/api/v1'.
   static const String _baseUrl = kReleaseMode
-      ? 'https://oc-credit-api-production.up.railway.app/api/v1'
+      ? 'https://api.ocaruta.com/api/v1'
       : 'http://127.0.0.1:4000/api/v1';
   static const _storage = FlutterSecureStorage();
 

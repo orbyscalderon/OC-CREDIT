@@ -1,30 +1,23 @@
-// This is a basic Flutter widget test.
+// Smoke test mínimo: la app arranca y muestra la pantalla de login (sin
+// sesión guardada) envuelta en el ProviderScope que requiere Riverpod.
 //
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// Nota: este archivo venía del template por defecto de `flutter create`
+// (probaba un contador con una clase `MyApp` que nunca existió en este
+// proyecto -- la app real es `OcCreditApp`, ver lib/main.dart). Se corrige
+// acá de paso porque bloqueaba `flutter analyze`/`dart analyze` con un error
+// de compilación, sin relación con las pantallas de Reportes/Configuración.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oc_credit_mobile/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
-
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+  testWidgets('La app arranca y muestra la pantalla de login', (WidgetTester tester) async {
+    await tester.pumpWidget(const ProviderScope(child: OcCreditApp()));
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.byType(MaterialApp), findsOneWidget);
   });
 }

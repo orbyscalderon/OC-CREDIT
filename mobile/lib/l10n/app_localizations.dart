@@ -957,6 +957,456 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Sin préstamos activos'**
   String get mapaSinPrestamosActivos;
+
+  /// No description provided for @reportesTitulo.
+  ///
+  /// In es, this message translates to:
+  /// **'Reportes'**
+  String get reportesTitulo;
+
+  /// No description provided for @configuracionTitulo.
+  ///
+  /// In es, this message translates to:
+  /// **'Configuración'**
+  String get configuracionTitulo;
+
+  /// No description provided for @agingCarteraTitulo.
+  ///
+  /// In es, this message translates to:
+  /// **'Aging de cartera'**
+  String get agingCarteraTitulo;
+
+  /// No description provided for @arqueosDelDiaTitulo.
+  ///
+  /// In es, this message translates to:
+  /// **'Arqueos del día'**
+  String get arqueosDelDiaTitulo;
+
+  /// No description provided for @ingresosMensualesTitulo.
+  ///
+  /// In es, this message translates to:
+  /// **'Ingresos mensuales'**
+  String get ingresosMensualesTitulo;
+
+  /// No description provided for @moraDetalladaTitulo.
+  ///
+  /// In es, this message translates to:
+  /// **'Mora detallada'**
+  String get moraDetalladaTitulo;
+
+  /// No description provided for @alertasTitulo.
+  ///
+  /// In es, this message translates to:
+  /// **'Alertas'**
+  String get alertasTitulo;
+
+  /// No description provided for @agingAlDia.
+  ///
+  /// In es, this message translates to:
+  /// **'Al día'**
+  String get agingAlDia;
+
+  /// No description provided for @aging1a30.
+  ///
+  /// In es, this message translates to:
+  /// **'1-30 días'**
+  String get aging1a30;
+
+  /// No description provided for @aging31a60.
+  ///
+  /// In es, this message translates to:
+  /// **'31-60 días'**
+  String get aging31a60;
+
+  /// No description provided for @aging61a90.
+  ///
+  /// In es, this message translates to:
+  /// **'61-90 días'**
+  String get aging61a90;
+
+  /// No description provided for @agingMas90.
+  ///
+  /// In es, this message translates to:
+  /// **'Más de 90 días'**
+  String get agingMas90;
+
+  /// No description provided for @exportar.
+  ///
+  /// In es, this message translates to:
+  /// **'Exportar'**
+  String get exportar;
+
+  /// No description provided for @csvGenerado.
+  ///
+  /// In es, this message translates to:
+  /// **'CSV generado — elige dónde compartirlo'**
+  String get csvGenerado;
+
+  /// No description provided for @sinDatosDisponibles.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin datos disponibles'**
+  String get sinDatosDisponibles;
+
+  /// No description provided for @aperturaLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Apertura'**
+  String get aperturaLabel;
+
+  /// No description provided for @diferenciaLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Diferencia'**
+  String get diferenciaLabel;
+
+  /// No description provided for @sinArqueosHoy.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay arqueos registrados hoy'**
+  String get sinArqueosHoy;
+
+  /// No description provided for @estadoCuadrado.
+  ///
+  /// In es, this message translates to:
+  /// **'Cuadrado'**
+  String get estadoCuadrado;
+
+  /// No description provided for @estadoSobrante.
+  ///
+  /// In es, this message translates to:
+  /// **'Sobrante'**
+  String get estadoSobrante;
+
+  /// No description provided for @estadoFaltante.
+  ///
+  /// In es, this message translates to:
+  /// **'Faltante'**
+  String get estadoFaltante;
+
+  /// No description provided for @estadoSinCerrar.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin cerrar'**
+  String get estadoSinCerrar;
+
+  /// No description provided for @kpiEnMora.
+  ///
+  /// In es, this message translates to:
+  /// **'En mora'**
+  String get kpiEnMora;
+
+  /// No description provided for @kpiDiasMaximoMora.
+  ///
+  /// In es, this message translates to:
+  /// **'Días máx. mora'**
+  String get kpiDiasMaximoMora;
+
+  /// No description provided for @sinPrestamosEnMora.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay préstamos en mora'**
+  String get sinPrestamosEnMora;
+
+  /// No description provided for @cedulaLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Cédula'**
+  String get cedulaLabel;
+
+  /// No description provided for @badgeDiasMora.
+  ///
+  /// In es, this message translates to:
+  /// **'{dias} días'**
+  String badgeDiasMora(int dias);
+
+  /// No description provided for @csvBanda.
+  ///
+  /// In es, this message translates to:
+  /// **'Banda'**
+  String get csvBanda;
+
+  /// No description provided for @csvCantidadPrestamos.
+  ///
+  /// In es, this message translates to:
+  /// **'Cantidad de préstamos'**
+  String get csvCantidadPrestamos;
+
+  /// No description provided for @csvCapital.
+  ///
+  /// In es, this message translates to:
+  /// **'Capital'**
+  String get csvCapital;
+
+  /// No description provided for @csvPorcentaje.
+  ///
+  /// In es, this message translates to:
+  /// **'Porcentaje'**
+  String get csvPorcentaje;
+
+  /// No description provided for @logoTitulo.
+  ///
+  /// In es, this message translates to:
+  /// **'Logo'**
+  String get logoTitulo;
+
+  /// No description provided for @cambiarLogo.
+  ///
+  /// In es, this message translates to:
+  /// **'Cambiar logo'**
+  String get cambiarLogo;
+
+  /// No description provided for @logoActualizado.
+  ///
+  /// In es, this message translates to:
+  /// **'Logo actualizado'**
+  String get logoActualizado;
+
+  /// No description provided for @errorLogoFormato.
+  ///
+  /// In es, this message translates to:
+  /// **'Formato no permitido. Usa PNG, JPG, WEBP o SVG'**
+  String get errorLogoFormato;
+
+  /// No description provided for @errorLogoTamano.
+  ///
+  /// In es, this message translates to:
+  /// **'La imagen no puede superar 2MB'**
+  String get errorLogoTamano;
+
+  /// No description provided for @errorSubirLogo.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo subir el logo'**
+  String get errorSubirLogo;
+
+  /// No description provided for @nombreComercialLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre comercial'**
+  String get nombreComercialLabel;
+
+  /// No description provided for @hintNombreComercial.
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre que verán tus clientes'**
+  String get hintNombreComercial;
+
+  /// No description provided for @colorPrimarioLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Color primario'**
+  String get colorPrimarioLabel;
+
+  /// No description provided for @colorSecundarioLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Color secundario'**
+  String get colorSecundarioLabel;
+
+  /// No description provided for @errorColorInvalido.
+  ///
+  /// In es, this message translates to:
+  /// **'Color hex inválido (ej. #2563EB)'**
+  String get errorColorInvalido;
+
+  /// No description provided for @monedaLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Moneda'**
+  String get monedaLabel;
+
+  /// No description provided for @simboloMonedaLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Símbolo'**
+  String get simboloMonedaLabel;
+
+  /// No description provided for @zonaHorariaLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Zona horaria'**
+  String get zonaHorariaLabel;
+
+  /// No description provided for @formatoFechaLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Formato de fecha'**
+  String get formatoFechaLabel;
+
+  /// No description provided for @pieDeReciboLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Pie de recibo'**
+  String get pieDeReciboLabel;
+
+  /// No description provided for @hintPieRecibo.
+  ///
+  /// In es, this message translates to:
+  /// **'Texto que aparece al final del recibo impreso'**
+  String get hintPieRecibo;
+
+  /// No description provided for @moraYCobranzaTitulo.
+  ///
+  /// In es, this message translates to:
+  /// **'Mora y cobranza'**
+  String get moraYCobranzaTitulo;
+
+  /// No description provided for @diasDeGraciaLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Días de gracia'**
+  String get diasDeGraciaLabel;
+
+  /// No description provided for @tasaMoraDiariaLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Tasa de mora diaria (%)'**
+  String get tasaMoraDiariaLabel;
+
+  /// No description provided for @radioGeocercaLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Radio de geocerca (metros)'**
+  String get radioGeocercaLabel;
+
+  /// No description provided for @permiteCobroDomingoLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Permite cobro en domingo'**
+  String get permiteCobroDomingoLabel;
+
+  /// No description provided for @reporteAutoBuroTitulo.
+  ///
+  /// In es, this message translates to:
+  /// **'Reporte automático a buró'**
+  String get reporteAutoBuroTitulo;
+
+  /// No description provided for @reportarBuroAutomaticamenteLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Reportar a buró automáticamente'**
+  String get reportarBuroAutomaticamenteLabel;
+
+  /// No description provided for @diasMoraReporteAutoLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Días de mora para reporte automático'**
+  String get diasMoraReporteAutoLabel;
+
+  /// No description provided for @whatsappActivoLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'WhatsApp activo'**
+  String get whatsappActivoLabel;
+
+  /// No description provided for @guardarCambios.
+  ///
+  /// In es, this message translates to:
+  /// **'Guardar cambios'**
+  String get guardarCambios;
+
+  /// No description provided for @configuracionGuardada.
+  ///
+  /// In es, this message translates to:
+  /// **'Configuración guardada correctamente'**
+  String get configuracionGuardada;
+
+  /// No description provided for @errorGuardarConfiguracion.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo guardar la configuración'**
+  String get errorGuardarConfiguracion;
+
+  /// No description provided for @soloAdminPuedeEditar.
+  ///
+  /// In es, this message translates to:
+  /// **'Solo el administrador puede editar la configuración'**
+  String get soloAdminPuedeEditar;
+
+  /// No description provided for @errorDiasGraciaRango.
+  ///
+  /// In es, this message translates to:
+  /// **'Debe ser un entero entre 0 y 30'**
+  String get errorDiasGraciaRango;
+
+  /// No description provided for @errorTasaMoraRango.
+  ///
+  /// In es, this message translates to:
+  /// **'Debe ser un número entre 0 y 100'**
+  String get errorTasaMoraRango;
+
+  /// No description provided for @errorRadioGeocercaRango.
+  ///
+  /// In es, this message translates to:
+  /// **'Debe ser un entero entre 10 y 5000'**
+  String get errorRadioGeocercaRango;
+
+  /// No description provided for @errorDiasReporteAutoRango.
+  ///
+  /// In es, this message translates to:
+  /// **'Debe ser un entero entre 1 y 365'**
+  String get errorDiasReporteAutoRango;
+
+  /// No description provided for @errorMaxCaracteres.
+  ///
+  /// In es, this message translates to:
+  /// **'Máximo {max} caracteres'**
+  String errorMaxCaracteres(int max);
+
+  /// No description provided for @errorMonedaLongitud.
+  ///
+  /// In es, this message translates to:
+  /// **'Entre 1 y 3 caracteres'**
+  String get errorMonedaLongitud;
+
+  /// No description provided for @errorSimboloLongitud.
+  ///
+  /// In es, this message translates to:
+  /// **'Entre 1 y 5 caracteres'**
+  String get errorSimboloLongitud;
+
+  /// No description provided for @errorCampoRequerido.
+  ///
+  /// In es, this message translates to:
+  /// **'Este campo es obligatorio'**
+  String get errorCampoRequerido;
+
+  /// No description provided for @cambiarContrasenaTitulo.
+  ///
+  /// In es, this message translates to:
+  /// **'Cambiar contraseña'**
+  String get cambiarContrasenaTitulo;
+
+  /// No description provided for @contrasenaActualLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Contraseña actual'**
+  String get contrasenaActualLabel;
+
+  /// No description provided for @contrasenaNuevaLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Contraseña nueva'**
+  String get contrasenaNuevaLabel;
+
+  /// No description provided for @confirmarContrasenaLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Confirmar contraseña nueva'**
+  String get confirmarContrasenaLabel;
+
+  /// No description provided for @contrasenaActualizada.
+  ///
+  /// In es, this message translates to:
+  /// **'Contraseña actualizada correctamente'**
+  String get contrasenaActualizada;
+
+  /// No description provided for @errorCambiarContrasena.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo cambiar la contraseña. Verifica tu conexión.'**
+  String get errorCambiarContrasena;
 }
 
 class _AppLocalizationsDelegate

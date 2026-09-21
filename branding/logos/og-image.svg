@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1D4ED8"/>
+      <stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="1200" height="630" fill="url(#bg)"/>
+
+  <g transform="translate(90,195) scale(1.7)">
+    <circle cx="26" cy="90" r="9" fill="#FFFFFF"/>
+    <path d="M26,90 C26,40 74,40 82,68 C90,96 122,96 124,56" fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round"/>
+    <circle cx="124" cy="52" r="22" fill="#FFFFFF"/>
+    <circle cx="124" cy="52" r="8" fill="#1D4ED8"/>
+  </g>
+
+  <text x="430" y="330" font-family="Arial, sans-serif" font-size="88" font-weight="800" fill="#FFFFFF">OCA Ruta</text>
+  <text x="432" y="390" font-family="Arial, sans-serif" font-size="34" font-weight="500" fill="#DBEAFE">Software de Préstamos y Cobranza en Ruta</text>
+</svg>

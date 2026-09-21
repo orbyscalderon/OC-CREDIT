@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150" width="200" height="200" role="img" aria-labelledby="t2 d2">
+  <title id="t2">OC Holding Group — Concepto Ruta</title>
+  <desc id="d2">Camino que termina en un punto de parada marcado</desc>
+  <circle cx="26" cy="90" r="9" fill="#2563EB" />
+  <path d="M26,90 C26,40 74,40 82,68 C90,96 122,96 124,56" fill="none" stroke="#1D4ED8" stroke-width="14" stroke-linecap="round" />
+  <circle cx="124" cy="52" r="22" fill="#2563EB" />
+  <circle cx="124" cy="52" r="8" fill="#FFFFFF" />
+</svg>

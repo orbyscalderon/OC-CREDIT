@@ -84,7 +84,7 @@ export function Sidebar() {
               <span className="text-white text-xs font-extrabold">OC</span>
             </div>
             <div>
-              <p className="text-white font-bold text-sm leading-none">OCA Credit</p>
+              <p className="text-white font-bold text-sm leading-none">OCA Ruta</p>
               <p className="text-[10px] leading-none mt-0.5" style={{ color: '#64748b' }}>{t('nav.panel_administrativo')}</p>
             </div>
           </div>

@@ -46,3 +46,11 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Clave de firma de release -- NUNCA subir a git, perderla o filtrarla
+# significa no poder actualizar la app en Play Store nunca más.
+android/key.properties
+android/app/*.keystore
+android/app/*.jks
+*.keystore
+*.jks

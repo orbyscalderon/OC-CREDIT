@@ -12,7 +12,7 @@ RUN npm run build
 FROM node:20-alpine AS production
 
 LABEL maintainer="OCA HOLDING GROUP LLC"
-LABEL description="OCA Credit API - © 2026 OCA HOLDING GROUP LLC"
+LABEL description="OCA Ruta API - © 2026 OCA HOLDING GROUP LLC"
 
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 

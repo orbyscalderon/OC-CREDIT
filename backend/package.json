@@ -1,7 +1,7 @@
 {
   "name": "oc-credit-api",
   "version": "1.0.0",
-  "description": "OCA Credit - Sistema de Préstamos y Cobranzas por Rutas",
+  "description": "OCA Ruta - Sistema de Préstamos y Cobranzas por Rutas",
   "author": "OCA HOLDING GROUP LLC",
   "private": true,
   "license": "UNLICENSED",

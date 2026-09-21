@@ -118,7 +118,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('OCA Credit',
+                    const Text('OCA Ruta',
                         style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
                     const SizedBox(height: 4),
                     Text(l10n.appDeCobradores,

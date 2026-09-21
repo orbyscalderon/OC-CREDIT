@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Res, Get, UseGuards, Put } from '@nestjs/common';
+import { Body, Controller, Delete, HttpCode, HttpStatus, Post, Res, Get, UseGuards, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Response } from 'express';
@@ -92,6 +92,21 @@ export class AuthController {
     @Body() dto: { password_actual: string; nueva_password: string },
   ) {
     return this.authService.cambiarPassword(user.sub, dto.password_actual, dto.nueva_password);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('mi-cuenta')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Throttle({ long: { limit: 3, ttl: 60_000 } })
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Eliminar (anonimizar) la cuenta propia del usuario logueado' })
+  async eliminarMiCuenta(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: { password: string },
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    await this.authService.eliminarMiCuenta(user.sub, dto.password);
+    res.clearCookie(COOKIE_NAME, { path: '/api' });
   }
 
   @UseGuards(JwtAuthGuard)

@@ -39,7 +39,7 @@ type FormData = {
 export function ConfigPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   const schema = z.object({
     color_primario:   z.string().regex(/^#[0-9A-Fa-f]{6}$/, t('config.color_hex_invalido')),
@@ -108,6 +108,20 @@ export function ConfigPage() {
 
   const pwdErr = cambiarPwdMut.isError
     ? ((cambiarPwdMut.error as any)?.response?.data?.message ?? t('config.error_cambiar_contrasena'))
+    : null;
+
+  // ── Eliminar mi cuenta ───────────────────────────────────────────────────────
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [deletePwd, setDeletePwd] = useState('');
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+
+  const eliminarCuentaMut = useMutation({
+    mutationFn: () => api.delete('/auth/mi-cuenta', { data: { password: deletePwd } }),
+    onSuccess: () => logout(),
+  });
+
+  const deleteErr = eliminarCuentaMut.isError
+    ? ((eliminarCuentaMut.error as any)?.response?.data?.message ?? t('config.error_eliminar_cuenta'))
     : null;
 
   // ── Settings form ───────────────────────────────────────────────────────────
@@ -574,6 +588,77 @@ export function ConfigPage() {
               </button>
               <button
                 onClick={() => { setShowPwd(false); setPwdActual(''); setPwdNueva(''); setPwdConfirm(''); setPwdMsg(''); }}
+                className="btn-secondary"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Zona de peligro ─────────────────────────────────────────────────── */}
+      <div className="card p-6 space-y-4 border-red-200">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-red-700">{t('config.zona_peligro')}</h2>
+            <p className="text-xs text-gray-500 mt-0.5">{t('config.eliminar_cuenta_desc')}</p>
+          </div>
+          <button
+            onClick={() => setShowDeleteAccount(v => !v)}
+            className="flex items-center gap-2 rounded-lg border border-red-300 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50"
+          >
+            <X size={14} />
+            {t('config.eliminar_mi_cuenta')}
+          </button>
+        </div>
+
+        {showDeleteAccount && (
+          <div className="space-y-3 border-t border-red-100 pt-4">
+            <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+              <AlertCircle size={14} className="text-amber-500 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-amber-800">{t('config.eliminar_cuenta_aviso')}</p>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{t('config.contrasena_actual')}</label>
+              <input
+                type="password"
+                value={deletePwd}
+                onChange={e => setDeletePwd(e.target.value)}
+                className="input-field"
+                placeholder={t('config.contrasena_actual_placeholder')}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                {t('config.eliminar_cuenta_confirmar_label')}
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={e => setDeleteConfirmText(e.target.value)}
+                className="input-field"
+                placeholder="ELIMINAR"
+              />
+            </div>
+
+            {deleteErr && (
+              <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2">
+                <AlertCircle size={14} className="text-red-500" />
+                <p className="text-xs text-red-700">{deleteErr}</p>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => eliminarCuentaMut.mutate()}
+                disabled={!deletePwd || deleteConfirmText !== 'ELIMINAR' || eliminarCuentaMut.isPending}
+                className="flex-1 justify-center rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {eliminarCuentaMut.isPending ? t('config.eliminando') : t('config.eliminar_definitivamente')}
+              </button>
+              <button
+                onClick={() => { setShowDeleteAccount(false); setDeletePwd(''); setDeleteConfirmText(''); }}
                 className="btn-secondary"
               >
                 <X size={14} />

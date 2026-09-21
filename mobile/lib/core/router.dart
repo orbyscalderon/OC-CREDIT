@@ -15,6 +15,8 @@ import '../features/prestamos/screens/nueva_solicitud_screen.dart';
 import '../features/empleados/screens/empleados_screen.dart';
 import '../features/clientes/screens/cliente_nuevo_screen.dart';
 import '../features/rutas/screens/mapa_ruta_screen.dart';
+import '../features/reportes/screens/reportes_screen.dart';
+import '../features/configuracion/screens/configuracion_screen.dart';
 import '../providers/auth_provider.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -48,6 +50,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/cajas-dia',   builder: (_, __) => const CajasDiaScreen()),
       GoRoute(path: '/cliente-nuevo', builder: (_, __) => const ClienteNuevoScreen()),
       GoRoute(path: '/mapa', builder: (_, __) => const MapaRutaScreen()),
+      GoRoute(path: '/reportes', builder: (_, __) => const ReportesScreen()),
+      GoRoute(path: '/configuracion', builder: (_, __) => const ConfiguracionScreen()),
     ],
   );
 });

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150" width="1024" height="1024" role="img" aria-labelledby="ti td">
+  <title id="ti">OCA Ruta — ícono de app</title>
+  <desc id="td">Fondo azul de marca con el símbolo de ruta en blanco</desc>
+  <rect x="0" y="0" width="150" height="150" fill="#1D4ED8" />
+  <circle cx="26" cy="90" r="9" fill="#FFFFFF" />
+  <path d="M26,90 C26,40 74,40 82,68 C90,96 122,96 124,56" fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" />
+  <circle cx="124" cy="52" r="22" fill="#FFFFFF" />
+  <circle cx="124" cy="52" r="8" fill="#1D4ED8" />
+</svg>

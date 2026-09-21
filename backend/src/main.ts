@@ -57,7 +57,7 @@ async function bootstrap() {
 
   if (config.get('NODE_ENV') !== 'production') {
     const swaggerCfg = new DocumentBuilder()
-      .setTitle('OCA Credit API')
+      .setTitle('OCA Ruta API')
       .setDescription(
         'Sistema de Préstamos y Cobranzas por Rutas\n© 2026 OCA HOLDING GROUP LLC. Todos los derechos reservados.',
       )
@@ -91,7 +91,7 @@ async function bootstrap() {
 
   console.log(`
   ╔══════════════════════════════════════════════════╗
-  ║     OC CREDIT API - v1.0.0                       ║
+  ║     OCA RUTA API - v1.0.0                        ║
   ║     © 2026 OCA HOLDING GROUP LLC                    ║
   ║     Ambiente: ${config.get('NODE_ENV')?.padEnd(34)}║
   ║     Puerto  : ${String(port).padEnd(34)}║

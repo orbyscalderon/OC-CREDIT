@@ -262,7 +262,7 @@ export class PlanesService {
         amount: Math.round(montoUsd * 100),
         currency: 'usd',
         source: googlePayToken,
-        description: `Plan ${planNombre} — OCA Credit`,
+        description: `Plan ${planNombre} — OCA Ruta`,
       });
       if (charge.status !== 'succeeded') {
         throw new BadRequestException(msg('planes_pago_rechazado', { status: charge.status }));
