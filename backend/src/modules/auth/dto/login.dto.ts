@@ -40,5 +40,6 @@ export class LoginResponseDto {
     simbolo_moneda: string;
     zona_horaria: string;
     formato_fecha: string;
+    texto_pie_recibo: string | null;
   };
 }

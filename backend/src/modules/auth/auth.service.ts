@@ -110,6 +110,7 @@ export class AuthService {
         simbolo_moneda: settings?.simbolo_moneda ?? 'RD$',
         zona_horaria: settings?.zona_horaria ?? 'America/Santo_Domingo',
         formato_fecha: settings?.formato_fecha ?? 'DD/MM/YYYY',
+        texto_pie_recibo: settings?.texto_pie_recibo ?? null,
       },
     };
   }
@@ -187,6 +188,7 @@ export class AuthService {
         simbolo_moneda: settings?.simbolo_moneda ?? 'RD$',
         zona_horaria: settings?.zona_horaria ?? 'America/Santo_Domingo',
         formato_fecha: settings?.formato_fecha ?? 'DD/MM/YYYY',
+        texto_pie_recibo: settings?.texto_pie_recibo ?? null,
       },
     };
   }
@@ -222,6 +224,7 @@ export class AuthService {
         simbolo_moneda: settings?.simbolo_moneda ?? 'RD$',
         zona_horaria: settings?.zona_horaria ?? 'America/Santo_Domingo',
         formato_fecha: settings?.formato_fecha ?? 'DD/MM/YYYY',
+        texto_pie_recibo: settings?.texto_pie_recibo ?? null,
       },
     };
   }

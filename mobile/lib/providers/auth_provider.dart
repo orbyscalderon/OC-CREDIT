@@ -8,6 +8,8 @@ class TenantConfig {
   final String simboloMoneda;
   final String zonaHoraria;
   final String formatoFecha;
+  final String nombreEmpresa;
+  final String? textoPieRecibo;
 
   const TenantConfig({
     this.pais = 'DO',
@@ -15,6 +17,8 @@ class TenantConfig {
     this.simboloMoneda = 'RD\$',
     this.zonaHoraria = 'America/Santo_Domingo',
     this.formatoFecha = 'DD/MM/YYYY',
+    this.nombreEmpresa = 'OCA Ruta',
+    this.textoPieRecibo,
   });
 
   factory TenantConfig.fromJson(Map<String, dynamic> json) => TenantConfig(
@@ -23,6 +27,8 @@ class TenantConfig {
         simboloMoneda: json['simbolo_moneda'] as String? ?? 'RD\$',
         zonaHoraria: json['zona_horaria'] as String? ?? 'America/Santo_Domingo',
         formatoFecha: json['formato_fecha'] as String? ?? 'DD/MM/YYYY',
+        nombreEmpresa: json['nombre_empresa'] as String? ?? 'OCA Ruta',
+        textoPieRecibo: json['texto_pie_recibo'] as String?,
       );
 }
 

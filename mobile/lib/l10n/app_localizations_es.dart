@@ -235,6 +235,46 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get impresoraTermica => 'Impresora térmica';
+
+  @override
+  String get impresoraConectada => 'Impresora conectada';
+
+  @override
+  String get errorNoSePudoConectarImpresora =>
+      'No se pudo conectar con la impresora';
+
+  @override
+  String get impresoraGuardadaSubtitulo =>
+      'Se usará automáticamente al registrar cobros';
+
+  @override
+  String get olvidar => 'Olvidar';
+
+  @override
+  String get anchoDePapel => 'Ancho de papel';
+
+  @override
+  String get columnas => 'columnas';
+
+  @override
+  String get dispositivosEmparejados => 'Impresoras';
+
+  @override
+  String get hintEmparejarImpresora =>
+      'Empareja la impresora primero desde Bluetooth del sistema, luego selecciónala aquí.';
+
+  @override
+  String get buscarImpresoras => 'Buscar impresoras';
+
+  @override
+  String get buscando => 'Buscando…';
+
+  @override
+  String get sinDispositivosBluetooth =>
+      'No se encontraron dispositivos Bluetooth emparejados.';
+
+  @override
   String get cobroRegistradoCorrectamente => 'Cobro registrado correctamente';
 
   @override

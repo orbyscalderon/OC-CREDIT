@@ -184,13 +184,16 @@ class _RegistrarCobroScreenState extends ConsumerState<RegistrarCobroScreen> {
     if (!mounted) return;
 
     // Imprimir recibo por Bluetooth
+    final tenantConfig = ref.read(authStateProvider).tenantConfig;
     await ThermalPrintService.instance.printRecibo(
       clienteNombre: _prestamo?.clienteNombre ?? '',
       prestamo: _prestamo!,
       montoCobrado: monto,
       uuid: uuid,
       syncedOnline: syncedOnline,
-      simboloMoneda: ref.read(authStateProvider).tenantConfig.simboloMoneda,
+      tenantNombre: tenantConfig.nombreEmpresa,
+      textoPieRecibo: tenantConfig.textoPieRecibo,
+      simboloMoneda: tenantConfig.simboloMoneda,
     );
 
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(

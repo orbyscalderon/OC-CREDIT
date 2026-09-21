@@ -179,6 +179,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       label: l10n.nuevaSolicitud,
                       onTap: () { Navigator.pop(context); context.push('/nueva-solicitud'); },
                     ),
+                    _DrawerItem(
+                      icon: Icons.print_outlined,
+                      label: l10n.impresoraTermica,
+                      onTap: () { Navigator.pop(context); context.push('/impresora'); },
+                    ),
                     if (esAdmin)
                       _DrawerItem(
                         icon: Icons.playlist_add_check_outlined,

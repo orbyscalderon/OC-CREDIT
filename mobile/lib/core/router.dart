@@ -17,6 +17,7 @@ import '../features/clientes/screens/cliente_nuevo_screen.dart';
 import '../features/rutas/screens/mapa_ruta_screen.dart';
 import '../features/reportes/screens/reportes_screen.dart';
 import '../features/configuracion/screens/configuracion_screen.dart';
+import '../features/printing/screens/impresora_screen.dart';
 import '../providers/auth_provider.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -52,6 +53,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/mapa', builder: (_, __) => const MapaRutaScreen()),
       GoRoute(path: '/reportes', builder: (_, __) => const ReportesScreen()),
       GoRoute(path: '/configuracion', builder: (_, __) => const ConfiguracionScreen()),
+      GoRoute(path: '/impresora', builder: (_, __) => const ImpresoraScreen()),
     ],
   );
 });

@@ -496,6 +496,78 @@ abstract class AppLocalizations {
   /// **'El monto ({monto}) supera el saldo pendiente del préstamo ({saldo}). Verifica antes de continuar.'**
   String errorMontoMayorASaldo(String monto, String saldo);
 
+  /// No description provided for @impresoraTermica.
+  ///
+  /// In es, this message translates to:
+  /// **'Impresora térmica'**
+  String get impresoraTermica;
+
+  /// No description provided for @impresoraConectada.
+  ///
+  /// In es, this message translates to:
+  /// **'Impresora conectada'**
+  String get impresoraConectada;
+
+  /// No description provided for @errorNoSePudoConectarImpresora.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo conectar con la impresora'**
+  String get errorNoSePudoConectarImpresora;
+
+  /// No description provided for @impresoraGuardadaSubtitulo.
+  ///
+  /// In es, this message translates to:
+  /// **'Se usará automáticamente al registrar cobros'**
+  String get impresoraGuardadaSubtitulo;
+
+  /// No description provided for @olvidar.
+  ///
+  /// In es, this message translates to:
+  /// **'Olvidar'**
+  String get olvidar;
+
+  /// No description provided for @anchoDePapel.
+  ///
+  /// In es, this message translates to:
+  /// **'Ancho de papel'**
+  String get anchoDePapel;
+
+  /// No description provided for @columnas.
+  ///
+  /// In es, this message translates to:
+  /// **'columnas'**
+  String get columnas;
+
+  /// No description provided for @dispositivosEmparejados.
+  ///
+  /// In es, this message translates to:
+  /// **'Impresoras'**
+  String get dispositivosEmparejados;
+
+  /// No description provided for @hintEmparejarImpresora.
+  ///
+  /// In es, this message translates to:
+  /// **'Empareja la impresora primero desde Bluetooth del sistema, luego selecciónala aquí.'**
+  String get hintEmparejarImpresora;
+
+  /// No description provided for @buscarImpresoras.
+  ///
+  /// In es, this message translates to:
+  /// **'Buscar impresoras'**
+  String get buscarImpresoras;
+
+  /// No description provided for @buscando.
+  ///
+  /// In es, this message translates to:
+  /// **'Buscando…'**
+  String get buscando;
+
+  /// No description provided for @sinDispositivosBluetooth.
+  ///
+  /// In es, this message translates to:
+  /// **'No se encontraron dispositivos Bluetooth emparejados.'**
+  String get sinDispositivosBluetooth;
+
   /// No description provided for @cobroRegistradoCorrectamente.
   ///
   /// In es, this message translates to:
