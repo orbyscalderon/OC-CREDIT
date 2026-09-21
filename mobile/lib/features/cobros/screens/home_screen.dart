@@ -43,10 +43,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final prestamosAsync = ref.watch(prestamosProvider);
     final l10n = AppLocalizations.of(context)!;
-    final rol = ref.watch(authStateProvider).rol;
-    final rolEtiqueta = etiquetaRol(rol);
-    final esAdmin = rol == 'admin_tenant';
-    final esAdminOSupervisor = esAdmin || rol == 'supervisor_tenant';
+    final auth = ref.watch(authStateProvider);
+    final rolEtiqueta = etiquetaRol(auth.rol);
+    // Cada ítem se muestra según el mismo permiso que exige el backend para
+    // esa pantalla (ver Sidebar.tsx del panel web) -- si un admin le
+    // personaliza los permisos a un cobrador, el drawer se arma solo.
+    final vePanel = auth.tienePermiso('reportes_admin');
+    final veCajasDia = auth.tienePermiso('cajas_supervisar');
+    final veEmpleados = auth.tienePermiso('empleados_ver');
+    final veReportes = auth.tienePermiso('reportes_admin');
+    final veConfig = auth.tienePermiso('tenant_ver_config');
+    final veSolicitudesPendientes = auth.tienePermiso('prestamos_aprobar');
 
     return Scaffold(
       appBar: AppBar(
@@ -116,7 +123,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     // Mismo orden que el sidebar web (frontend/src/components/Layout/Sidebar.tsx):
                     // Dashboard, Nuevo cliente, Mi ruta, Cajas/Cobros, Empleados, Buró,
                     // Reportes, Config — con los mismos roles habilitados por ítem.
-                    if (esAdmin)
+                    if (vePanel)
                       _DrawerItem(
                         icon: Icons.dashboard_outlined,
                         label: l10n.dashboardTitulo,
@@ -138,13 +145,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       label: l10n.miCaja,
                       onTap: () { Navigator.pop(context); context.push('/caja'); },
                     ),
-                    if (esAdminOSupervisor)
+                    if (veCajasDia)
                       _DrawerItem(
                         icon: Icons.point_of_sale,
                         label: l10n.cajasDelDia,
                         onTap: () { Navigator.pop(context); context.push('/cajas-dia'); },
                       ),
-                    if (esAdmin)
+                    if (veEmpleados)
                       _DrawerItem(
                         icon: Icons.people_outline,
                         label: l10n.empleadosTitulo,
@@ -155,13 +162,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       label: l10n.buroCredito,
                       onTap: () { Navigator.pop(context); context.push('/buro'); },
                     ),
-                    if (esAdmin)
+                    if (veReportes)
                       _DrawerItem(
                         icon: Icons.bar_chart_outlined,
                         label: l10n.reportesTitulo,
                         onTap: () { Navigator.pop(context); context.push('/reportes'); },
                       ),
-                    if (esAdmin)
+                    if (veConfig)
                       _DrawerItem(
                         icon: Icons.settings_outlined,
                         label: l10n.configuracionTitulo,
@@ -184,7 +191,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       label: l10n.impresoraTermica,
                       onTap: () { Navigator.pop(context); context.push('/impresora'); },
                     ),
-                    if (esAdmin)
+                    if (veSolicitudesPendientes)
                       _DrawerItem(
                         icon: Icons.playlist_add_check_outlined,
                         label: l10n.solicitudesPendientes,

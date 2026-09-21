@@ -11,6 +11,7 @@ function buildSession(resp: LoginResponse): SessionUser {
     id: resp.usuario.id,
     email: resp.usuario.email,
     rol: resp.usuario.rol,
+    permisos: resp.usuario.permisos ?? [],
     nombre: resp.usuario.nombre,
     apellido: resp.usuario.apellido,
     empleadoId: resp.usuario.empleado_id,

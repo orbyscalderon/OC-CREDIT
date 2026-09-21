@@ -36,15 +36,19 @@ class TenantConfig {
 class AuthState {
   final String? token;
   final String? rol;
+  final List<String> permisos;
   final bool isAuthenticated;
   final TenantConfig tenantConfig;
 
   const AuthState({
     this.token,
     this.rol,
+    this.permisos = const [],
     this.isAuthenticated = false,
     this.tenantConfig = const TenantConfig(),
   });
+
+  bool tienePermiso(String permiso) => permisos.contains(permiso);
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
@@ -65,10 +69,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final resp = await ApiClient.instance.dio.get('/auth/me');
       final data = resp.data as Map<String, dynamic>;
       final rol = data['usuario']['rol'] as String?;
+      final permisos = (data['usuario']['permisos'] as List?)?.cast<String>() ?? const [];
       final tenantConfigJson = data['tenant_config'] as Map<String, dynamic>?;
       state = AuthState(
         token: token,
         rol: rol,
+        permisos: permisos,
         isAuthenticated: true,
         tenantConfig: tenantConfigJson != null ? TenantConfig.fromJson(tenantConfigJson) : const TenantConfig(),
       );
@@ -133,6 +139,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<String?> _aplicarRespuestaLogin(Map<String, dynamic> data) async {
     final token = data['access_token'] as String;
     final rol = data['usuario']['rol'] as String;
+    final permisos = (data['usuario']['permisos'] as List?)?.cast<String>() ?? const [];
 
     final tenantConfigJson = data['tenant_config'] as Map<String, dynamic>?;
     final tenantConfig = tenantConfigJson != null
@@ -142,6 +149,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = AuthState(
       token: token,
       rol: rol,
+      permisos: permisos,
       isAuthenticated: true,
       tenantConfig: tenantConfig,
     );

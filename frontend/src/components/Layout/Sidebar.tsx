@@ -12,26 +12,30 @@ import { useTenantSettings } from '@/hooks/useTenantSettings';
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 import { prestamosApi } from '@/api/prestamos.api';
 import { Rol } from '@/types';
+import { Permiso } from '@/utils/permisos';
 import { clsx } from 'clsx';
 
 // labelKey en vez de texto fijo -- se resuelve con t() dentro del componente
 // para que reaccione al cambio de idioma (este array vive fuera del render).
+// El permiso de cada ítem es el mismo que exige el backend para esa
+// pantalla -- si un admin le personaliza los permisos a alguien, el menú
+// se arma solo, sin tocar este archivo (ver Empleados > personalizar permisos).
 const navItems = [
-  { to: '/panel',          labelKey: 'nav.dashboard',       icon: LayoutDashboard, roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT] },
-  { to: '/clientes',       labelKey: 'nav.clientes',        icon: Users,           roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT] },
-  { to: '/clientes/nuevo', labelKey: 'nav.nuevo_cliente',   icon: UserPlus,        roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT] },
-  { to: '/mi-ruta',        labelKey: 'nav.mi_ruta',         icon: RouteIcon,       roles: [Rol.COBRADOR_TENANT] },
-  { to: '/prestamos',      labelKey: 'nav.prestamos',       icon: CreditCard,      roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT] },
-  { to: '/cajas',          labelKey: 'nav.cajas_cobros',    icon: Wallet,          roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT] },
-  { to: '/cobros/nuevo',   labelKey: 'nav.cobro_manual',    icon: PiggyBank,       roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT] },
-  { to: '/rutas',          labelKey: 'nav.rutas',           icon: MapPin,          roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT] },
-  { to: '/empleados',      labelKey: 'nav.empleados',       icon: UserCog,         roles: [Rol.ADMIN_TENANT] },
-  { to: '/buro',           labelKey: 'nav.buro',            icon: ShieldAlert,     roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT, Rol.COBRADOR_TENANT] },
-  { to: '/cuentas-cobrar', labelKey: 'nav.cuentas_cobrar',  icon: ClipboardList,   roles: [Rol.ADMIN_TENANT, Rol.SUPERVISOR_TENANT] },
-  { to: '/reportes',       labelKey: 'nav.reportes',        icon: BarChart3,       roles: [Rol.ADMIN_TENANT] },
-  { to: '/config',         labelKey: 'nav.config',          icon: Settings,        roles: [Rol.ADMIN_TENANT] },
-  { to: '/config/feriados',labelKey: 'nav.feriados',        icon: CalendarOff,     roles: [Rol.ADMIN_TENANT] },
-  { to: '/config/backup',  labelKey: 'nav.backup',          icon: HardDrive,       roles: [Rol.ADMIN_TENANT] },
+  { to: '/panel',          labelKey: 'nav.dashboard',       icon: LayoutDashboard, permisos: [Permiso.REPORTES_ADMIN] },
+  { to: '/clientes',       labelKey: 'nav.clientes',        icon: Users,           permisos: [Permiso.CLIENTES_VER] },
+  { to: '/clientes/nuevo', labelKey: 'nav.nuevo_cliente',   icon: UserPlus,        permisos: [Permiso.CLIENTES_CREAR] },
+  { to: '/mi-ruta',        labelKey: 'nav.mi_ruta',         icon: RouteIcon,       permisos: [Permiso.RUTAS_VER_PROPIA] },
+  { to: '/prestamos',      labelKey: 'nav.prestamos',       icon: CreditCard,      permisos: [Permiso.PRESTAMOS_VER] },
+  { to: '/cajas',          labelKey: 'nav.cajas_cobros',    icon: Wallet,          permisos: [Permiso.CAJAS_OPERAR, Permiso.CAJAS_SUPERVISAR] },
+  { to: '/cobros/nuevo',   labelKey: 'nav.cobro_manual',    icon: PiggyBank,       permisos: [Permiso.COBROS_REGISTRAR] },
+  { to: '/rutas',          labelKey: 'nav.rutas',           icon: MapPin,          permisos: [Permiso.RUTAS_GESTIONAR] },
+  { to: '/empleados',      labelKey: 'nav.empleados',       icon: UserCog,         permisos: [Permiso.EMPLEADOS_VER] },
+  { to: '/buro',           labelKey: 'nav.buro',            icon: ShieldAlert,     permisos: [Permiso.BURO_CONSULTAR] },
+  { to: '/cuentas-cobrar', labelKey: 'nav.cuentas_cobrar',  icon: ClipboardList,   permisos: [Permiso.REPORTES_AVANZADOS] },
+  { to: '/reportes',       labelKey: 'nav.reportes',        icon: BarChart3,       permisos: [Permiso.REPORTES_ADMIN] },
+  { to: '/config',         labelKey: 'nav.config',          icon: Settings,        permisos: [Permiso.TENANT_VER_CONFIG] },
+  { to: '/config/feriados',labelKey: 'nav.feriados',        icon: CalendarOff,     permisos: [Permiso.TENANT_VER_CONFIG] },
+  { to: '/config/backup',  labelKey: 'nav.backup',          icon: HardDrive,       permisos: [Permiso.REPORTES_ADMIN] },
 ];
 
 /* CSS hover via Tailwind no funciona bien con bg-[color] dinámico en sidebar oscuro,
@@ -51,12 +55,12 @@ export function Sidebar() {
   const { user, logout } = useAuth();
   const settings = useTenantSettings();
 
-  const esAdmin = user?.rol === Rol.ADMIN_TENANT || user?.rol === Rol.SUPERVISOR_TENANT;
+  const puedeAprobar = user?.permisos?.includes(Permiso.PRESTAMOS_APROBAR) ?? false;
   const { data: pendientesData } = useQuery({
     queryKey: ['prestamos-pendientes-count'],
     queryFn: () => prestamosApi.listar({ estado: 'Pendiente', limit: 1 }),
     refetchInterval: 2 * 60 * 1000,
-    enabled: esAdmin,
+    enabled: puedeAprobar,
     select: (d) => d.total as number,
   });
   const pendientes = pendientesData ?? 0;
@@ -65,7 +69,9 @@ export function Sidebar() {
     ? (settings.url_logo.startsWith('http') ? settings.url_logo : '/api/v1/tenants/logo')
     : null;
 
-  const allowed = navItems.filter((i) => user && i.roles.includes(user.rol as Rol));
+  const allowed = navItems.filter((i) =>
+    user?.permisos && i.permisos.some((p) => user.permisos.includes(p)),
+  );
   const initials = user?.email?.slice(0, 2).toUpperCase() ?? 'OC';
 
   return (

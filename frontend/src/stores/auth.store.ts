@@ -6,6 +6,7 @@ export interface SessionUser {
   id: string;
   email: string;
   rol: string;
+  permisos: string[];
   nombre: string;
   apellido: string;
   empleadoId: string;

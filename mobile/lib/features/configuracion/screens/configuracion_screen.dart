@@ -228,8 +228,7 @@ class _ConfiguracionScreenState extends ConsumerState<ConfiguracionScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final rol = ref.watch(authStateProvider).rol;
-    final esAdmin = rol == 'admin_tenant';
+    final esAdmin = ref.watch(authStateProvider).tienePermiso('tenant_editar_config');
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.configuracionTitulo)),

@@ -68,7 +68,7 @@ class _EmpleadosScreenState extends ConsumerState<EmpleadosScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final esAdmin = ref.watch(authStateProvider).rol == 'admin_tenant';
+    final esAdmin = ref.watch(authStateProvider).tienePermiso('empleados_gestionar');
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.empleadosTitulo)),

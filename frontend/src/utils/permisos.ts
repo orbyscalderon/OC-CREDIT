@@ -1,7 +1,43 @@
 // Espejo del catálogo del backend (backend/src/common/constants/permisos.enum.ts)
 // -- valores textuales, no hace falta mantenerlos 100% sincronizados en
 // tiempo real (el backend siempre valida), pero deben coincidir para que
-// los checkboxes realmente activen/desactiven lo que dicen.
+// los checkboxes y el menú realmente reflejen lo que el backend exige.
+export enum Permiso {
+  CLIENTES_VER          = 'clientes_ver',
+  CLIENTES_CREAR        = 'clientes_crear',
+  CLIENTES_EDITAR       = 'clientes_editar',
+
+  PRESTAMOS_VER         = 'prestamos_ver',
+  PRESTAMOS_SOLICITAR   = 'prestamos_solicitar',
+  PRESTAMOS_APROBAR     = 'prestamos_aprobar',
+
+  COBROS_REGISTRAR      = 'cobros_registrar',
+
+  CAJAS_OPERAR          = 'cajas_operar',
+  CAJAS_SUPERVISAR      = 'cajas_supervisar',
+
+  RUTAS_VER_PROPIA      = 'rutas_ver_propia',
+  RUTAS_GESTIONAR       = 'rutas_gestionar',
+
+  NOVEDADES_REGISTRAR   = 'novedades_registrar',
+  NOVEDADES_VER         = 'novedades_ver',
+
+  BURO_CONSULTAR        = 'buro_consultar',
+  BURO_REPORTAR         = 'buro_reportar',
+  BURO_ADMIN            = 'buro_admin',
+
+  REPORTES_VER          = 'reportes_ver',
+  REPORTES_AVANZADOS    = 'reportes_avanzados',
+  REPORTES_ADMIN        = 'reportes_admin',
+
+  EMPLEADOS_VER         = 'empleados_ver',
+  EMPLEADOS_GESTIONAR   = 'empleados_gestionar',
+
+  TENANT_VER_CONFIG     = 'tenant_ver_config',
+  TENANT_EDITAR_CONFIG  = 'tenant_editar_config',
+
+  PLANES_ADMIN          = 'planes_admin',
+}
 
 export interface GrupoPermisos {
   categoria: string;
