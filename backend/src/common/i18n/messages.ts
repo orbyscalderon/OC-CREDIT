@@ -115,6 +115,10 @@ export const MESSAGES: Record<string, Entrada> = {
     es: 'Ya existe un cliente con esa cédula en esta agencia',
     en: 'A client with that ID number already exists in this agency',
   },
+  clientes_registro_duplicado: {
+    es: 'Este cliente ya fue registrado',
+    en: 'This client was already registered',
+  },
   clientes_no_encontrado: { es: 'Cliente no encontrado', en: 'Client not found' },
   clientes_imagen_no_disponible: { es: 'Imagen no disponible', en: 'Image not available' },
   clientes_no_pertenecen_a_ruta: {

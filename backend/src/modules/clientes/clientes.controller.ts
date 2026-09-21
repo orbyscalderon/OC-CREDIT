@@ -38,7 +38,7 @@ export class ClientesController {
   }
 
   @Post()
-  @Roles(Rol.SUPERVISOR_TENANT, Rol.ADMIN_TENANT)
+  @Roles(Rol.SUPERVISOR_TENANT, Rol.ADMIN_TENANT, Rol.COBRADOR_TENANT)
   @ApiOperation({ summary: 'Registrar nuevo cliente' })
   crear(@CurrentUser() user: JwtPayload, @Body() dto: CrearClienteDto) {
     return this.service.crear(user.tenantId, dto);

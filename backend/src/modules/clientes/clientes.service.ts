@@ -1,5 +1,5 @@
 import {
-  BadRequestException, Injectable, NotFoundException,
+  BadRequestException, ConflictException, Injectable, NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
@@ -39,6 +39,25 @@ export class ClientesService {
   }
 
   async crear(tenantId: string, dto: CrearClienteDto): Promise<Cliente> {
+    // Idempotencia: el cobrador crea clientes desde la calle sin red, la
+    // cola offline del celular reintenta con el mismo UUID hasta confirmar
+    // -- si un reintento se cruza con un envío anterior que sí llegó pero
+    // cuya respuesta se perdió, hay que devolver el cliente ya creado en
+    // vez de duplicarlo. Se chequea ANTES que la cédula: es la señal más
+    // confiable de "ya procesé esto" (la cédula es opcional).
+    if (dto.uuid_idempotencia) {
+      const existente = await this.repo.findOne({
+        where: { tenant_id: tenantId, uuid_idempotencia: dto.uuid_idempotencia },
+      });
+      if (existente) {
+        throw new ConflictException({
+          code: 'DUPLICATE_UUID',
+          message: msg('clientes_registro_duplicado'),
+          cliente_id: existente.id,
+        });
+      }
+    }
+
     // Normalizada (sin guiones/espacios) -- si no, "001-1234567-8" y
     // "0011234567 8" pasan como cédulas distintas: se cuela el duplicado
     // aquí y, peor, el buró cross-tenant nunca las hace matchear.

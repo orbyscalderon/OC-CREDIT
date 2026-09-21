@@ -122,12 +122,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         label: l10n.dashboardTitulo,
                         onTap: () { Navigator.pop(context); context.push('/dashboard'); },
                       ),
-                    if (esAdminOSupervisor)
-                      _DrawerItem(
-                        icon: Icons.person_add_alt_outlined,
-                        label: l10n.clienteNuevoTitulo,
-                        onTap: () { Navigator.pop(context); context.push('/cliente-nuevo'); },
-                      ),
+                    // El cobrador tambien da de alta clientes puerta a puerta.
+                    _DrawerItem(
+                      icon: Icons.person_add_alt_outlined,
+                      label: l10n.clienteNuevoTitulo,
+                      onTap: () { Navigator.pop(context); context.push('/cliente-nuevo'); },
+                    ),
                     _DrawerItem(
                       icon: Icons.map_outlined,
                       label: l10n.mapaTitulo,

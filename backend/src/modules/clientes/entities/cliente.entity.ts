@@ -81,6 +81,10 @@ export class Cliente {
   @Column({ type: 'text', nullable: true })
   notas_internas: string;
 
+  /** Generado en el móvil para deduplicar reintentos de la cola offline. NULL si vino del panel web. */
+  @Column({ type: 'uuid', nullable: true })
+  uuid_idempotencia: string;
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 

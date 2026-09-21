@@ -6,6 +6,11 @@ import {
 import { IsUuidLike } from '../../../common/decorators/is-uuid-like.decorator';
 
 export class CrearClienteDto {
+  @ApiPropertyOptional({ description: 'UUID generado en el móvil para deduplicar reintentos de la cola offline' })
+  @IsOptional()
+  @IsUuidLike()
+  uuid_idempotencia?: string;
+
   @ApiPropertyOptional({ description: 'ID de la ruta a la que se asigna' })
   @IsOptional()
   @IsUuidLike()
