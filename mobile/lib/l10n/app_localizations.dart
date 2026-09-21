@@ -580,6 +580,18 @@ abstract class AppLocalizations {
   /// **'Sin red — cobro guardado y se enviará automáticamente'**
   String get sinRedCobroGuardado;
 
+  /// No description provided for @sinRedClienteSeEnviara.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin red — el cliente se guardó y se enviará al recuperar la señal'**
+  String get sinRedClienteSeEnviara;
+
+  /// No description provided for @sinRedSolicitudSeEnviara.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin red — la solicitud se guardó y se enviará al recuperar la señal'**
+  String get sinRedSolicitudSeEnviara;
+
   /// No description provided for @registrarCoboTitulo.
   ///
   /// In es, this message translates to:

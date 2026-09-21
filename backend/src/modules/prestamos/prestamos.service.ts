@@ -1,5 +1,5 @@
 import {
-  BadRequestException, Injectable,
+  BadRequestException, ConflictException, Injectable,
   Logger, NotFoundException,
 } from '@nestjs/common';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
@@ -57,6 +57,24 @@ export class PrestamosService {
     dto: CrearPrestamoDto,
     cobradorIdSiAplica?: string,
   ): Promise<Prestamo> {
+    // Idempotencia: el cobrador toma solicitudes desde la calle sin red, la
+    // cola offline del celular reintenta con el mismo UUID hasta confirmar
+    // -- si un reintento se cruza con un envío anterior que sí llegó pero
+    // cuya respuesta se perdió, hay que devolver la solicitud ya creada en
+    // vez de duplicarla.
+    if (dto.uuid_idempotencia) {
+      const existente = await this.prestamoRepo.findOne({
+        where: { tenant_id: tenantId, uuid_idempotencia: dto.uuid_idempotencia },
+      });
+      if (existente) {
+        throw new ConflictException({
+          code: 'DUPLICATE_UUID',
+          message: msg('prestamos_solicitud_duplicada'),
+          prestamo_id: existente.id,
+        });
+      }
+    }
+
     // Verificar límite del plan SaaS antes de crear
     await this.planesService.verificarLimitePrestamo(tenantId);
 
@@ -90,6 +108,7 @@ export class PrestamosService {
       tasa_interes_pactada: dto.tasa_interes_propuesta ?? 0,  // Propuesta del supervisor; el admin la confirma o cambia al aprobar
       estado: EstadoPrestamo.PENDIENTE,
       notas: dto.notas ?? null,
+      uuid_idempotencia: dto.uuid_idempotencia ?? null,
       fecha_solicitud: fechaHoyEnZona(await this.zonaHorariaService.obtener(tenantId)),
     });
 

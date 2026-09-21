@@ -2,8 +2,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../core/constants/documentos_identidad.dart';
+import '../../../data/local/sync_queue_dao.dart';
 import '../../../data/remote/api_client.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../l10n/app_localizations.dart';
@@ -96,21 +98,47 @@ class _ClienteNuevoScreenState extends ConsumerState<ClienteNuevoScreen> {
 
     final tipoDoc = tipoDocumentoPorPais(ref.read(authStateProvider).tenantConfig.pais);
     setState(() { _guardando = true; _error = null; });
+
+    final uuid = const Uuid().v4();
+    final payload = {
+      'uuid_idempotencia': uuid,
+      if (_cedulaCtrl.text.trim().isNotEmpty) 'cedula': _cedulaCtrl.text.trim(),
+      'tipo_documento': tipoDoc.codigo,
+      'nombre': _nombreCtrl.text.trim(),
+      'apellido': _apellidoCtrl.text.trim(),
+      if (_telefonoCtrl.text.trim().isNotEmpty) 'telefono': _telefonoCtrl.text.trim(),
+      if (_direccionCtrl.text.trim().isNotEmpty) 'direccion_casa': _direccionCtrl.text.trim(),
+      if (_rutaId != null) 'ruta_id': _rutaId,
+      if (_ubicacion != null) 'latitud_casa': _ubicacion!.latitude,
+      if (_ubicacion != null) 'longitud_casa': _ubicacion!.longitude,
+    };
+
     try {
-      final resp = await ApiClient.instance.dio.post('/clientes', data: {
-        if (_cedulaCtrl.text.trim().isNotEmpty) 'cedula': _cedulaCtrl.text.trim(),
-        'tipo_documento': tipoDoc.codigo,
-        'nombre': _nombreCtrl.text.trim(),
-        'apellido': _apellidoCtrl.text.trim(),
-        if (_telefonoCtrl.text.trim().isNotEmpty) 'telefono': _telefonoCtrl.text.trim(),
-        if (_direccionCtrl.text.trim().isNotEmpty) 'direccion_casa': _direccionCtrl.text.trim(),
-        if (_rutaId != null) 'ruta_id': _rutaId,
-        if (_ubicacion != null) 'latitud_casa': _ubicacion!.latitude,
-        if (_ubicacion != null) 'longitud_casa': _ubicacion!.longitude,
-      });
+      final resp = await ApiClient.instance.dio.post('/clientes', data: payload);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.clienteCreado)));
       Navigator.of(context).pop(resp.data);
+    } on DioException catch (e) {
+      // El servidor respondió (cédula duplicada, datos inválidos, etc.) --
+      // es un rechazo real, no un problema de red: mostrar el error y NO
+      // encolar, porque reintentarlo va a fallar exactamente igual.
+      if (e.response != null) {
+        if (!mounted) return;
+        setState(() {
+          _error = _mensajeError(e, l10n.errorNoSePudoCompletarOperacion);
+          _guardando = false;
+        });
+        return;
+      }
+      // Sin respuesta del servidor = sin red: encolar para sync posterior,
+      // igual que cobros/novedades. El uuid_idempotencia evita duplicados
+      // si un reintento se cruza con un envío que sí había llegado.
+      await SyncQueueDao().enqueue(uuid, '/clientes', payload);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.sinRedClienteSeEnviara)),
+      );
+      Navigator.of(context).pop();
     } catch (e) {
       setState(() {
         _error = _mensajeError(e, l10n.errorNoSePudoCompletarOperacion);

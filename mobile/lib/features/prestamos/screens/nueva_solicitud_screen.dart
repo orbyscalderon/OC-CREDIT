@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
+import '../../../data/local/sync_queue_dao.dart';
 import '../../../data/remote/api_client.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../l10n/app_localizations.dart';
@@ -82,18 +84,42 @@ class _NuevaSolicitudScreenState extends ConsumerState<NuevaSolicitudScreen> {
     }
 
     setState(() { _enviando = true; _error = null; });
+
+    final uuid = const Uuid().v4();
+    final payload = {
+      'uuid_idempotencia': uuid,
+      'cliente_id': cliente['id'],
+      'ruta_id': cliente['ruta_id'],
+      'capital_solicitado': capital,
+      'modalidad': _modalidad,
+      'numero_cuotas': cuotas,
+      if (_tasaCtrl.text.trim().isNotEmpty) 'tasa_interes_propuesta': num.tryParse(_tasaCtrl.text),
+      if (_notasCtrl.text.trim().isNotEmpty) 'notas': _notasCtrl.text.trim(),
+    };
+
     try {
-      await ApiClient.instance.dio.post('/prestamos/solicitar', data: {
-        'cliente_id': cliente['id'],
-        'ruta_id': cliente['ruta_id'],
-        'capital_solicitado': capital,
-        'modalidad': _modalidad,
-        'numero_cuotas': cuotas,
-        if (_tasaCtrl.text.trim().isNotEmpty) 'tasa_interes_propuesta': num.tryParse(_tasaCtrl.text),
-        if (_notasCtrl.text.trim().isNotEmpty) 'notas': _notasCtrl.text.trim(),
-      });
+      await ApiClient.instance.dio.post('/prestamos/solicitar', data: payload);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.solicitudCreada)));
+      Navigator.of(context).pop();
+    } on DioException catch (e) {
+      // El servidor respondió (cliente ya tiene préstamo activo, ruta no
+      // asignada, etc.) -- es un rechazo real, no encolar, reintentarlo
+      // fallaría exactamente igual.
+      if (e.response != null) {
+        if (!mounted) return;
+        setState(() {
+          _error = _mensajeError(e, l10n.errorNoSePudoCompletarOperacion);
+          _enviando = false;
+        });
+        return;
+      }
+      // Sin respuesta del servidor = sin red: encolar para sync posterior.
+      await SyncQueueDao().enqueue(uuid, '/prestamos/solicitar', payload);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.sinRedSolicitudSeEnviara)),
+      );
       Navigator.of(context).pop();
     } catch (e) {
       setState(() {

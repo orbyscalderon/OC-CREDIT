@@ -104,6 +104,10 @@ export class Prestamo {
   @Column({ type: 'text', nullable: true })
   notas: string;
 
+  /** Generado en el móvil para deduplicar reintentos de la cola offline al solicitar. NULL si vino del panel web. */
+  @Column({ type: 'uuid', nullable: true })
+  uuid_idempotencia: string;
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 

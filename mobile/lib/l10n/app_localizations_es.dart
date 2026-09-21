@@ -282,6 +282,14 @@ class AppLocalizationsEs extends AppLocalizations {
       'Sin red — cobro guardado y se enviará automáticamente';
 
   @override
+  String get sinRedClienteSeEnviara =>
+      'Sin red — el cliente se guardó y se enviará al recuperar la señal';
+
+  @override
+  String get sinRedSolicitudSeEnviara =>
+      'Sin red — la solicitud se guardó y se enviará al recuperar la señal';
+
+  @override
   String get registrarCoboTitulo => 'Registrar cobro';
 
   @override

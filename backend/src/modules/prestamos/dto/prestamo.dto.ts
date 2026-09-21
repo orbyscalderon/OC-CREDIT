@@ -8,6 +8,11 @@ import { ModalidadPrestamo } from '../../../common/constants/roles.enum';
 import { IsUuidLike } from '../../../common/decorators/is-uuid-like.decorator';
 
 export class CrearPrestamoDto {
+  @ApiPropertyOptional({ description: 'UUID generado en el móvil para deduplicar reintentos de la cola offline' })
+  @IsOptional()
+  @IsUuidLike()
+  uuid_idempotencia?: string;
+
   @ApiProperty({ description: 'ID del cliente' })
   @IsUuidLike()
   cliente_id: string;

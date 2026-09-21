@@ -214,6 +214,10 @@ export const MESSAGES: Record<string, Entrada> = {
     es: 'Solicitud no encontrada o ya procesada',
     en: 'Request not found or already processed',
   },
+  prestamos_solicitud_duplicada: {
+    es: 'Esta solicitud ya fue registrada',
+    en: 'This request was already registered',
+  },
   prestamos_no_encontrado_activo_para_renovar: {
     es: 'No se encontró préstamo activo para renovar. Use la opción de nuevo préstamo.',
     en: 'No active loan found to renew. Use the new loan option.',

@@ -88,6 +88,8 @@
   "sinDispositivosBluetooth": "No se encontraron dispositivos Bluetooth emparejados.",
   "cobroRegistradoCorrectamente": "Cobro registrado correctamente",
   "sinRedCobroGuardado": "Sin red — cobro guardado y se enviará automáticamente",
+  "sinRedClienteSeEnviara": "Sin red — el cliente se guardó y se enviará al recuperar la señal",
+  "sinRedSolicitudSeEnviara": "Sin red — la solicitud se guardó y se enviará al recuperar la señal",
   "registrarCoboTitulo": "Registrar cobro",
   "modalidadLabel": "Modalidad",
   "cuotasLabel": "Cuotas",
