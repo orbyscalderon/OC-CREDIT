@@ -2,21 +2,34 @@
 // templating (mjml/handlebars) a propósito, son 3 emails simples y una
 // dependencia más no se justifica. Mismo azul de marca que el panel web
 // (frontend/src/components/Layout/Sidebar.tsx: #2563EB).
+//
+// El ícono se referencia por URL pública (ya servido en producción en
+// frontend/public/icon-512.png) -- los clientes de email no renderizan
+// imágenes embebidas por path relativo, necesitan una URL https real.
+const LOGO_URL = 'https://ocaruta.com/icon-512.png';
 
-function layout(tituloInterno: string, cuerpoHtml: string): string {
+function layout(cuerpoHtml: string): string {
   return `<!DOCTYPE html>
 <html lang="es">
 <body style="margin:0;padding:0;background:#f3f5f9;font-family:Arial,Helvetica,sans-serif;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f5f9;padding:32px 0;">
     <tr><td align="center">
-      <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;">
-        <tr><td style="background:#2563EB;padding:24px 32px;">
-          <span style="color:#ffffff;font-size:20px;font-weight:700;">OCA Ruta</span>
+      <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(22,28,44,.08);">
+        <tr><td style="height:4px;background:#2563EB;line-height:4px;font-size:0;">&nbsp;</td></tr>
+        <tr><td style="padding:28px 32px 20px;border-bottom:1px solid #eef0f5;">
+          <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+            <td style="width:36px;padding-right:10px;">
+              <img src="${LOGO_URL}" width="36" height="36" alt="OCA Ruta" style="display:block;border-radius:9px;" />
+            </td>
+            <td style="vertical-align:middle;">
+              <span style="color:#161c2c;font-size:18px;font-weight:700;">OCA Ruta</span>
+            </td>
+          </tr></table>
         </td></tr>
-        <tr><td style="padding:32px;color:#161c2c;font-size:15px;line-height:1.6;">
+        <tr><td style="padding:28px 32px;color:#161c2c;font-size:15px;line-height:1.6;">
           ${cuerpoHtml}
         </td></tr>
-        <tr><td style="padding:20px 32px;background:#f8f9fb;color:#5b6478;font-size:12px;">
+        <tr><td style="padding:18px 32px;background:#f8f9fb;color:#5b6478;font-size:12px;">
           © ${new Date().getFullYear()} OCA HOLDING GROUP LLC. Todos los derechos reservados.
         </td></tr>
       </table>
@@ -28,28 +41,28 @@ function layout(tituloInterno: string, cuerpoHtml: string): string {
 
 export function plantillaRecuperarPassword(params: { nombre: string; link: string }): { subject: string; html: string } {
   return {
-    subject: 'Recuperar tu contraseña — OCA Ruta',
-    html: layout('Recuperar contraseña', `
+    subject: 'Restablecé tu contraseña de OCA Ruta',
+    html: layout(`
       <p>Hola ${params.nombre},</p>
-      <p>Recibimos una solicitud para restablecer tu contraseña. Si fuiste vos, hacé clic en el siguiente botón:</p>
+      <p>Alguien pidió restablecer la contraseña de tu cuenta en OCA Ruta. Si fuiste vos, elegí una nueva desde acá:</p>
       <p style="text-align:center;margin:28px 0;">
-        <a href="${params.link}" style="background:#2563EB;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;display:inline-block;">Restablecer contraseña</a>
+        <a href="${params.link}" style="background:#2563EB;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;display:inline-block;">Elegir contraseña nueva</a>
       </p>
-      <p style="color:#5b6478;font-size:13px;">Este enlace vence en 1 hora. Si no fuiste vos quien lo solicitó, podés ignorar este correo — tu contraseña actual sigue funcionando.</p>
+      <p style="color:#5b6478;font-size:13px;">Por seguridad, este enlace vence en 1 hora y solo sirve una vez. Si no fuiste vos, no hace falta que hagas nada — tu contraseña actual sigue funcionando igual.</p>
     `),
   };
 }
 
 export function plantillaBienvenida(params: { nombreEmpresa: string; nombreAdmin: string; email: string; loginUrl: string }): { subject: string; html: string } {
   return {
-    subject: `Bienvenido a OCA Ruta, ${params.nombreEmpresa}`,
-    html: layout('Bienvenida', `
+    subject: `${params.nombreEmpresa} ya está lista en OCA Ruta`,
+    html: layout(`
       <p>Hola ${params.nombreAdmin},</p>
-      <p>Tu cuenta para <strong>${params.nombreEmpresa}</strong> ya está lista. Ya podés iniciar sesión con tu email (<strong>${params.email}</strong>) y la contraseña que elegiste al registrarte.</p>
+      <p>Tu cuenta para <strong>${params.nombreEmpresa}</strong> ya está activa. Iniciá sesión con <strong>${params.email}</strong> y la contraseña que elegiste al registrarte para armar tus rutas, cargar tus clientes y empezar a cobrar.</p>
       <p style="text-align:center;margin:28px 0;">
-        <a href="${params.loginUrl}" style="background:#2563EB;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;display:inline-block;">Ir a mi panel</a>
+        <a href="${params.loginUrl}" style="background:#2563EB;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;display:inline-block;">Entrar a mi panel</a>
       </p>
-      <p style="color:#5b6478;font-size:13px;">Tenés 7 días de prueba gratis para probar todo antes de decidir tu plan. Cualquier duda, respondé este correo.</p>
+      <p style="color:#5b6478;font-size:13px;">Arrancás con 7 días de prueba gratis, sin tarjeta, para probar todo antes de elegir un plan. Cualquier consulta, respondé este correo y te ayudamos.</p>
     `),
   };
 }
@@ -57,9 +70,9 @@ export function plantillaBienvenida(params: { nombreEmpresa: string; nombreAdmin
 export function plantillaAvisoAdmin(params: { nombreAdmin: string; titulo: string; mensaje: string; link?: string; textoLink?: string }): { subject: string; html: string } {
   return {
     subject: `${params.titulo} — OCA Ruta`,
-    html: layout('Aviso', `
+    html: layout(`
       <p>Hola ${params.nombreAdmin},</p>
-      <p><strong>${params.titulo}</strong></p>
+      <p style="font-size:16px;font-weight:700;margin-bottom:4px;">${params.titulo}</p>
       <p>${params.mensaje}</p>
       ${params.link ? `<p style="text-align:center;margin:28px 0;">
         <a href="${params.link}" style="background:#2563EB;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;display:inline-block;">${params.textoLink ?? 'Ver en el panel'}</a>

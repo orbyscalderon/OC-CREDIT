@@ -3,6 +3,11 @@ import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
 
 const FROM_DEFAULT = 'OCA Ruta <no-reply@ocaruta.com>';
+// no-reply@ no acepta respuestas -- sin esto, alguien que responde el email
+// (p. ej. "no me llegó el préstamo aprobado") se pierde en el vacío. El
+// catch-all de Cloudflare Email Routing ya redirige *@ocaruta.com a la
+// bandeja real, así que soporte@ funciona para recibir sin configurar nada más.
+const REPLY_TO_DEFAULT = 'soporte@ocaruta.com';
 
 /**
  * Envío de emails transaccionales vía Resend. Si RESEND_API_KEY no está
@@ -23,7 +28,7 @@ export class EmailService {
     }
   }
 
-  async enviar(params: { to: string; subject: string; html: string; from?: string }): Promise<void> {
+  async enviar(params: { to: string; subject: string; html: string; from?: string; replyTo?: string }): Promise<void> {
     if (!this.resend) {
       this.logger.warn(`[email no enviado, falta RESEND_API_KEY] to=${params.to} subject="${params.subject}"`);
       return;
@@ -33,6 +38,7 @@ export class EmailService {
       to: params.to,
       subject: params.subject,
       html: params.html,
+      replyTo: params.replyTo ?? REPLY_TO_DEFAULT,
     });
     if (error) {
       // No relanzamos -- un email que falla (dominio no verificado, rate
