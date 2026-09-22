@@ -54,7 +54,9 @@ export const StripeCardInput = forwardRef<StripeCardInputHandle>((_props, ref) =
         clientSecretRef.current = clientSecret;
         const elements = stripe.elements();
         elementsRef.current = elements;
-        const card = elements.create('card', { style: { base: { fontSize: '15px' } } });
+        const card = elements.create('card', {
+          style: { base: { fontSize: '15px', color: '#111827', '::placeholder': { color: '#9ca3af' } } },
+        });
         card.mount(containerRef.current);
         card.on('change', (e) => setError(e.error ? e.error.message : null));
         cardRef.current = card;

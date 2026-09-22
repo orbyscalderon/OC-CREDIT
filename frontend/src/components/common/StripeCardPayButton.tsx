@@ -52,7 +52,9 @@ export function StripeCardPayButton({ crearClientSecret, onPagoConfirmado, onErr
         if (!containerRef.current) return;
         stripeRef.current = stripe;
         const elements = stripe.elements();
-        const card = elements.create('card', { style: { base: { fontSize: '15px' } } });
+        const card = elements.create('card', {
+          style: { base: { fontSize: '15px', color: '#111827', '::placeholder': { color: '#9ca3af' } } },
+        });
         card.mount(containerRef.current);
         card.on('change', (e) => setError(e.error ? e.error.message : null));
         cardRef.current = card;
