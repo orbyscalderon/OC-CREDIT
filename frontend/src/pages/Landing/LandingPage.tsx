@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
@@ -10,9 +10,12 @@ import { GoogleLogin } from '@react-oauth/google';
 import { planesApi, type Plan, type RegistrarTenantDto } from '@/api/planes.api';
 import { CalculadoraPrestamo } from '@/components/common/CalculadoraPrestamo';
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
+import { StripeCardInput, type StripeCardInputHandle } from '@/components/common/StripeCardInput';
 import { useAuth } from '@/hooks/useAuth';
 import { PAISES } from '@/utils/paises';
 import { clsx } from 'clsx';
+
+const STRIPE_PUBLISHABLE_KEY_PRESENTE = Boolean(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 type FormData = {
   nombre_empresa: string;
@@ -37,6 +40,8 @@ export function LandingPage() {
   const [anual, setAnual] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [errorGoogle, setErrorGoogle] = useState<string | null>(null);
+  const [errorTarjeta, setErrorTarjeta] = useState<string | null>(null);
+  const cardRef = useRef<StripeCardInputHandle>(null);
 
   const schema = z.object({
     nombre_empresa: z.string().min(3, t('landing.minimo3')),
@@ -74,14 +79,16 @@ export function LandingPage() {
   // El registro con Google deja al usuario logueado de una vez -- no hace
   // falta password ni el paso extra de "ahora inicia sesión".
   const registrarGoogleMut = useMutation({
-    mutationFn: (credential: string) => planesApi.registrarConGoogle({
-      credential,
-      nombre_empresa: getValues('nombre_empresa'),
-      pais: getValues('pais'),
-      telefono: getValues('telefono') || undefined,
-      ruc_cedula: getValues('ruc_cedula') || undefined,
-      plan_id: getValues('plan_id'),
-    }),
+    mutationFn: ({ credential, stripePaymentMethodId }: { credential: string; stripePaymentMethodId: string }) =>
+      planesApi.registrarConGoogle({
+        credential,
+        stripePaymentMethodId,
+        nombre_empresa: getValues('nombre_empresa'),
+        pais: getValues('pais'),
+        telefono: getValues('telefono') || undefined,
+        ruc_cedula: getValues('ruc_cedula') || undefined,
+        plan_id: getValues('plan_id'),
+      }),
     onSuccess: (resp) => {
       applySession(resp);
       navigate('/panel', { replace: true });
@@ -99,8 +106,26 @@ export function LandingPage() {
     // Google -- se validan igual que en el registro por email/password.
     const ok = await trigger('nombre_empresa');
     if (!ok) return;
-    registrarGoogleMut.mutate(credential);
+    try {
+      const stripePaymentMethodId = STRIPE_PUBLISHABLE_KEY_PRESENTE
+        ? await cardRef.current!.confirmarTarjeta()
+        : '';
+      registrarGoogleMut.mutate({ credential, stripePaymentMethodId });
+    } catch (e) {
+      setErrorGoogle((e as Error).message);
+    }
   };
+
+  const onSubmitConTarjeta = handleSubmit(async (d) => {
+    try {
+      const stripePaymentMethodId = STRIPE_PUBLISHABLE_KEY_PRESENTE
+        ? await cardRef.current!.confirmarTarjeta()
+        : '';
+      registrarMut.mutate({ ...d, stripePaymentMethodId });
+    } catch (e) {
+      setErrorTarjeta((e as Error).message);
+    }
+  });
 
   const planActual = planes.find((p) => p.id === planSeleccionado);
   const precioSeleccionado = planActual
@@ -341,7 +366,7 @@ export function LandingPage() {
           </p>
 
           <form
-            onSubmit={handleSubmit((d) => registrarMut.mutate(d))}
+            onSubmit={onSubmitConTarjeta}
             className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm space-y-4"
           >
             <div>
@@ -362,6 +387,8 @@ export function LandingPage() {
                 {t('landing.pais_hint')}
               </p>
             </div>
+
+            {STRIPE_PUBLISHABLE_KEY_PRESENTE && <StripeCardInput ref={cardRef} />}
 
             {googleClientId && (
               <div>
@@ -442,6 +469,12 @@ export function LandingPage() {
             {registrarMut.isError && (
               <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 {(registrarMut.error as {message?: string} | null)?.message ?? t('landing.error_registro')}
+              </div>
+            )}
+
+            {errorTarjeta && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {errorTarjeta}
               </div>
             )}
 

@@ -6,6 +6,15 @@ export class RegistrarTenantDto {
   @IsString() @Length(3, 200)
   nombre_empresa: string;
 
+  // PaymentMethod de Stripe (pm_...) confirmado en el frontend via
+  // SetupIntent -- se guarda para cobrar automaticamente cuando venza la
+  // prueba de 7 dias, no se cobra nada en el registro. Requerido solo en
+  // el registro de prueba gratis (registrarTenant lo valida en runtime);
+  // en GooglePayRegistroDto (que hereda de aca) no aplica porque ese
+  // registro ya cobra de inmediato con un token de un solo uso.
+  @IsOptional() @IsString()
+  stripePaymentMethodId?: string;
+
   @IsEmail()
   email_admin: string;
 

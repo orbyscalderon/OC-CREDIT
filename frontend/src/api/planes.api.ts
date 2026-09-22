@@ -29,6 +29,7 @@ export interface RegistrarTenantDto {
   pais?: string;
   plan_id: string;
   facturacion_anual?: boolean;
+  stripePaymentMethodId: string;
 }
 
 export interface UsoPlan {
@@ -60,6 +61,7 @@ export interface RegistroGoogleDto {
   ruc_cedula?: string;
   pais?: string;
   plan_id: string;
+  stripePaymentMethodId: string;
 }
 
 export interface SuscribirPlanDto {
@@ -81,6 +83,14 @@ export const planesApi = {
     publicApi.post('/planes/registro', dto).then((r) =>
       (r.data as unknown as { data: unknown }).data ?? r.data,
     ),
+
+  crearSetupIntent: () =>
+    publicApi.post<{ clientSecret: string }>('/planes/setup-intent').then((r) =>
+      ((r.data as unknown as { data: { clientSecret: string } }).data ?? r.data) as { clientSecret: string },
+    ),
+
+  cancelarCobroAutomatico: () =>
+    api.post<{ mensaje: string }>('/planes/cancelar-cobro-automatico').then((r) => r.data),
 
   registrarConGooglePay: (dto: GooglePayRegistroDto) =>
     publicApi.post('/planes/google-pay', dto).then((r) =>

@@ -7,6 +7,13 @@ export class RegistroGoogleDto {
   @IsNotEmpty() @IsString()
   credential: string;
 
+  // PaymentMethod de Stripe (pm_...) confirmado en el frontend via
+  // SetupIntent -- misma tarjeta-obligatoria-para-la-prueba que el
+  // registro por email/password (registrarTenant valida en runtime si
+  // Stripe está configurado).
+  @IsOptional() @IsString()
+  stripePaymentMethodId?: string;
+
   @IsString() @Length(3, 200)
   nombre_empresa: string;
 

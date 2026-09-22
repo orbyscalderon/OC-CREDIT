@@ -62,7 +62,29 @@ export function plantillaBienvenida(params: { nombreEmpresa: string; nombreAdmin
       <p style="text-align:center;margin:28px 0;">
         <a href="${params.loginUrl}" style="background:#2563EB;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;display:inline-block;">Entrar a mi panel</a>
       </p>
-      <p style="color:#5b6478;font-size:13px;">Arrancás con 7 días de prueba gratis, sin tarjeta, para probar todo antes de elegir un plan. Cualquier consulta, respondé este correo y te ayudamos.</p>
+      <p style="color:#5b6478;font-size:13px;">Arrancás con 7 días de prueba gratis. Al terminar, se cobra automáticamente a la tarjeta que registraste. Si no querés continuar, respondé este correo antes de que termine la prueba y cancelamos sin cargos.</p>
+    `),
+  };
+}
+
+export function plantillaCobroPrueba(params: { nombreAdmin: string; nombreEmpresa: string; exito: boolean; planNombre: string; montoUsd: number; motivoFallo?: string; link: string }): { subject: string; html: string } {
+  return {
+    subject: params.exito
+      ? `Cobro exitoso — plan ${params.planNombre} activado`
+      : `No pudimos cobrar tu tarjeta — ${params.nombreEmpresa}`,
+    html: layout(params.exito ? `
+      <p>Hola ${params.nombreAdmin},</p>
+      <p>Tu prueba gratis de <strong>${params.nombreEmpresa}</strong> terminó y activamos el plan <strong>${params.planNombre}</strong> — se cobraron <strong>$${params.montoUsd.toFixed(2)} USD</strong> a tu tarjeta registrada. Ya podés seguir usando la cuenta sin interrupciones.</p>
+      <p style="text-align:center;margin:28px 0;">
+        <a href="${params.link}" style="background:#2563EB;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;display:inline-block;">Entrar a mi panel</a>
+      </p>
+    ` : `
+      <p>Hola ${params.nombreAdmin},</p>
+      <p>Tu prueba gratis de <strong>${params.nombreEmpresa}</strong> terminó y no pudimos cobrar tu tarjeta registrada para activar el plan <strong>${params.planNombre}</strong>${params.motivoFallo ? ` (${params.motivoFallo})` : ''}.</p>
+      <p>Tu cuenta quedó pausada hasta que actualices el pago. Reintentamos automáticamente los próximos días, o podés pagar ahora mismo desde acá:</p>
+      <p style="text-align:center;margin:28px 0;">
+        <a href="${params.link}" style="background:#2563EB;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;display:inline-block;">Actualizar método de pago</a>
+      </p>
     `),
   };
 }

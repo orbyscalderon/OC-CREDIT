@@ -200,6 +200,14 @@ export const MESSAGES: Record<string, Entrada> = {
     es: 'Error procesando pago: {{detalle}}',
     en: 'Error processing payment: {{detalle}}',
   },
+  planes_tarjeta_requerida: {
+    es: 'Se requiere una tarjeta para iniciar la prueba gratis. Registrate desde ocaruta.com para completarlo.',
+    en: 'A card is required to start the free trial. Please sign up from ocaruta.com to complete it.',
+  },
+  planes_tarjeta_invalida: {
+    es: 'No se pudo validar la tarjeta: {{detalle}}',
+    en: 'Could not validate the card: {{detalle}}',
+  },
   planes_google_play_no_configurado: {
     es: 'La verificación de compras de Google Play no está configurada. Contacte al soporte.',
     en: 'Google Play purchase verification is not configured. Please contact support.',

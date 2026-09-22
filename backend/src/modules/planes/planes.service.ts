@@ -21,7 +21,7 @@ import { verificarGoogleIdToken } from '../../common/utils/google-token.util';
 import { ZonaHorariaService } from '../../common/services/zona-horaria.service';
 import { EmailService } from '../../common/services/email.service';
 import { GooglePlayBillingService } from '../../common/services/google-play-billing.service';
-import { plantillaBienvenida } from '../../common/services/email-templates/templates';
+import { plantillaBienvenida, plantillaCobroPrueba } from '../../common/services/email-templates/templates';
 import { msg } from '../../common/i18n/messages';
 import { AuthService } from '../auth/auth.service';
 
@@ -105,6 +105,25 @@ export class PlanesService {
     const zonaHoraria = zonaHorariaPorPais(pais);
     const hoy = fechaHoyEnZona(zonaHoraria);
 
+    // La prueba gratis exige tarjeta -- se valida y se guarda ANTES de
+    // crear nada en la BD, así una tarjeta rechazada no deja un tenant a
+    // medias. No se cobra nada acá, solo se verifica y se guarda para el
+    // cobro automático de PlanesScheduler cuando venza fecha_prueba_hasta.
+    // Condicionado a que Stripe esté configurado: así el registro gratis
+    // sigue funcionando igual que antes mientras terminan de cargar
+    // STRIPE_SECRET_KEY, en vez de romperse para todo el mundo.
+    let stripeCustomerId: string | null = null;
+    if (!esPago && this.config.get<string>('STRIPE_SECRET_KEY')) {
+      if (!dto.stripePaymentMethodId) {
+        throw new BadRequestException(msg('planes_tarjeta_requerida'));
+      }
+      stripeCustomerId = await this.crearClienteStripeConTarjeta(
+        dto.email_admin.toLowerCase(),
+        dto.nombre_empresa,
+        dto.stripePaymentMethodId,
+      );
+    }
+
     const resultado = await this.ds.transaction(async (em) => {
       const tenant = em.create(Tenant, {
         nombre_empresa: dto.nombre_empresa,
@@ -131,9 +150,11 @@ export class PlanesService {
         await em.query(
           `UPDATE tenants SET plan_id = $1, max_prestamos_activos = $2, facturacion_anual = $3,
              fecha_prueba_hasta = $4::date + 7,
-             fecha_vencimiento_suscripcion = NULL
+             fecha_vencimiento_suscripcion = NULL,
+             stripe_customer_id = $6,
+             stripe_payment_method_id = $7
            WHERE id = $5`,
-          [dto.plan_id, plan.max_prestamos_activos, dto.facturacion_anual ?? false, hoy, tenant.id],
+          [dto.plan_id, plan.max_prestamos_activos, dto.facturacion_anual ?? false, hoy, tenant.id, stripeCustomerId, dto.stripePaymentMethodId],
         );
       }
 
@@ -211,6 +232,7 @@ export class PlanesService {
       ruc_cedula: dto.ruc_cedula,
       pais: dto.pais,
       plan_id: dto.plan_id,
+      stripePaymentMethodId: dto.stripePaymentMethodId,
     }, false);
 
     // La cuenta ya existe -- reutiliza el login con Google para devolver el
@@ -381,5 +403,172 @@ export class PlanesService {
       const detalle = (err as Stripe.errors.StripeError)?.message;
       throw new BadRequestException(msg('planes_error_procesando_pago', { detalle: detalle ?? 'Intente nuevamente' }));
     }
+  }
+
+  private stripeClient(): Stripe {
+    const secretKey = this.config.get<string>('STRIPE_SECRET_KEY');
+    if (!secretKey) throw new BadRequestException(msg('planes_pasarela_no_configurada'));
+    return new Stripe(secretKey);
+  }
+
+  /**
+   * SetupIntent -- el frontend lo confirma con Stripe Elements (Card
+   * Element) para validar/guardar una tarjeta SIN cobrar nada, antes de
+   * mandar el resto del formulario de registro.
+   */
+  async crearSetupIntent() {
+    const stripe = this.stripeClient();
+    const intent = await stripe.setupIntents.create({
+      automatic_payment_methods: { enabled: true },
+    });
+    return { clientSecret: intent.client_secret };
+  }
+
+  /**
+   * Crea el Customer de Stripe del tenant y le adjunta el payment_method
+   * ya confirmado por el SetupIntent como método por defecto -- así
+   * PlanesScheduler puede cobrarlo automáticamente sin pedirle la tarjeta
+   * de nuevo cuando venza la prueba gratis.
+   */
+  private async crearClienteStripeConTarjeta(
+    email: string,
+    nombreEmpresa: string,
+    paymentMethodId: string,
+  ): Promise<string> {
+    const stripe = this.stripeClient();
+    try {
+      const customer = await stripe.customers.create({
+        email,
+        name: nombreEmpresa,
+        payment_method: paymentMethodId,
+        invoice_settings: { default_payment_method: paymentMethodId },
+      });
+      return customer.id;
+    } catch (err: unknown) {
+      const detalle = (err as Stripe.errors.StripeError)?.message;
+      throw new BadRequestException(msg('planes_tarjeta_invalida', { detalle: detalle ?? 'Intente con otra tarjeta' }));
+    }
+  }
+
+  /**
+   * Llamado por PlanesScheduler una vez al día. Busca tenants cuya prueba
+   * gratis venció y todavía no tienen una suscripción activa, y les cobra
+   * el plan elegido a la tarjeta guardada en el registro. Tope de 3
+   * intentos (cobro_prueba_intentos) para no seguir golpeando una tarjeta
+   * ya rechazada indefinidamente -- después de eso, el tenant queda en el
+   * mismo estado "bloqueado, pago manual" que ya existía antes de esta
+   * función (vía /suscripcion-vencida).
+   */
+  async cobrarPruebasVencidas(): Promise<{ cobrados: number; fallidos: number }> {
+    const secretKey = this.config.get<string>('STRIPE_SECRET_KEY');
+    if (!secretKey) return { cobrados: 0, fallidos: 0 }; // no configurado -- no-op silencioso, no es un error
+
+    const stripe = new Stripe(secretKey);
+    const frontendUrl = this.config.get<string>('FRONTEND_URL') ?? 'https://ocaruta.com';
+
+    const pendientes = await this.ds.query(`
+      SELECT t.id AS tenant_id, t.nombre_empresa, t.email_contacto, t.plan_id,
+             t.facturacion_anual, t.stripe_customer_id, t.stripe_payment_method_id,
+             p.nombre AS plan_nombre, p.precio_mensual_usd, p.precio_anual_usd, p.max_prestamos_activos,
+             e.nombre AS admin_nombre
+      FROM tenants t
+      JOIN planes_saas p ON p.id = t.plan_id
+      LEFT JOIN usuarios u ON u.tenant_id = t.id AND u.rol = 'admin_tenant' AND u.activo = TRUE
+      LEFT JOIN empleados e ON e.usuario_id = u.id
+      WHERE t.activo = TRUE
+        AND t.fecha_vencimiento_suscripcion IS NULL
+        AND t.fecha_prueba_hasta IS NOT NULL
+        AND t.fecha_prueba_hasta < CURRENT_DATE
+        AND t.stripe_customer_id IS NOT NULL
+        AND t.stripe_payment_method_id IS NOT NULL
+        AND t.cobro_prueba_intentos < 3
+        AND (t.cobro_prueba_ultimo_intento IS NULL OR t.cobro_prueba_ultimo_intento < now() - interval '20 hours')
+    `);
+
+    let cobrados = 0, fallidos = 0;
+
+    for (const t of pendientes) {
+      const montoUsd = t.facturacion_anual ? Number(t.precio_anual_usd) : Number(t.precio_mensual_usd);
+      const meses = t.facturacion_anual ? 12 : 1;
+      const nombreAdmin = t.admin_nombre ?? 'equipo';
+      const linkPanel = `${frontendUrl}/panel`;
+
+      try {
+        const intent = await stripe.paymentIntents.create({
+          amount: Math.round(montoUsd * 100),
+          currency: 'usd',
+          customer: t.stripe_customer_id,
+          payment_method: t.stripe_payment_method_id,
+          off_session: true,
+          confirm: true,
+          description: `Plan ${t.plan_nombre} — OCA Ruta (fin de prueba)`,
+        });
+
+        if (intent.status !== 'succeeded') {
+          throw new Error(`estado ${intent.status}`);
+        }
+
+        await this.ds.query(
+          `UPDATE tenants SET
+             fecha_vencimiento_suscripcion = CURRENT_DATE + ($1 || ' months')::interval,
+             cobro_prueba_intentos = cobro_prueba_intentos + 1,
+             cobro_prueba_ultimo_intento = now()
+           WHERE id = $2`,
+          [meses, t.tenant_id],
+        );
+        cobrados++;
+
+        const { subject, html } = plantillaCobroPrueba({
+          nombreAdmin, nombreEmpresa: t.nombre_empresa, exito: true,
+          planNombre: t.plan_nombre, montoUsd, link: linkPanel,
+        });
+        await this.emailService.enviar({ to: t.email_contacto, subject, html });
+      } catch (err: unknown) {
+        fallidos++;
+        const motivo = (err as Stripe.errors.StripeError)?.message ?? (err as Error).message;
+        this.logger.warn(`Cobro de prueba vencida falló para tenant ${t.tenant_id}: ${motivo}`);
+
+        await this.ds.query(
+          `UPDATE tenants SET cobro_prueba_intentos = cobro_prueba_intentos + 1, cobro_prueba_ultimo_intento = now()
+           WHERE id = $1`,
+          [t.tenant_id],
+        );
+
+        const { subject, html } = plantillaCobroPrueba({
+          nombreAdmin, nombreEmpresa: t.nombre_empresa, exito: false,
+          planNombre: t.plan_nombre, montoUsd, motivoFallo: motivo, link: `${frontendUrl}/suscripcion-vencida`,
+        });
+        await this.emailService.enviar({ to: t.email_contacto, subject, html });
+      }
+    }
+
+    return { cobrados, fallidos };
+  }
+
+  /**
+   * Cancela el cobro automático de fin de prueba -- desvincula la tarjeta
+   * guardada (Stripe + BD). El tenant sigue usando la cuenta hasta que
+   * venza la prueba; al vencer, cae al mismo flujo de pago manual que ya
+   * existía (/suscripcion-vencida) en vez de cobrarse solo.
+   */
+  async cancelarCobroAutomatico(tenantId: string): Promise<{ mensaje: string }> {
+    const secretKey = this.config.get<string>('STRIPE_SECRET_KEY');
+    const tenants = await this.ds.query(`SELECT stripe_payment_method_id FROM tenants WHERE id = $1`, [tenantId]);
+    const paymentMethodId = tenants[0]?.stripe_payment_method_id;
+
+    if (secretKey && paymentMethodId) {
+      try {
+        await new Stripe(secretKey).paymentMethods.detach(paymentMethodId);
+      } catch {
+        // Si ya estaba desvinculada o Stripe falla, igual limpiamos la BD --
+        // lo importante es que no se vuelva a intentar cobrar.
+      }
+    }
+
+    await this.ds.query(
+      `UPDATE tenants SET stripe_payment_method_id = NULL WHERE id = $1`,
+      [tenantId],
+    );
+    return { mensaje: 'Cobro automático cancelado. Tu cuenta sigue activa hasta que termine la prueba.' };
   }
 }

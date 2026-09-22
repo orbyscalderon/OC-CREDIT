@@ -36,6 +36,15 @@ export class PlanesController {
     return this.svc.registrarTenant(dto, false);
   }
 
+  /** SetupIntent de Stripe -- el frontend lo confirma con Card Element para validar/guardar la tarjeta antes de registrarse, sin cobrar nada */
+  @Public()
+  @Post('setup-intent')
+  @Throttle({ short: { limit: 5, ttl: 60_000 }, long: { limit: 20, ttl: 3_600_000 } })
+  @ApiOperation({ summary: 'Crea un SetupIntent de Stripe para validar una tarjeta antes del registro' })
+  crearSetupIntent() {
+    return this.svc.crearSetupIntent();
+  }
+
   /** Registro público con Google — crea tenant + usuario admin autenticando con un ID token de Google, sin contraseña */
   @Public()
   @Post('registro-google')
@@ -78,5 +87,15 @@ export class PlanesController {
   @ApiOperation({ summary: 'Verifica una compra de Google Play Billing y activa el plan' })
   verificarCompraGooglePlay(@CurrentUser() user: JwtPayload, @Body() dto: VerificarCompraGooglePlayDto) {
     return this.svc.verificarCompraGooglePlay(user.tenantId, dto);
+  }
+
+  /** Cancela el cobro automático de fin de prueba (desvincula la tarjeta guardada) */
+  @UseGuards(JwtAuthGuard, PermisosGuard)
+  @RequierePermiso(Permiso.PLANES_ADMIN)
+  @SkipSubscriptionCheck()
+  @Post('cancelar-cobro-automatico')
+  @ApiOperation({ summary: 'Cancela el cobro automático de fin de prueba' })
+  cancelarCobroAutomatico(@CurrentUser() user: JwtPayload) {
+    return this.svc.cancelarCobroAutomatico(user.tenantId);
   }
 }
