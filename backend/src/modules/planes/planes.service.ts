@@ -260,9 +260,7 @@ export class PlanesService {
     const plan = planes[0];
 
     // Plan gratis — no requiere pago
-    const precioUsd = dto.facturacion_anual
-      ? Number(plan.precio_anual_usd)
-      : Number(plan.precio_mensual_usd);
+    const precioUsd = this.precioTotalUsd(plan, dto.facturacion_anual ?? false);
 
     if (precioUsd === 0) {
       return this.registrarTenant(dto);
@@ -296,9 +294,7 @@ export class PlanesService {
     if (!planes.length) throw new NotFoundException(msg('planes_no_encontrado'));
     const plan = planes[0];
 
-    const precioUsd = dto.facturacion_anual
-      ? Number(plan.precio_anual_usd)
-      : Number(plan.precio_mensual_usd);
+    const precioUsd = this.precioTotalUsd(plan, dto.facturacion_anual ?? false);
 
     if (precioUsd > 0) {
       const gpayEnv = this.config.get<string>('GOOGLE_PAY_ENV', 'TEST');
@@ -409,6 +405,18 @@ export class PlanesService {
     }
   }
 
+  /**
+   * precio_anual_usd guarda la tarifa MENSUAL con descuento cuando se paga
+   * anual (ej. plan de $50/mes -> $42.50/mes pagando anual, "con 15% dto"
+   * según el comentario de la migración 004) -- NO es el total del año.
+   * El monto real a cobrar/mostrar como total es ese valor × 12 meses.
+   */
+  private precioTotalUsd(plan: { precio_mensual_usd: string | number; precio_anual_usd: string | number }, facturacionAnual: boolean): number {
+    return facturacionAnual
+      ? Number(plan.precio_anual_usd) * 12
+      : Number(plan.precio_mensual_usd);
+  }
+
   private stripeClient(): Stripe {
     const secretKey = this.config.get<string>('STRIPE_SECRET_KEY');
     if (!secretKey) throw new BadRequestException(msg('planes_pasarela_no_configurada'));
@@ -496,7 +504,7 @@ export class PlanesService {
     let cobrados = 0, fallidos = 0;
 
     for (const t of pendientes) {
-      const montoUsd = t.facturacion_anual ? Number(t.precio_anual_usd) : Number(t.precio_mensual_usd);
+      const montoUsd = this.precioTotalUsd(t, t.facturacion_anual);
       const meses = t.facturacion_anual ? 12 : 1;
       const nombreAdmin = t.admin_nombre ?? 'equipo';
       const linkPanel = `${frontendUrl}/panel`;

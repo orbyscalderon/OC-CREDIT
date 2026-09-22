@@ -30,7 +30,11 @@ export function PlanUpgradePanel({ onSuccess }: { onSuccess?: () => void }) {
   });
 
   const planActual = planes.find((p) => p.id === planSeleccionado);
-  const precio = planActual ? (anual ? Number(planActual.precio_anual_usd) : Number(planActual.precio_mensual_usd)) : 0;
+  // precio_anual_usd es la tarifa MENSUAL con descuento (no el total del
+  // año) -- el cobro real anual es ese valor × 12, igual que en el backend.
+  const precio = planActual
+    ? (anual ? Number(planActual.precio_anual_usd) * 12 : Number(planActual.precio_mensual_usd))
+    : 0;
 
   return (
     <div className="flex flex-col items-center">

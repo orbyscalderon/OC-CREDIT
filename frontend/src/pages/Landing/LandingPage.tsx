@@ -128,8 +128,11 @@ export function LandingPage() {
   });
 
   const planActual = planes.find((p) => p.id === planSeleccionado);
+  // precio_anual_usd es la tarifa MENSUAL con descuento, no el total del
+  // año -- este número es el que se muestra como "se cobra $X/año", así
+  // que tiene que ser el total real (×12), no la tarifa mensual.
   const precioSeleccionado = planActual
-    ? (anual ? Number(planActual.precio_anual_usd) : Number(planActual.precio_mensual_usd))
+    ? (anual ? Number(planActual.precio_anual_usd) * 12 : Number(planActual.precio_mensual_usd))
     : 0;
 
   const seleccionarPlan = (planId: string) => {
