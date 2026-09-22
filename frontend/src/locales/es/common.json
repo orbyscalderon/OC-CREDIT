@@ -805,8 +805,8 @@
     "nueva_consulta": "Nueva consulta"
   },
   "suscripcion": {
-    "titulo": "Tu período de prueba terminó",
-    "subtitulo": "Elige un plan para seguir usando tu cuenta. Tus datos siguen intactos.",
+    "titulo": "Necesitás un plan activo para continuar",
+    "subtitulo": "Tu prueba gratis terminó o tu suscripción venció. Elige un plan para seguir usando tu cuenta -- tus datos siguen intactos.",
     "mensual": "Mensual",
     "anual": "Anual",
     "descuento_anual": "-15%",
@@ -815,6 +815,8 @@
     "por_ano": " / año",
     "por_mes": " / mes",
     "error_pago": "Error al procesar el pago",
+    "o_con_tarjeta": "o con tarjeta",
+    "pagar_con_tarjeta": "Pagar con tarjeta",
     "cerrar_sesion": "Cerrar sesión",
     "solo_admin_titulo": "Suscripción vencida",
     "solo_admin_subtitulo": "Solo el administrador de tu empresa puede renovar la suscripción. Pídele que inicie sesión y elija un plan para que todos puedan volver a usar la cuenta."

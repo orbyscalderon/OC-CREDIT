@@ -10,7 +10,10 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { planesApi, type Plan } from '@/api/planes.api';
 import { GooglePayButton } from '@/components/common/GooglePayButton';
+import { StripeCardPayButton } from '@/components/common/StripeCardPayButton';
 import { clsx } from 'clsx';
+
+const STRIPE_PUBLISHABLE_KEY_PRESENTE = Boolean(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 export function PlanUpgradePanel({ onSuccess }: { onSuccess?: () => void }) {
   const { t } = useTranslation();
@@ -24,8 +27,8 @@ export function PlanUpgradePanel({ onSuccess }: { onSuccess?: () => void }) {
   });
 
   const suscribirMut = useMutation({
-    mutationFn: (googlePayToken: string) =>
-      planesApi.suscribir({ plan_id: planSeleccionado!, facturacion_anual: anual, googlePayToken }),
+    mutationFn: (pago: { googlePayToken?: string; paymentIntentId?: string }) =>
+      planesApi.suscribir({ plan_id: planSeleccionado!, facturacion_anual: anual, ...pago }),
     onSuccess: () => onSuccess?.(),
   });
 
@@ -85,13 +88,32 @@ export function PlanUpgradePanel({ onSuccess }: { onSuccess?: () => void }) {
             amountUsd={precio}
             disabled={suscribirMut.isPending}
             onError={setError}
-            onPaymentToken={(token) => { setError(null); suscribirMut.mutate(token); }}
+            onPaymentToken={(token) => { setError(null); suscribirMut.mutate({ googlePayToken: token }); }}
           />
           {error && <p className="text-center text-sm text-red-600">{error}</p>}
           {suscribirMut.isError && (
             <p className="text-center text-sm text-red-600">
               {(suscribirMut.error as { message?: string } | null)?.message ?? t('suscripcion.error_pago')}
             </p>
+          )}
+
+          {STRIPE_PUBLISHABLE_KEY_PRESENTE && (
+            <>
+              <div className="relative flex items-center my-1">
+                <div className="flex-1 border-t border-gray-200" />
+                <span className="mx-3 text-xs text-gray-400">{t('suscripcion.o_con_tarjeta')}</span>
+                <div className="flex-1 border-t border-gray-200" />
+              </div>
+              <StripeCardPayButton
+                disabled={suscribirMut.isPending}
+                crearClientSecret={async () => {
+                  const { clientSecret } = await planesApi.crearPaymentIntentPago(planSeleccionado!, anual);
+                  return clientSecret;
+                }}
+                onPagoConfirmado={(paymentIntentId) => { setError(null); suscribirMut.mutate({ paymentIntentId }); }}
+                onError={setError}
+              />
+            </>
           )}
         </div>
       )}

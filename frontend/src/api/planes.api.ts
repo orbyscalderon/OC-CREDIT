@@ -69,6 +69,7 @@ export interface SuscribirPlanDto {
   plan_id: string;
   facturacion_anual?: boolean;
   googlePayToken?: string;
+  paymentIntentId?: string;
 }
 
 // Llamada pública sin JWT
@@ -111,4 +112,7 @@ export const planesApi = {
 
   suscribir: (dto: SuscribirPlanDto) =>
     api.post('/planes/suscribir', dto).then((r) => r.data),
+
+  crearPaymentIntentPago: (plan_id: string, facturacion_anual: boolean) =>
+    api.post<{ clientSecret: string }>('/planes/crear-payment-intent', { plan_id, facturacion_anual }).then((r) => r.data),
 };

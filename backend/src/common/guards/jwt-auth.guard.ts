@@ -54,11 +54,26 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
           const t = rows[0];
           const hoy = new Date();
           hoy.setHours(0, 0, 0, 0);
-          const pruebaVencida = t.fecha_prueba_hasta && new Date(t.fecha_prueba_hasta) < hoy;
-          const sinSuscripcionVigente =
-            !t.fecha_vencimiento_suscripcion || new Date(t.fecha_vencimiento_suscripcion) < hoy;
 
-          if (pruebaVencida && sinSuscripcionVigente) {
+          // Dos casos, tratados distinto:
+          //  - Nunca pagó (fecha_vencimiento_suscripcion nunca se seteó):
+          //    se bloquea apenas vence la prueba gratis, sin gracia.
+          //  - Ya pagó alguna vez: se le dan 3 días de gracia después del
+          //    vencimiento antes de bloquear (le da tiempo a que el cobro
+          //    automático de PlanesService.cobrarPruebasVencidas reintente).
+          // Antes acá se exigía AMBAS condiciones a la vez, lo que en la
+          // práctica significaba que una vez pagado una vez, nunca más se
+          // volvía a bloquear (fecha_prueba_hasta queda NULL tras pagar).
+          let bloqueado = false;
+          if (t.fecha_vencimiento_suscripcion) {
+            const limiteGracia = new Date(t.fecha_vencimiento_suscripcion);
+            limiteGracia.setDate(limiteGracia.getDate() + 3);
+            bloqueado = hoy > limiteGracia;
+          } else if (t.fecha_prueba_hasta) {
+            bloqueado = new Date(t.fecha_prueba_hasta) < hoy;
+          }
+
+          if (bloqueado) {
             throw new HttpException(
               {
                 code: 'TRIAL_EXPIRED',

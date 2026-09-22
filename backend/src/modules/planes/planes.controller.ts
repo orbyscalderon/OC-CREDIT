@@ -14,6 +14,7 @@ import { GooglePayRegistroDto } from './dto/google-pay-registro.dto';
 import { RegistroGoogleDto } from './dto/registro-google.dto';
 import { SuscribirPlanDto } from './dto/suscribir-plan.dto';
 import { VerificarCompraGooglePlayDto } from './dto/verificar-compra-google-play.dto';
+import { CrearPaymentIntentDto } from './dto/crear-payment-intent.dto';
 
 @ApiTags('Planes & Registro')
 @Controller({ path: 'planes', version: '1' })
@@ -76,6 +77,17 @@ export class PlanesController {
   @ApiOperation({ summary: 'Paga/activa la suscripción del tenant autenticado' })
   suscribir(@CurrentUser() user: JwtPayload, @Body() dto: SuscribirPlanDto) {
     return this.svc.suscribirTenant(user.tenantId, dto);
+  }
+
+  /** PaymentIntent para pagar el plan con tarjeta directa (alternativa a Google Pay) */
+  @UseGuards(JwtAuthGuard, PermisosGuard)
+  @RequierePermiso(Permiso.PLANES_ADMIN)
+  @SkipSubscriptionCheck()
+  @Post('crear-payment-intent')
+  @Throttle({ short: { limit: 5, ttl: 60_000 }, long: { limit: 20, ttl: 3_600_000 } })
+  @ApiOperation({ summary: 'Crea un PaymentIntent para pagar el plan con tarjeta directa' })
+  crearPaymentIntentPago(@Body() dto: CrearPaymentIntentDto) {
+    return this.svc.crearPaymentIntentPago(dto.plan_id, dto.facturacion_anual ?? false);
   }
 
   /** Activa/renueva la suscripción a partir de una compra hecha dentro de la app Android (Google Play Billing) */

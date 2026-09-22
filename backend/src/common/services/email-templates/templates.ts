@@ -67,21 +67,22 @@ export function plantillaBienvenida(params: { nombreEmpresa: string; nombreAdmin
   };
 }
 
-export function plantillaCobroPrueba(params: { nombreAdmin: string; nombreEmpresa: string; exito: boolean; planNombre: string; montoUsd: number; motivoFallo?: string; link: string }): { subject: string; html: string } {
+export function plantillaCobroPrueba(params: { nombreAdmin: string; nombreEmpresa: string; exito: boolean; esRenovacion: boolean; planNombre: string; montoUsd: number; motivoFallo?: string; link: string }): { subject: string; html: string } {
+  const origen = params.esRenovacion ? 'Tu suscripción venció' : 'Tu prueba gratis terminó';
   return {
     subject: params.exito
       ? `Cobro exitoso — plan ${params.planNombre} activado`
       : `No pudimos cobrar tu tarjeta — ${params.nombreEmpresa}`,
     html: layout(params.exito ? `
       <p>Hola ${params.nombreAdmin},</p>
-      <p>Tu prueba gratis de <strong>${params.nombreEmpresa}</strong> terminó y activamos el plan <strong>${params.planNombre}</strong> — se cobraron <strong>$${params.montoUsd.toFixed(2)} USD</strong> a tu tarjeta registrada. Ya podés seguir usando la cuenta sin interrupciones.</p>
+      <p>${origen} y activamos el plan <strong>${params.planNombre}</strong> para <strong>${params.nombreEmpresa}</strong> — se cobraron <strong>$${params.montoUsd.toFixed(2)} USD</strong> a tu tarjeta registrada. Ya podés seguir usando la cuenta sin interrupciones.</p>
       <p style="text-align:center;margin:28px 0;">
         <a href="${params.link}" style="background:#2563EB;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;display:inline-block;">Entrar a mi panel</a>
       </p>
     ` : `
       <p>Hola ${params.nombreAdmin},</p>
-      <p>Tu prueba gratis de <strong>${params.nombreEmpresa}</strong> terminó y no pudimos cobrar tu tarjeta registrada para activar el plan <strong>${params.planNombre}</strong>${params.motivoFallo ? ` (${params.motivoFallo})` : ''}.</p>
-      <p>Tu cuenta quedó pausada hasta que actualices el pago. Reintentamos automáticamente los próximos días, o podés pagar ahora mismo desde acá:</p>
+      <p>${origen} y no pudimos cobrar tu tarjeta registrada para activar el plan <strong>${params.planNombre}</strong> de <strong>${params.nombreEmpresa}</strong>${params.motivoFallo ? ` (${params.motivoFallo})` : ''}.</p>
+      <p>Tu cuenta queda pausada si no se resuelve pronto, pero tus datos no se pierden. Reintentamos automáticamente los próximos días, o podés pagar ahora mismo desde acá:</p>
       <p style="text-align:center;margin:28px 0;">
         <a href="${params.link}" style="background:#2563EB;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;display:inline-block;">Actualizar método de pago</a>
       </p>

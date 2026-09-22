@@ -312,13 +312,21 @@ export class PlanesService {
     const precioUsd = this.precioTotalUsd(plan, dto.facturacion_anual ?? false);
 
     if (precioUsd > 0) {
-      const gpayEnv = this.config.get<string>('GOOGLE_PAY_ENV', 'TEST');
-      if (gpayEnv === 'PRODUCTION') {
-        await this.procesarPagoStripe(dto.googlePayToken, plan.nombre, precioUsd);
+      if (dto.paymentIntentId) {
+        // Pago directo con tarjeta (Stripe Elements) -- alternativa a
+        // Google Pay para cuando el navegador/dispositivo no lo soporta.
+        // Se verifica estado Y monto contra Stripe, no se confía en lo que
+        // mande el cliente.
+        await this.verificarPaymentIntentPago(dto.paymentIntentId, precioUsd);
       } else {
-        this.logger.log(
-          `[Google Pay TEST] Suscripción tenant=${tenantId} plan=${plan.nombre} $${precioUsd} USD.`,
-        );
+        const gpayEnv = this.config.get<string>('GOOGLE_PAY_ENV', 'TEST');
+        if (gpayEnv === 'PRODUCTION') {
+          await this.procesarPagoStripe(dto.googlePayToken, plan.nombre, precioUsd);
+        } else {
+          this.logger.log(
+            `[Google Pay TEST] Suscripción tenant=${tenantId} plan=${plan.nombre} $${precioUsd} USD.`,
+          );
+        }
       }
     }
 
@@ -327,7 +335,9 @@ export class PlanesService {
       `UPDATE tenants SET plan_id = $1, max_prestamos_activos = $2, max_cobradores = $3,
          facturacion_anual = $4, plan_suscripcion = $1,
          fecha_prueba_hasta = NULL,
-         fecha_vencimiento_suscripcion = $5::date + ($6 || ' months')::interval
+         fecha_vencimiento_suscripcion = $5::date + ($6 || ' months')::interval,
+         cobro_prueba_intentos = 0,
+         cobro_prueba_ultimo_intento = NULL
        WHERE id = $7`,
       [dto.plan_id, plan.max_prestamos_activos, plan.max_cobradores, dto.facturacion_anual ?? false, hoy, meses, tenantId],
     );
@@ -455,6 +465,45 @@ export class PlanesService {
   }
 
   /**
+   * PaymentIntent para pagar/cambiar de plan con tarjeta directa (sin
+   * Google Pay) -- alternativa que siempre funciona, sin depender de que
+   * el navegador soporte Google Pay. El frontend lo confirma con Stripe
+   * Elements y manda el id resultante a /planes/suscribir.
+   */
+  async crearPaymentIntentPago(planId: string, facturacionAnual: boolean) {
+    const planes = await this.ds.query(`SELECT * FROM planes_saas WHERE id = $1 AND activo = TRUE`, [planId]);
+    if (!planes.length) throw new NotFoundException(msg('planes_no_encontrado'));
+    const montoUsd = this.precioTotalUsd(planes[0], facturacionAnual);
+    if (montoUsd <= 0) throw new BadRequestException(msg('planes_no_encontrado'));
+
+    const stripe = this.stripeClient();
+    const intent = await stripe.paymentIntents.create({
+      amount: Math.round(montoUsd * 100),
+      currency: 'usd',
+      automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
+      description: `Plan ${planes[0].nombre} — OCA Ruta`,
+    });
+    return { clientSecret: intent.client_secret };
+  }
+
+  /**
+   * Confirma que un PaymentIntent creado por crearPaymentIntentPago
+   * efectivamente se cobró y por el monto correcto -- nunca se confía en
+   * el monto que venga del cliente, siempre se recalcula del lado del
+   * plan/servidor y se compara contra lo que Stripe realmente cobró.
+   */
+  private async verificarPaymentIntentPago(paymentIntentId: string, montoEsperadoUsd: number): Promise<void> {
+    const stripe = this.stripeClient();
+    const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    if (intent.status !== 'succeeded') {
+      throw new BadRequestException(msg('planes_pago_rechazado', { status: intent.status }));
+    }
+    if (intent.amount !== Math.round(montoEsperadoUsd * 100)) {
+      throw new BadRequestException(msg('planes_pago_rechazado', { status: 'monto_no_coincide' }));
+    }
+  }
+
+  /**
    * Crea el Customer de Stripe del tenant y le adjunta el payment_method
    * ya confirmado por el SetupIntent como método por defecto -- así
    * PlanesScheduler puede cobrarlo automáticamente sin pedirle la tarjeta
@@ -481,17 +530,22 @@ export class PlanesService {
   }
 
   /**
-   * Llamado por PlanesScheduler una vez al día. Busca tenants cuya prueba
-   * gratis venció y todavía no tienen una suscripción activa: a quien tiene
-   * tarjeta guardada le cobra el plan elegido; a quien no tiene tarjeta
-   * (se registró antes de tener Stripe configurado, o canceló el cobro
-   * automático) le manda un aviso de que debe elegir un plan para seguir --
-   * antes de esto no se notificaba nada, el tenant recién se enteraba al
-   * intentar usar la app y toparse con el bloqueo. Tope de 3 intentos
-   * (cobro_prueba_intentos, se usa igual para "cobros fallidos" y para
-   * "avisos ya mandados") para no seguir insistiendo indefinidamente --
-   * después de eso, el tenant queda en el mismo estado "bloqueado, pago
-   * manual" que ya existía antes de esta función (vía /suscripcion-vencida).
+   * Llamado por PlanesScheduler una vez al día. Cubre dos casos, tratados
+   * igual una vez identificados:
+   *   1. Prueba gratis vencida, nunca pagó (fecha_vencimiento_suscripcion
+   *      IS NULL) -- primer cobro.
+   *   2. Suscripción paga vencida y no se renovó (fecha_vencimiento_suscripcion
+   *      en el pasado) -- cobro de renovación. jwt-auth.guard.ts da 3 días
+   *      de gracia antes de bloquear el acceso; estos reintentos (hasta 3,
+   *      c/u ~20hs) ocurren adentro de esa ventana así que casi siempre el
+   *      cobro se resuelve antes de que el bloqueo llegue a notarse.
+   * En ambos casos: a quien tiene tarjeta guardada le cobra el plan
+   * elegido; a quien no tiene tarjeta (se registró antes de tener Stripe
+   * configurado, o canceló el cobro automático) le manda un aviso de que
+   * debe elegir un plan para seguir -- antes de esto no se notificaba
+   * nada, el tenant recién se enteraba al toparse con el bloqueo. Tope de
+   * 3 intentos (cobro_prueba_intentos, se resetea a 0 en cada pago exitoso
+   * -- manual o automático) para no insistir indefinidamente.
    */
   async cobrarPruebasVencidas(): Promise<{ cobrados: number; fallidos: number; notificados: number }> {
     const secretKey = this.config.get<string>('STRIPE_SECRET_KEY');
@@ -501,6 +555,7 @@ export class PlanesService {
     const pendientes = await this.ds.query(`
       SELECT t.id AS tenant_id, t.nombre_empresa, t.email_contacto, t.plan_id,
              t.facturacion_anual, t.stripe_customer_id, t.stripe_payment_method_id,
+             t.fecha_vencimiento_suscripcion IS NOT NULL AS era_suscripcion_paga,
              p.nombre AS plan_nombre, p.precio_mensual_usd, p.precio_anual_usd, p.max_prestamos_activos,
              e.nombre AS admin_nombre
       FROM tenants t
@@ -508,9 +563,11 @@ export class PlanesService {
       LEFT JOIN usuarios u ON u.tenant_id = t.id AND u.rol = 'admin_tenant' AND u.activo = TRUE
       LEFT JOIN empleados e ON e.usuario_id = u.id
       WHERE t.activo = TRUE
-        AND t.fecha_vencimiento_suscripcion IS NULL
-        AND t.fecha_prueba_hasta IS NOT NULL
-        AND t.fecha_prueba_hasta < CURRENT_DATE
+        AND (
+          (t.fecha_vencimiento_suscripcion IS NULL AND t.fecha_prueba_hasta IS NOT NULL AND t.fecha_prueba_hasta < CURRENT_DATE)
+          OR
+          (t.fecha_vencimiento_suscripcion IS NOT NULL AND t.fecha_vencimiento_suscripcion < CURRENT_DATE)
+        )
         AND t.cobro_prueba_intentos < 3
         AND (t.cobro_prueba_ultimo_intento IS NULL OR t.cobro_prueba_ultimo_intento < now() - interval '20 hours')
     `);
@@ -525,8 +582,10 @@ export class PlanesService {
         try {
           const { subject, html } = plantillaAvisoAdmin({
             nombreAdmin,
-            titulo: 'Tu prueba gratis terminó',
-            mensaje: `Elegí un plan para seguir usando ${t.nombre_empresa} en OCA Ruta -- tus datos siguen intactos, solo hace falta activar un plan.`,
+            titulo: t.era_suscripcion_paga ? 'Tu suscripción venció' : 'Tu prueba gratis terminó',
+            mensaje: t.era_suscripcion_paga
+              ? `Tu suscripción de ${t.nombre_empresa} venció y no pudimos renovarla automáticamente. Tenés unos días de gracia antes de que se bloquee el acceso -- tus datos no se pierden, solo hace falta renovar el plan.`
+              : `Elegí un plan para seguir usando ${t.nombre_empresa} en OCA Ruta -- tus datos siguen intactos, solo hace falta activar un plan.`,
             link: `${frontendUrl}/suscripcion-vencida`,
             textoLink: 'Elegir un plan',
           });
@@ -564,15 +623,15 @@ export class PlanesService {
         await this.ds.query(
           `UPDATE tenants SET
              fecha_vencimiento_suscripcion = CURRENT_DATE + ($1 || ' months')::interval,
-             cobro_prueba_intentos = cobro_prueba_intentos + 1,
-             cobro_prueba_ultimo_intento = now()
+             cobro_prueba_intentos = 0,
+             cobro_prueba_ultimo_intento = NULL
            WHERE id = $2`,
           [meses, t.tenant_id],
         );
         cobrados++;
 
         const { subject, html } = plantillaCobroPrueba({
-          nombreAdmin, nombreEmpresa: t.nombre_empresa, exito: true,
+          nombreAdmin, nombreEmpresa: t.nombre_empresa, exito: true, esRenovacion: t.era_suscripcion_paga,
           planNombre: t.plan_nombre, montoUsd, link: linkPanel,
         });
         await this.emailService.enviar({ to: t.email_contacto, subject, html });
@@ -588,7 +647,7 @@ export class PlanesService {
         );
 
         const { subject, html } = plantillaCobroPrueba({
-          nombreAdmin, nombreEmpresa: t.nombre_empresa, exito: false,
+          nombreAdmin, nombreEmpresa: t.nombre_empresa, exito: false, esRenovacion: t.era_suscripcion_paga,
           planNombre: t.plan_nombre, montoUsd, motivoFallo: motivo, link: `${frontendUrl}/suscripcion-vencida`,
         });
         await this.emailService.enviar({ to: t.email_contacto, subject, html });
