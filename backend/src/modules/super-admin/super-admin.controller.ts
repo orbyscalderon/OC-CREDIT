@@ -70,6 +70,16 @@ export class SuperAdminController {
     return this.svc.toggleActivo(id, dto.activo, dto.motivo);
   }
 
+  /** Extiende la suscripción sin cobrar -- compensación que no pasa por Stripe (evita perder la comisión de un reembolso) */
+  @Patch('tenants/:id/extender-suscripcion')
+  @ApiOperation({ summary: 'Extiende la suscripción de un tenant N días sin cobrar (compensación)' })
+  extenderSuscripcion(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: { dias: number; motivo?: string },
+  ) {
+    return this.svc.extenderSuscripcion(id, dto.dias, dto.motivo);
+  }
+
   /** MRR por mes (últimos 12 meses) */
   @Get('mrr')
   @ApiOperation({ summary: 'Monthly Recurring Revenue histórico' })

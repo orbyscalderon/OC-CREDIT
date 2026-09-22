@@ -268,6 +268,7 @@ export const MESSAGES: Record<string, Entrada> = {
   // ── super-admin ───────────────────────────────────────────────────────
   super_admin_tenant_no_encontrado: { es: 'Tenant no encontrado', en: 'Tenant not found' },
   super_admin_plan_no_encontrado: { es: 'Plan no encontrado', en: 'Plan not found' },
+  super_admin_dias_invalidos: { es: 'La cantidad de días debe ser un número entero mayor a 0', en: 'Days must be a whole number greater than 0' },
   super_admin_email_duplicado: {
     es: 'Ya existe una cuenta con ese email',
     en: 'An account with that email already exists',

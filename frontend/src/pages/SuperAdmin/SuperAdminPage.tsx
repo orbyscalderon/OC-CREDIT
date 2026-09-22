@@ -209,6 +209,31 @@ export function SuperAdminPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['sa-tenants'] }),
   });
 
+  // Compensar con días de suscripción en vez de reembolsar en efectivo --
+  // no pasa por Stripe, así que no se pierde la comisión de procesamiento
+  // (a diferencia de un reembolso).
+  const extenderSuscripcionMut = useMutation({
+    mutationFn: ({ id, dias, motivo }: { id: string; dias: number; motivo?: string }) =>
+      superApi.patch(`/super-admin/tenants/${id}/extender-suscripcion`, { dias, motivo }).then(unwrap),
+    onSuccess: (data: any) => {
+      qc.invalidateQueries({ queryKey: ['sa-tenants'] });
+      window.alert(data?.mensaje ?? t('superadmin.suscripcion_extendida'));
+    },
+    onError: (err: any) => window.alert(err?.response?.data?.message ?? t('superadmin.error_extender_suscripcion')),
+  });
+
+  const extenderSuscripcion = (id: string) => {
+    const diasStr = window.prompt(t('superadmin.prompt_dias_extender'));
+    if (!diasStr) return;
+    const dias = parseInt(diasStr, 10);
+    if (!Number.isInteger(dias) || dias <= 0) {
+      window.alert(t('superadmin.dias_invalidos'));
+      return;
+    }
+    const motivo = window.prompt(t('superadmin.prompt_motivo_extender')) ?? undefined;
+    extenderSuscripcionMut.mutate({ id, dias, motivo });
+  };
+
   if (!authed) {
     return <SuperAdminLogin onSuccess={() => setAuthed(true)} />;
   }
@@ -357,16 +382,25 @@ export function SuperAdminPage() {
                         ${Number(tn.precio_mensual_usd || 0).toFixed(0)}/mo
                       </td>
                       <td className="px-4 py-3">
-                        <button
-                          onClick={() => toggleActivoMut.mutate({ id: tn.id, activo: !tn.activo })}
-                          className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                            tn.activo
-                              ? 'bg-red-900/40 text-red-400 hover:bg-red-900/60'
-                              : 'bg-emerald-900/40 text-emerald-400 hover:bg-emerald-900/60'
-                          }`}
-                        >
-                          {tn.activo ? t('superadmin.bloquear') : t('superadmin.activar')}
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => toggleActivoMut.mutate({ id: tn.id, activo: !tn.activo })}
+                            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                              tn.activo
+                                ? 'bg-red-900/40 text-red-400 hover:bg-red-900/60'
+                                : 'bg-emerald-900/40 text-emerald-400 hover:bg-emerald-900/60'
+                            }`}
+                          >
+                            {tn.activo ? t('superadmin.bloquear') : t('superadmin.activar')}
+                          </button>
+                          <button
+                            onClick={() => extenderSuscripcion(tn.id)}
+                            title={t('superadmin.extender_suscripcion_hint')}
+                            className="rounded-lg px-3 py-1.5 text-xs font-semibold bg-blue-900/40 text-blue-400 hover:bg-blue-900/60 transition-colors"
+                          >
+                            {t('superadmin.extender_suscripcion')}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

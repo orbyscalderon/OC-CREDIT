@@ -96,6 +96,36 @@ export class SuperAdminService {
     return { mensaje: `Tenant ${estado}${motivo ? `: ${motivo}` : ''}` };
   }
 
+  /**
+   * Compensa a un tenant con más días de suscripción en vez de un
+   * reembolso en efectivo -- no mueve plata por Stripe, así que no se
+   * pierde la comisión de procesamiento (a diferencia de un reembolso, que
+   * Stripe no devuelve). Extiende desde lo que ya tenga vigente, no lo
+   * pisa; si estaba en prueba gratis, la reemplaza por suscripción activa.
+   */
+  async extenderSuscripcion(tenantId: string, dias: number, motivo?: string) {
+    if (!Number.isInteger(dias) || dias <= 0) {
+      throw new BadRequestException(msg('super_admin_dias_invalidos'));
+    }
+    const [tenant] = await this.ds.query(`SELECT id FROM tenants WHERE id = $1`, [tenantId]);
+    if (!tenant) throw new NotFoundException(msg('super_admin_tenant_no_encontrado'));
+
+    const rows = await this.ds.query(
+      `UPDATE tenants SET
+         fecha_vencimiento_suscripcion = GREATEST(COALESCE(fecha_vencimiento_suscripcion, CURRENT_DATE), CURRENT_DATE) + ($1 || ' days')::interval,
+         fecha_prueba_hasta = NULL,
+         cobro_prueba_intentos = 0,
+         cobro_prueba_ultimo_intento = NULL
+       WHERE id = $2
+       RETURNING to_char(fecha_vencimiento_suscripcion, 'YYYY-MM-DD') AS vencimiento`,
+      [dias, tenantId],
+    );
+
+    return {
+      mensaje: `Se extendió la suscripción ${dias} días (hasta el ${rows[0].vencimiento})${motivo ? ` — ${motivo}` : ''}`,
+    };
+  }
+
   async mrrHistorico() {
     // MRR estimado: suma de precio_mensual_usd de tenants activos por mes de registro
     return this.ds.query(`
