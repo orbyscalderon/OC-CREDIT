@@ -94,8 +94,19 @@ export function StripeCardPayButton({ crearClientSecret, onPagoConfirmado, onErr
 
   return (
     <div className="space-y-3">
-      <div ref={containerRef} className="input-field flex items-center" style={{ paddingTop: 12, paddingBottom: 12 }}>
-        {!listo && !error && <span className="text-sm text-gray-400">{t('landing.cargando_pago')}</span>}
+      {/* El div de containerRef nunca debe tener hijos manejados por React --
+          Stripe Elements mete su propio iframe ahí por fuera de React, y si
+          React despues intenta agregar/sacar algo adentro (ej. el texto de
+          "Cargando…") revienta con "removeChild: node is not a child of
+          this node" porque el DOM real ya no coincide con lo que React
+          espera. El texto de carga va superpuesto como hermano, no adentro. */}
+      <div className="relative">
+        <div ref={containerRef} className="input-field flex items-center" style={{ paddingTop: 12, paddingBottom: 12 }} />
+        {!listo && !error && (
+          <div className="absolute inset-0 flex items-center px-3 pointer-events-none bg-white rounded-[inherit]">
+            <span className="text-sm text-gray-400">{t('landing.cargando_pago')}</span>
+          </div>
+        )}
       </div>
       {error && <p className="text-xs text-red-500">{error}</p>}
       <button
