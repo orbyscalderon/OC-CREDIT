@@ -108,7 +108,7 @@ export function LandingPage() {
     if (!ok) return;
     try {
       const stripePaymentMethodId = STRIPE_PUBLISHABLE_KEY_PRESENTE
-        ? await cardRef.current!.confirmarTarjeta()
+        ? await cardRef.current!.confirmarTarjeta({ name: getValues('nombre_empresa') })
         : '';
       registrarGoogleMut.mutate({ credential, stripePaymentMethodId });
     } catch (e) {
@@ -119,7 +119,7 @@ export function LandingPage() {
   const onSubmitConTarjeta = handleSubmit(async (d) => {
     try {
       const stripePaymentMethodId = STRIPE_PUBLISHABLE_KEY_PRESENTE
-        ? await cardRef.current!.confirmarTarjeta()
+        ? await cardRef.current!.confirmarTarjeta({ name: d.nombre_empresa, email: d.email_admin })
         : '';
       registrarMut.mutate({ ...d, stripePaymentMethodId });
     } catch (e) {

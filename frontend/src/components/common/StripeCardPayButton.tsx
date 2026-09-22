@@ -25,9 +25,12 @@ interface StripeCardPayButtonProps {
   onPagoConfirmado: (paymentIntentId: string) => void;
   onError?: (msg: string) => void;
   disabled?: boolean;
+  /** Nombre/email del pagador -- sin esto el pago queda anónimo en Stripe
+      (sin nombre, sin dato para verificación antifraude/AVS). */
+  billingDetails?: { name?: string; email?: string };
 }
 
-export function StripeCardPayButton({ crearClientSecret, onPagoConfirmado, onError, disabled }: StripeCardPayButtonProps) {
+export function StripeCardPayButton({ crearClientSecret, onPagoConfirmado, onError, disabled, billingDetails }: StripeCardPayButtonProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const stripeRef = useRef<Stripe | null>(null);
@@ -79,7 +82,7 @@ export function StripeCardPayButton({ crearClientSecret, onPagoConfirmado, onErr
     try {
       const clientSecret = await crearClientSecret();
       const { paymentIntent, error: err } = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: { card },
+        payment_method: { card, billing_details: billingDetails },
       });
       if (err || paymentIntent?.status !== 'succeeded') {
         throw new Error(err?.message ?? t('suscripcion.error_pago'));

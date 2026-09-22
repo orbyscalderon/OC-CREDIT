@@ -20,7 +20,7 @@ function getStripe() {
 
 export interface StripeCardInputHandle {
   /** Confirma la tarjeta ingresada y devuelve el payment_method id (pm_...) listo para mandar al backend. */
-  confirmarTarjeta: () => Promise<string>;
+  confirmarTarjeta: (billingDetails?: { name?: string; email?: string }) => Promise<string>;
 }
 
 export const StripeCardInput = forwardRef<StripeCardInputHandle>((_props, ref) => {
@@ -73,14 +73,14 @@ export const StripeCardInput = forwardRef<StripeCardInputHandle>((_props, ref) =
   }, []);
 
   useImperativeHandle(ref, () => ({
-    confirmarTarjeta: async () => {
+    confirmarTarjeta: async (billingDetails) => {
       const stripe = stripeRef.current;
       const card = cardRef.current;
       const clientSecret = clientSecretRef.current;
       if (!stripe || !card || !clientSecret) throw new Error(t('landing.error_cargando_pago'));
 
       const { setupIntent, error: err } = await stripe.confirmCardSetup(clientSecret, {
-        payment_method: { card },
+        payment_method: { card, billing_details: billingDetails },
       });
       if (err || !setupIntent?.payment_method) {
         throw new Error(err?.message ?? t('landing.error_tarjeta_invalida'));

@@ -11,12 +11,14 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { planesApi, type Plan } from '@/api/planes.api';
 import { GooglePayButton } from '@/components/common/GooglePayButton';
 import { StripeCardPayButton } from '@/components/common/StripeCardPayButton';
+import { useAuth } from '@/hooks/useAuth';
 import { clsx } from 'clsx';
 
 const STRIPE_PUBLISHABLE_KEY_PRESENTE = Boolean(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 export function PlanUpgradePanel({ onSuccess }: { onSuccess?: () => void }) {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [planSeleccionado, setPlanSeleccionado] = useState<string | null>(null);
   const [anual, setAnual] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -120,6 +122,7 @@ export function PlanUpgradePanel({ onSuccess }: { onSuccess?: () => void }) {
                 }}
                 onPagoConfirmado={(paymentIntentId) => { setError(null); suscribirMut.mutate({ paymentIntentId }); }}
                 onError={setError}
+                billingDetails={{ name: user?.tenant_nombre, email: user?.email }}
               />
             </>
           )}

@@ -502,12 +502,21 @@ export class PlanesService {
     // nunca llega a cobrarle nada a la tarjeta del cliente.
     await this.verificarPuedeCambiarPlan(tenantId, montoUsd);
 
+    const tenants = await this.ds.query(`SELECT nombre_empresa, email_contacto FROM tenants WHERE id = $1`, [tenantId]);
+    const tenant = tenants[0];
+
     const stripe = this.stripeClient();
     const intent = await stripe.paymentIntents.create({
       amount: Math.round(montoUsd * 100),
       currency: 'usd',
       automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
       description: `Plan ${planes[0].nombre} — OCA Ruta`,
+      // receipt_email: Stripe manda el recibo solo automáticamente. Sin
+      // esto (y sin billing_details del lado del cliente) el pago queda
+      // anónimo en el dashboard de Stripe -- sin nombre, sin recibo, sin
+      // dato para verificación antifraude (AVS).
+      receipt_email: tenant?.email_contacto,
+      metadata: { tenant_id: tenantId, nombre_empresa: tenant?.nombre_empresa ?? '' },
     });
     return { clientSecret: intent.client_secret };
   }
