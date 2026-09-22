@@ -97,7 +97,8 @@ export const StripeCardInput = forwardRef<StripeCardInputHandle>((_props, ref) =
       {/* containerRef nunca debe tener hijos manejados por React -- ver
           comentario en StripeCardPayButton.tsx (mismo patrón acá). */}
       <div className="relative">
-        <div ref={containerRef} className="input-field flex items-center" style={{ paddingTop: 12, paddingBottom: 12 }} />
+        {/* sin flex: ver comentario en StripeCardPayButton.tsx (mismo bug) */}
+        <div ref={containerRef} className="input-field" style={{ paddingTop: 12, paddingBottom: 12 }} />
         {!listo && !error && (
           <div className="absolute inset-0 flex items-center px-3 pointer-events-none bg-white rounded-[inherit]">
             <span className="text-sm text-gray-400">{t('landing.cargando_pago')}</span>

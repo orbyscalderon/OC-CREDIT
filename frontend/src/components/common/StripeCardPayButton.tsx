@@ -103,7 +103,11 @@ export function StripeCardPayButton({ crearClientSecret, onPagoConfirmado, onErr
           this node" porque el DOM real ya no coincide con lo que React
           espera. El texto de carga va superpuesto como hermano, no adentro. */}
       <div className="relative">
-        <div ref={containerRef} className="input-field flex items-center" style={{ paddingTop: 12, paddingBottom: 12 }} />
+        {/* sin flex: el div que Stripe inyecta adentro es block y necesita
+            que el padre sea block tambien -- con flex, al no tener ancho
+            explicito, el iframe terminaba midiendo 1px (--stripeElementWidth:
+            1px) en vez de ocupar el 100% del contenedor. */}
+        <div ref={containerRef} className="input-field" style={{ paddingTop: 12, paddingBottom: 12 }} />
         {!listo && !error && (
           <div className="absolute inset-0 flex items-center px-3 pointer-events-none bg-white rounded-[inherit]">
             <span className="text-sm text-gray-400">{t('landing.cargando_pago')}</span>
