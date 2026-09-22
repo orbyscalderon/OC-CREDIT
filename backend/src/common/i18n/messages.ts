@@ -200,6 +200,14 @@ export const MESSAGES: Record<string, Entrada> = {
     es: 'Error procesando pago: {{detalle}}',
     en: 'Error processing payment: {{detalle}}',
   },
+  planes_google_play_no_configurado: {
+    es: 'La verificación de compras de Google Play no está configurada. Contacte al soporte.',
+    en: 'Google Play purchase verification is not configured. Please contact support.',
+  },
+  planes_compra_google_play_invalida: {
+    es: 'No se pudo verificar la compra con Google Play: {{estado}}',
+    en: 'Could not verify the purchase with Google Play: {{estado}}',
+  },
 
   // ── portal cliente / webhooks ────────────────────────────────────────
   portal_cliente_no_encontrado_cedula: {

@@ -11,6 +11,7 @@ import { RegistrarTenantDto } from './dto/registrar-tenant.dto';
 import { GooglePayRegistroDto } from './dto/google-pay-registro.dto';
 import { RegistroGoogleDto } from './dto/registro-google.dto';
 import { SuscribirPlanDto } from './dto/suscribir-plan.dto';
+import { VerificarCompraGooglePlayDto } from './dto/verificar-compra-google-play.dto';
 import { Tenant } from '../tenants/entities/tenant.entity';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { monedaPorPais } from '../../common/constants/monedas-por-pais';
@@ -19,6 +20,7 @@ import { fechaHoyEnZona } from '../../common/utils/fecha-negocio.util';
 import { verificarGoogleIdToken } from '../../common/utils/google-token.util';
 import { ZonaHorariaService } from '../../common/services/zona-horaria.service';
 import { EmailService } from '../../common/services/email.service';
+import { GooglePlayBillingService } from '../../common/services/google-play-billing.service';
 import { plantillaBienvenida } from '../../common/services/email-templates/templates';
 import { msg } from '../../common/i18n/messages';
 import { AuthService } from '../auth/auth.service';
@@ -35,6 +37,7 @@ export class PlanesService {
     private readonly zonaHorariaService: ZonaHorariaService,
     private readonly emailService: EmailService,
     private readonly authService: AuthService,
+    private readonly googlePlayBilling: GooglePlayBillingService,
   ) {}
 
   async listarPlanes() {
@@ -294,6 +297,55 @@ export class PlanesService {
     );
 
     return { mensaje: `Suscripción activada: plan ${plan.nombre}.` };
+  }
+
+  /**
+   * Activa/renueva la suscripción de un tenant a partir de una compra hecha
+   * DENTRO de la app Android vía Google Play Billing (requerido por la
+   * política de Google para compras en apps distribuidas por Play Store).
+   * El purchaseToken es único -- un reenvío del mismo token (retry del
+   * cliente tras perder la respuesta) no vuelve a extender la fecha.
+   */
+  async verificarCompraGooglePlay(tenantId: string, dto: VerificarCompraGooglePlayDto) {
+    if (!this.googlePlayBilling.estaConfigurado()) {
+      throw new BadRequestException(msg('planes_google_play_no_configurado'));
+    }
+
+    const yaProcesada = await this.ds.query(
+      `SELECT * FROM google_play_compras WHERE purchase_token = $1`,
+      [dto.purchaseToken],
+    );
+    if (yaProcesada.length) {
+      return { mensaje: 'Compra ya procesada anteriormente.', estado: yaProcesada[0].estado };
+    }
+
+    const planes = await this.ds.query(
+      `SELECT * FROM planes_saas WHERE id = $1 AND activo = TRUE`,
+      [dto.planId],
+    );
+    if (!planes.length) throw new NotFoundException(msg('planes_no_encontrado'));
+    const plan = planes[0];
+
+    const resultado = await this.googlePlayBilling.verificarSuscripcion(dto.productId, dto.purchaseToken);
+    if (!resultado.activa) {
+      throw new BadRequestException(msg('planes_compra_google_play_invalida', { estado: resultado.estadoCrudo }));
+    }
+
+    await this.ds.query(
+      `INSERT INTO google_play_compras (tenant_id, plan_id, product_id, purchase_token, estado, fecha_expiracion)
+       VALUES ($1, $2, $3, $4, 'activa', $5)`,
+      [tenantId, dto.planId, dto.productId, dto.purchaseToken, resultado.fechaExpiracion],
+    );
+
+    await this.ds.query(
+      `UPDATE tenants SET plan_id = $1, max_prestamos_activos = $2, max_cobradores = $3,
+         plan_suscripcion = $1, fecha_prueba_hasta = NULL,
+         fecha_vencimiento_suscripcion = $4
+       WHERE id = $5`,
+      [dto.planId, plan.max_prestamos_activos, plan.max_cobradores, resultado.fechaExpiracion, tenantId],
+    );
+
+    return { mensaje: `Suscripción activada vía Google Play: plan ${plan.nombre}.` };
   }
 
   /**

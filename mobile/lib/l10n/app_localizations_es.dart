@@ -78,6 +78,21 @@ class AppLocalizationsEs extends AppLocalizations {
   String get oConEmailYContrasena => 'o con email y contraseña';
 
   @override
+  String get actualizarPlanTitulo => 'Actualizar plan';
+
+  @override
+  String get googlePlayNoDisponible =>
+      'Google Play Billing no está disponible en este dispositivo.';
+
+  @override
+  String get sinPlanesDisponibles =>
+      'No hay planes disponibles en este momento.';
+
+  @override
+  String get planActualizadoExito =>
+      '¡Plan actualizado! Ya puedes seguir usando la cuenta.';
+
+  @override
   String get creaTuCuentaPruebaGratis =>
       'Crea tu cuenta — 7 días de prueba gratis';
 

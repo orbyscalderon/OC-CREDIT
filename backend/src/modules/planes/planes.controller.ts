@@ -13,6 +13,7 @@ import { RegistrarTenantDto } from './dto/registrar-tenant.dto';
 import { GooglePayRegistroDto } from './dto/google-pay-registro.dto';
 import { RegistroGoogleDto } from './dto/registro-google.dto';
 import { SuscribirPlanDto } from './dto/suscribir-plan.dto';
+import { VerificarCompraGooglePlayDto } from './dto/verificar-compra-google-play.dto';
 
 @ApiTags('Planes & Registro')
 @Controller({ path: 'planes', version: '1' })
@@ -66,5 +67,16 @@ export class PlanesController {
   @ApiOperation({ summary: 'Paga/activa la suscripción del tenant autenticado' })
   suscribir(@CurrentUser() user: JwtPayload, @Body() dto: SuscribirPlanDto) {
     return this.svc.suscribirTenant(user.tenantId, dto);
+  }
+
+  /** Activa/renueva la suscripción a partir de una compra hecha dentro de la app Android (Google Play Billing) */
+  @UseGuards(JwtAuthGuard, PermisosGuard)
+  @RequierePermiso(Permiso.PLANES_ADMIN)
+  @SkipSubscriptionCheck()
+  @Post('verificar-compra-google-play')
+  @Throttle({ short: { limit: 5, ttl: 60_000 }, long: { limit: 20, ttl: 3_600_000 } })
+  @ApiOperation({ summary: 'Verifica una compra de Google Play Billing y activa el plan' })
+  verificarCompraGooglePlay(@CurrentUser() user: JwtPayload, @Body() dto: VerificarCompraGooglePlayDto) {
+    return this.svc.verificarCompraGooglePlay(user.tenantId, dto);
   }
 }

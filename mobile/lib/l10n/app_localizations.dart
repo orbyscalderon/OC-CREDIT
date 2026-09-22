@@ -226,6 +226,30 @@ abstract class AppLocalizations {
   /// **'o con email y contraseña'**
   String get oConEmailYContrasena;
 
+  /// No description provided for @actualizarPlanTitulo.
+  ///
+  /// In es, this message translates to:
+  /// **'Actualizar plan'**
+  String get actualizarPlanTitulo;
+
+  /// No description provided for @googlePlayNoDisponible.
+  ///
+  /// In es, this message translates to:
+  /// **'Google Play Billing no está disponible en este dispositivo.'**
+  String get googlePlayNoDisponible;
+
+  /// No description provided for @sinPlanesDisponibles.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay planes disponibles en este momento.'**
+  String get sinPlanesDisponibles;
+
+  /// No description provided for @planActualizadoExito.
+  ///
+  /// In es, this message translates to:
+  /// **'¡Plan actualizado! Ya puedes seguir usando la cuenta.'**
+  String get planActualizadoExito;
+
   /// No description provided for @creaTuCuentaPruebaGratis.
   ///
   /// In es, this message translates to:

@@ -62,6 +62,11 @@ dependencies:
   # Login con Google (mismo flujo que el panel web)
   google_sign_in: ^6.2.2
 
+  # Compra de planes dentro de la app (Google Play Billing) -- obligatorio
+  # por la política de Google para compras de suscripción hechas en apps
+  # distribuidas por Play Store.
+  in_app_purchase: ^3.2.0
+
   # Gráficos (Reportes: aging, ingresos mensuales)
   fl_chart: ^0.69.0
 

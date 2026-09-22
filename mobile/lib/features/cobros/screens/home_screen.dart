@@ -54,6 +54,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final veReportes = auth.tienePermiso('reportes_admin');
     final veConfig = auth.tienePermiso('tenant_ver_config');
     final veSolicitudesPendientes = auth.tienePermiso('prestamos_aprobar');
+    final vePlan = auth.tienePermiso('planes_admin');
 
     return Scaffold(
       appBar: AppBar(
@@ -173,6 +174,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         icon: Icons.settings_outlined,
                         label: l10n.configuracionTitulo,
                         onTap: () { Navigator.pop(context); context.push('/configuracion'); },
+                      ),
+                    if (vePlan)
+                      _DrawerItem(
+                        icon: Icons.workspace_premium_outlined,
+                        label: l10n.actualizarPlanTitulo,
+                        onTap: () { Navigator.pop(context); context.push('/actualizar-plan'); },
                       ),
                     const Divider(height: 24, color: Color(0xFF1E293B), indent: 20, endIndent: 20),
                     // Acciones propias de la app móvil, sin equivalente directo en la web.
