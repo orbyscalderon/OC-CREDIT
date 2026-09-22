@@ -16,6 +16,8 @@ import { MONEDAS, buscarMoneda } from '@/utils/currencies';
 import { PlanUpgradePanel } from '@/components/common/PlanUpgradePanel';
 import { UsoPlanMeter } from '@/components/common/UsoPlanMeter';
 import { planesApi, type UsoPlan } from '@/api/planes.api';
+import { formatDate } from '@/utils/format';
+import { clsx } from 'clsx';
 
 type FormData = {
   color_primario: string;
@@ -225,20 +227,23 @@ export function ConfigPage() {
             <p className="text-xs text-gray-500 mt-0.5">{t('config.plan_facturacion_desc')}</p>
           </div>
           <UsoPlanMeter />
-          {suscripcionActivaHasta ? (
+          {/* Mejorar de plan (pagar más) siempre se puede, aunque quede
+              tiempo pagado del ciclo actual -- el backend solo rechaza
+              degradar/lateral mientras haya suscripción activa. Esta nota es
+              solo informativa, no oculta el panel. */}
+          {suscripcionActivaHasta && (
             <p className="text-xs text-gray-500 border-t border-gray-100 pt-4">
-              {t('config.suscripcion_activa_hasta', { fecha: suscripcionActivaHasta })}
+              {t('config.suscripcion_activa_hasta', { fecha: formatDate(suscripcionActivaHasta, user) })}
             </p>
-          ) : (
-            <details className="group">
-              <summary className="cursor-pointer text-sm font-medium text-blue-600 hover:underline list-none flex items-center gap-1">
-                {t('config.cambiar_plan')}
-              </summary>
-              <div className="pt-5 border-t border-gray-100 mt-5">
-                <PlanUpgradePanel onSuccess={() => qc.invalidateQueries({ queryKey: ['uso-plan'] })} />
-              </div>
-            </details>
           )}
+          <details className="group">
+            <summary className="cursor-pointer text-sm font-medium text-blue-600 hover:underline list-none flex items-center gap-1">
+              {t('config.cambiar_plan')}
+            </summary>
+            <div className={clsx('pt-5 mt-5', !suscripcionActivaHasta && 'border-t border-gray-100')}>
+              <PlanUpgradePanel onSuccess={() => qc.invalidateQueries({ queryKey: ['uso-plan'] })} />
+            </div>
+          </details>
         </div>
       )}
 

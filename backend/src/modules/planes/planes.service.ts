@@ -294,22 +294,33 @@ export class PlanesService {
     if (!planes.length) throw new NotFoundException(msg('planes_no_encontrado'));
     const plan = planes[0];
 
+    const precioUsd = this.precioTotalUsd(plan, dto.facturacion_anual ?? false);
+
     // Sin prorrateo: cambiar de plan siempre resetea fecha_vencimiento a
     // hoy + 1 ciclo del plan nuevo. Eso está bien cuando la suscripción ya
-    // venció (nada que perder), pero si todavía hay tiempo pagado del plan
-    // actual, cambiarlo ahora le regalaría/quitaría meses ya cobrados --
-    // se bloquea hasta que venza el ciclo vigente.
+    // venció (nada que perder) o cuando el cliente paga MÁS que su plan
+    // actual (mejora real, se desbloquea al toque aunque pierda un poco de
+    // valor de los días que quedaban del plan barato) -- pero si paga igual
+    // o menos con tiempo pagado por delante, cambiarlo ahora le
+    // regalaría/quitaría meses ya cobrados, así que se bloquea hasta que
+    // venza el ciclo vigente.
     const hoy = fechaHoyEnZona(await this.zonaHorariaService.obtener(tenantId));
     const tenantActual = await this.ds.query(
-      `SELECT to_char(fecha_vencimiento_suscripcion, 'YYYY-MM-DD') AS vencimiento
-       FROM tenants WHERE id = $1 AND fecha_vencimiento_suscripcion > $2::date`,
+      `SELECT to_char(t.fecha_vencimiento_suscripcion, 'YYYY-MM-DD') AS vencimiento,
+              p.precio_mensual_usd, p.precio_anual_usd, t.facturacion_anual
+       FROM tenants t
+       LEFT JOIN planes_saas p ON p.id = t.plan_id
+       WHERE t.id = $1 AND t.fecha_vencimiento_suscripcion > $2::date`,
       [tenantId, hoy],
     );
     if (tenantActual.length) {
-      throw new BadRequestException(msg('planes_suscripcion_activa', { fecha: tenantActual[0].vencimiento }));
+      const precioActualUsd = tenantActual[0].precio_mensual_usd
+        ? this.precioTotalUsd(tenantActual[0], tenantActual[0].facturacion_anual)
+        : 0;
+      if (precioUsd <= precioActualUsd) {
+        throw new BadRequestException(msg('planes_suscripcion_activa', { fecha: tenantActual[0].vencimiento }));
+      }
     }
-
-    const precioUsd = this.precioTotalUsd(plan, dto.facturacion_anual ?? false);
 
     if (precioUsd > 0) {
       if (dto.paymentIntentId) {

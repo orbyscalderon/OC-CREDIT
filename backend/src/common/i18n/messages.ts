@@ -192,8 +192,8 @@ export const MESSAGES: Record<string, Entrada> = {
   },
   planes_no_encontrado: { es: 'Plan no encontrado', en: 'Plan not found' },
   planes_suscripcion_activa: {
-    es: 'Ya tenés una suscripción activa hasta el {{fecha}}. Podés cambiar de plan a partir de esa fecha.',
-    en: 'You already have an active subscription until {{fecha}}. You can change plans starting that date.',
+    es: 'Ya tenés una suscripción activa hasta el {{fecha}}. Para bajar de plan vas a poder recién a partir de esa fecha.',
+    en: 'You already have an active subscription until {{fecha}}. Downgrading will only be available starting that date.',
   },
   planes_pasarela_no_configurada: {
     es: 'Pasarela de pago no configurada. Contacte al soporte.',
