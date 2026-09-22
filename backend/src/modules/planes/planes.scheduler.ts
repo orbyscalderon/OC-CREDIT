@@ -16,9 +16,9 @@ export class PlanesScheduler {
   @Cron('0 6 * * *', { name: 'cobro-prueba-vencida' })
   async cobrarPruebasVencidas(): Promise<void> {
     try {
-      const { cobrados, fallidos } = await this.planesService.cobrarPruebasVencidas();
-      if (cobrados || fallidos) {
-        this.logger.log(`Cobro de pruebas vencidas: ${cobrados} exitosos, ${fallidos} fallidos.`);
+      const { cobrados, fallidos, notificados } = await this.planesService.cobrarPruebasVencidas();
+      if (cobrados || fallidos || notificados) {
+        this.logger.log(`Pruebas vencidas: ${cobrados} cobros exitosos, ${fallidos} fallidos, ${notificados} avisos enviados (sin tarjeta).`);
       }
     } catch (err) {
       this.logger.error(

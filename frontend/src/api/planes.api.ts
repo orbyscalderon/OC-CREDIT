@@ -47,6 +47,7 @@ export interface UsoPlan {
   permite_mapa: boolean;
   permite_reportes_avanz: boolean;
   permite_pagare_pdf: boolean;
+  fecha_vencimiento_suscripcion: string | null;
 }
 
 export interface GooglePayRegistroDto extends RegistrarTenantDto {

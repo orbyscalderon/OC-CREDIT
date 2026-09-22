@@ -25,7 +25,7 @@ import { verificarGoogleIdToken } from '../../common/utils/google-token.util';
 import { ZonaHorariaService } from '../../common/services/zona-horaria.service';
 import { EmailService } from '../../common/services/email.service';
 import { GooglePlayBillingService } from '../../common/services/google-play-billing.service';
-import { plantillaBienvenida, plantillaCobroPrueba } from '../../common/services/email-templates/templates';
+import { plantillaBienvenida, plantillaCobroPrueba, plantillaAvisoAdmin } from '../../common/services/email-templates/templates';
 import { msg } from '../../common/i18n/messages';
 import { AuthService } from '../auth/auth.service';
 
@@ -294,6 +294,21 @@ export class PlanesService {
     if (!planes.length) throw new NotFoundException(msg('planes_no_encontrado'));
     const plan = planes[0];
 
+    // Sin prorrateo: cambiar de plan siempre resetea fecha_vencimiento a
+    // hoy + 1 ciclo del plan nuevo. Eso está bien cuando la suscripción ya
+    // venció (nada que perder), pero si todavía hay tiempo pagado del plan
+    // actual, cambiarlo ahora le regalaría/quitaría meses ya cobrados --
+    // se bloquea hasta que venza el ciclo vigente.
+    const hoy = fechaHoyEnZona(await this.zonaHorariaService.obtener(tenantId));
+    const tenantActual = await this.ds.query(
+      `SELECT to_char(fecha_vencimiento_suscripcion, 'YYYY-MM-DD') AS vencimiento
+       FROM tenants WHERE id = $1 AND fecha_vencimiento_suscripcion > $2::date`,
+      [tenantId, hoy],
+    );
+    if (tenantActual.length) {
+      throw new BadRequestException(msg('planes_suscripcion_activa', { fecha: tenantActual[0].vencimiento }));
+    }
+
     const precioUsd = this.precioTotalUsd(plan, dto.facturacion_anual ?? false);
 
     if (precioUsd > 0) {
@@ -308,7 +323,6 @@ export class PlanesService {
     }
 
     const meses = dto.facturacion_anual ? 12 : 1;
-    const hoy = fechaHoyEnZona(await this.zonaHorariaService.obtener(tenantId));
     await this.ds.query(
       `UPDATE tenants SET plan_id = $1, max_prestamos_activos = $2, max_cobradores = $3,
          facturacion_anual = $4, plan_suscripcion = $1,
@@ -468,18 +482,20 @@ export class PlanesService {
 
   /**
    * Llamado por PlanesScheduler una vez al día. Busca tenants cuya prueba
-   * gratis venció y todavía no tienen una suscripción activa, y les cobra
-   * el plan elegido a la tarjeta guardada en el registro. Tope de 3
-   * intentos (cobro_prueba_intentos) para no seguir golpeando una tarjeta
-   * ya rechazada indefinidamente -- después de eso, el tenant queda en el
-   * mismo estado "bloqueado, pago manual" que ya existía antes de esta
-   * función (vía /suscripcion-vencida).
+   * gratis venció y todavía no tienen una suscripción activa: a quien tiene
+   * tarjeta guardada le cobra el plan elegido; a quien no tiene tarjeta
+   * (se registró antes de tener Stripe configurado, o canceló el cobro
+   * automático) le manda un aviso de que debe elegir un plan para seguir --
+   * antes de esto no se notificaba nada, el tenant recién se enteraba al
+   * intentar usar la app y toparse con el bloqueo. Tope de 3 intentos
+   * (cobro_prueba_intentos, se usa igual para "cobros fallidos" y para
+   * "avisos ya mandados") para no seguir insistiendo indefinidamente --
+   * después de eso, el tenant queda en el mismo estado "bloqueado, pago
+   * manual" que ya existía antes de esta función (vía /suscripcion-vencida).
    */
-  async cobrarPruebasVencidas(): Promise<{ cobrados: number; fallidos: number }> {
+  async cobrarPruebasVencidas(): Promise<{ cobrados: number; fallidos: number; notificados: number }> {
     const secretKey = this.config.get<string>('STRIPE_SECRET_KEY');
-    if (!secretKey) return { cobrados: 0, fallidos: 0 }; // no configurado -- no-op silencioso, no es un error
-
-    const stripe = new Stripe(secretKey);
+    const stripe = secretKey ? new Stripe(secretKey) : null;
     const frontendUrl = this.config.get<string>('FRONTEND_URL') ?? 'https://ocaruta.com';
 
     const pendientes = await this.ds.query(`
@@ -495,19 +511,40 @@ export class PlanesService {
         AND t.fecha_vencimiento_suscripcion IS NULL
         AND t.fecha_prueba_hasta IS NOT NULL
         AND t.fecha_prueba_hasta < CURRENT_DATE
-        AND t.stripe_customer_id IS NOT NULL
-        AND t.stripe_payment_method_id IS NOT NULL
         AND t.cobro_prueba_intentos < 3
         AND (t.cobro_prueba_ultimo_intento IS NULL OR t.cobro_prueba_ultimo_intento < now() - interval '20 hours')
     `);
 
-    let cobrados = 0, fallidos = 0;
+    let cobrados = 0, fallidos = 0, notificados = 0;
 
     for (const t of pendientes) {
-      const montoUsd = this.precioTotalUsd(t, t.facturacion_anual);
-      const meses = t.facturacion_anual ? 12 : 1;
       const nombreAdmin = t.admin_nombre ?? 'equipo';
       const linkPanel = `${frontendUrl}/panel`;
+
+      if (!stripe || !t.stripe_customer_id || !t.stripe_payment_method_id) {
+        try {
+          const { subject, html } = plantillaAvisoAdmin({
+            nombreAdmin,
+            titulo: 'Tu prueba gratis terminó',
+            mensaje: `Elegí un plan para seguir usando ${t.nombre_empresa} en OCA Ruta -- tus datos siguen intactos, solo hace falta activar un plan.`,
+            link: `${frontendUrl}/suscripcion-vencida`,
+            textoLink: 'Elegir un plan',
+          });
+          await this.emailService.enviar({ to: t.email_contacto, subject, html });
+          notificados++;
+        } catch (err: unknown) {
+          this.logger.warn(`No se pudo notificar prueba vencida sin tarjeta, tenant ${t.tenant_id}: ${(err as Error).message}`);
+        }
+        await this.ds.query(
+          `UPDATE tenants SET cobro_prueba_intentos = cobro_prueba_intentos + 1, cobro_prueba_ultimo_intento = now()
+           WHERE id = $1`,
+          [t.tenant_id],
+        );
+        continue;
+      }
+
+      const montoUsd = this.precioTotalUsd(t, t.facturacion_anual);
+      const meses = t.facturacion_anual ? 12 : 1;
 
       try {
         const intent = await stripe.paymentIntents.create({
@@ -558,7 +595,7 @@ export class PlanesService {
       }
     }
 
-    return { cobrados, fallidos };
+    return { cobrados, fallidos, notificados };
   }
 
   /**

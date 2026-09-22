@@ -519,6 +519,7 @@
     "plan_facturacion": "Plan & billing",
     "plan_facturacion_desc": "Your current plan and account usage",
     "cambiar_plan": "Change plan",
+    "suscripcion_activa_hasta": "You already have an active subscription until {{fecha}}. You'll be able to change plans starting that date.",
     "apariencia_datos": "Appearance and data",
     "logo": "Logo",
     "logo_alt": "Current logo",

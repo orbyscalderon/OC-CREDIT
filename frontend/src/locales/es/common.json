@@ -519,6 +519,7 @@
     "plan_facturacion": "Plan y facturación",
     "plan_facturacion_desc": "Tu plan actual y el uso de tu cuenta",
     "cambiar_plan": "Cambiar de plan",
+    "suscripcion_activa_hasta": "Ya tenés una suscripción activa hasta el {{fecha}}. Vas a poder cambiar de plan a partir de esa fecha.",
     "apariencia_datos": "Apariencia y datos",
     "logo": "Logo",
     "logo_alt": "Logo actual",

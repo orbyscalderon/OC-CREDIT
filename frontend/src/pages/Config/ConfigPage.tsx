@@ -15,6 +15,7 @@ import { ZONAS_HORARIAS, FORMATOS_FECHA } from '@/utils/zonasHorarias';
 import { MONEDAS, buscarMoneda } from '@/utils/currencies';
 import { PlanUpgradePanel } from '@/components/common/PlanUpgradePanel';
 import { UsoPlanMeter } from '@/components/common/UsoPlanMeter';
+import { planesApi, type UsoPlan } from '@/api/planes.api';
 
 type FormData = {
   color_primario: string;
@@ -42,6 +43,21 @@ export function ConfigPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const { user, logout } = useAuth();
+
+  // Mismo queryKey que UsoPlanMeter -- react-query cachea/comparte, no
+  // duplica el pedido. Se usa acá para saber si ya hay una suscripción
+  // paga vigente y bloquear el cambio de plan hasta que venza (sin esto,
+  // cambiar de plan a mitad de un ciclo ya pagado resetea la fecha de
+  // vencimiento a hoy + 1 ciclo del plan nuevo y se pierde lo pagado).
+  const { data: uso } = useQuery<UsoPlan>({
+    queryKey: ['uso-plan'],
+    queryFn: planesApi.usoActual,
+    staleTime: 60_000,
+    enabled: Boolean(user?.permisos?.includes('planes_admin')),
+  });
+  const suscripcionActivaHasta = uso?.fecha_vencimiento_suscripcion && uso.fecha_vencimiento_suscripcion > new Date().toISOString().slice(0, 10)
+    ? uso.fecha_vencimiento_suscripcion
+    : null;
 
   const schema = z.object({
     color_primario:   z.string().regex(/^#[0-9A-Fa-f]{6}$/, t('config.color_hex_invalido')),
@@ -209,14 +225,20 @@ export function ConfigPage() {
             <p className="text-xs text-gray-500 mt-0.5">{t('config.plan_facturacion_desc')}</p>
           </div>
           <UsoPlanMeter />
-          <details className="group">
-            <summary className="cursor-pointer text-sm font-medium text-blue-600 hover:underline list-none flex items-center gap-1">
-              {t('config.cambiar_plan')}
-            </summary>
-            <div className="pt-5 border-t border-gray-100 mt-5">
-              <PlanUpgradePanel onSuccess={() => qc.invalidateQueries({ queryKey: ['uso-plan'] })} />
-            </div>
-          </details>
+          {suscripcionActivaHasta ? (
+            <p className="text-xs text-gray-500 border-t border-gray-100 pt-4">
+              {t('config.suscripcion_activa_hasta', { fecha: suscripcionActivaHasta })}
+            </p>
+          ) : (
+            <details className="group">
+              <summary className="cursor-pointer text-sm font-medium text-blue-600 hover:underline list-none flex items-center gap-1">
+                {t('config.cambiar_plan')}
+              </summary>
+              <div className="pt-5 border-t border-gray-100 mt-5">
+                <PlanUpgradePanel onSuccess={() => qc.invalidateQueries({ queryKey: ['uso-plan'] })} />
+              </div>
+            </details>
+          )}
         </div>
       )}
 

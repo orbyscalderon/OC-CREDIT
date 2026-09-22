@@ -191,6 +191,10 @@ export const MESSAGES: Record<string, Entrada> = {
     en: 'An account with that email already exists',
   },
   planes_no_encontrado: { es: 'Plan no encontrado', en: 'Plan not found' },
+  planes_suscripcion_activa: {
+    es: 'Ya tenés una suscripción activa hasta el {{fecha}}. Podés cambiar de plan a partir de esa fecha.',
+    en: 'You already have an active subscription until {{fecha}}. You can change plans starting that date.',
+  },
   planes_pasarela_no_configurada: {
     es: 'Pasarela de pago no configurada. Contacte al soporte.',
     en: 'Payment gateway not configured. Please contact support.',
