@@ -953,6 +953,8 @@
     "no_cobro_hoy": "You won't be charged anything today. After 7 days, {{precio}}{{periodo}} to keep using the account.",
     "periodo_ano": "/year",
     "periodo_mes": "/month",
+    "o_registrate_con": "or sign up with",
+    "o_con_email": "or with email and password",
     "nombre_empresa": "Company name",
     "nombre_empresa_placeholder": "My Finance Company LLC",
     "pais": "Country",

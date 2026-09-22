@@ -8,7 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes, randomUUID } from 'crypto';
-import { OAuth2Client } from 'google-auth-library';
+import { verificarGoogleIdToken } from '../../common/utils/google-token.util';
 import { LoginDto, LoginResponseDto } from './dto/login.dto';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { Empleado } from '../usuarios/entities/empleado.entity';
@@ -129,13 +129,9 @@ export class AuthService {
     const clientId = this.config.get<string>('GOOGLE_CLIENT_ID');
     if (!clientId) throw new UnauthorizedException(msg('auth_google_no_configurado'));
 
-    const client = new OAuth2Client(clientId);
     let email: string;
     try {
-      const ticket = await client.verifyIdToken({ idToken, audience: clientId });
-      const payload = ticket.getPayload();
-      email = (payload?.email ?? '').toLowerCase().trim();
-      if (!email) throw new Error('no email');
+      ({ email } = await verificarGoogleIdToken(idToken, clientId));
     } catch {
       throw new UnauthorizedException(msg('auth_google_token_invalido'));
     }

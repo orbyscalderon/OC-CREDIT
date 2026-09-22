@@ -6,12 +6,14 @@ import { PlanesController } from './planes.controller';
 import { PlanesService } from './planes.service';
 import { Tenant } from '../tenants/entities/tenant.entity';
 import { Usuario } from '../usuarios/entities/usuario.entity';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Tenant, Usuario]),
     HttpModule,
     ConfigModule,
+    AuthModule,
   ],
   controllers: [PlanesController],
   providers: [PlanesService],

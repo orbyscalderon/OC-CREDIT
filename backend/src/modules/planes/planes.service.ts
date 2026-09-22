@@ -1,23 +1,27 @@
 import {
-  BadRequestException, ConflictException, Injectable, Logger, NotFoundException,
+  BadRequestException, ConflictException, Injectable, Logger, NotFoundException, UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { DataSource, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto';
 import Stripe from 'stripe';
 import { RegistrarTenantDto } from './dto/registrar-tenant.dto';
 import { GooglePayRegistroDto } from './dto/google-pay-registro.dto';
+import { RegistroGoogleDto } from './dto/registro-google.dto';
 import { SuscribirPlanDto } from './dto/suscribir-plan.dto';
 import { Tenant } from '../tenants/entities/tenant.entity';
 import { Usuario } from '../usuarios/entities/usuario.entity';
 import { monedaPorPais } from '../../common/constants/monedas-por-pais';
 import { zonaHorariaPorPais } from '../../common/constants/zona-horaria-por-pais';
 import { fechaHoyEnZona } from '../../common/utils/fecha-negocio.util';
+import { verificarGoogleIdToken } from '../../common/utils/google-token.util';
 import { ZonaHorariaService } from '../../common/services/zona-horaria.service';
 import { EmailService } from '../../common/services/email.service';
 import { plantillaBienvenida } from '../../common/services/email-templates/templates';
 import { msg } from '../../common/i18n/messages';
+import { AuthService } from '../auth/auth.service';
 
 @Injectable()
 export class PlanesService {
@@ -30,6 +34,7 @@ export class PlanesService {
     @InjectRepository(Usuario) private readonly usuarioRepo: Repository<Usuario>,
     private readonly zonaHorariaService: ZonaHorariaService,
     private readonly emailService: EmailService,
+    private readonly authService: AuthService,
   ) {}
 
   async listarPlanes() {
@@ -173,6 +178,42 @@ export class PlanesService {
     await this.emailService.enviar({ to: dto.email_admin.toLowerCase(), subject, html });
 
     return resultado;
+  }
+
+  /**
+   * Registro público de nueva empresa autenticando con Google en vez de
+   * email+password -- arranca con 7 días de prueba gratis, igual que
+   * registrarTenant. La cuenta queda con una contraseña aleatoria que nadie
+   * conoce (el admin siempre entra con "Continuar con Google"); si algún día
+   * quiere una contraseña propia, puede pedirla con /auth/olvide-password.
+   */
+  async registrarConGoogle(dto: RegistroGoogleDto) {
+    const clientId = this.config.get<string>('GOOGLE_CLIENT_ID');
+    if (!clientId) throw new UnauthorizedException(msg('auth_google_no_configurado'));
+
+    let email: string, nombre: string, apellido: string;
+    try {
+      ({ email, nombre, apellido } = await verificarGoogleIdToken(dto.credential, clientId));
+    } catch {
+      throw new UnauthorizedException(msg('auth_google_token_invalido'));
+    }
+
+    await this.registrarTenant({
+      nombre_empresa: dto.nombre_empresa,
+      email_admin: email,
+      password: randomBytes(24).toString('hex'),
+      nombre_admin: nombre,
+      apellido_admin: apellido,
+      telefono: dto.telefono,
+      ruc_cedula: dto.ruc_cedula,
+      pais: dto.pais,
+      plan_id: dto.plan_id,
+    }, false);
+
+    // La cuenta ya existe -- reutiliza el login con Google para devolver el
+    // mismo LoginResponseDto que el panel/app esperan, sin pedirle al
+    // usuario que inicie sesión por separado tras registrarse.
+    return this.authService.loginWithGoogle(dto.credential);
   }
 
   /**

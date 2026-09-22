@@ -6,9 +6,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Check, X, ArrowRight, Shield, MapPin, Smartphone, Zap } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
 import { planesApi, type Plan, type RegistrarTenantDto } from '@/api/planes.api';
 import { CalculadoraPrestamo } from '@/components/common/CalculadoraPrestamo';
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
+import { useAuth } from '@/hooks/useAuth';
 import { PAISES } from '@/utils/paises';
 import { clsx } from 'clsx';
 
@@ -29,9 +31,12 @@ type FormData = {
 export function LandingPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { applySession } = useAuth();
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   const [planSeleccionado, setPlanSeleccionado] = useState<string | null>(null);
   const [anual, setAnual] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [errorGoogle, setErrorGoogle] = useState<string | null>(null);
 
   const schema = z.object({
     nombre_empresa: z.string().min(3, t('landing.minimo3')),
@@ -51,7 +56,7 @@ export function LandingPage() {
     queryFn: planesApi.listar,
   });
 
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, setValue, getValues, trigger, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { plan_id: 'profesional', facturacion_anual: false, pais: 'DO' },
   });
@@ -65,6 +70,37 @@ export function LandingPage() {
       setTimeout(() => navigate('/login'), 2500);
     },
   });
+
+  // El registro con Google deja al usuario logueado de una vez -- no hace
+  // falta password ni el paso extra de "ahora inicia sesión".
+  const registrarGoogleMut = useMutation({
+    mutationFn: (credential: string) => planesApi.registrarConGoogle({
+      credential,
+      nombre_empresa: getValues('nombre_empresa'),
+      pais: getValues('pais'),
+      telefono: getValues('telefono') || undefined,
+      ruc_cedula: getValues('ruc_cedula') || undefined,
+      plan_id: getValues('plan_id'),
+    }),
+    onSuccess: (resp) => {
+      applySession(resp);
+      navigate('/panel', { replace: true });
+    },
+    onError: (err: unknown) => {
+      const data = (err as { response?: { data?: { error?: string; message?: string } } })?.response?.data;
+      setErrorGoogle(data?.error ?? data?.message ?? t('landing.error_registro'));
+    },
+  });
+
+  const onGoogleSignup = async (credential?: string) => {
+    if (!credential) return;
+    setErrorGoogle(null);
+    // nombre_empresa/pais son necesarios aunque la autenticación sea con
+    // Google -- se validan igual que en el registro por email/password.
+    const ok = await trigger('nombre_empresa');
+    if (!ok) return;
+    registrarGoogleMut.mutate(credential);
+  };
 
   const planActual = planes.find((p) => p.id === planSeleccionado);
   const precioSeleccionado = planActual
@@ -326,6 +362,38 @@ export function LandingPage() {
                 {t('landing.pais_hint')}
               </p>
             </div>
+
+            {googleClientId && (
+              <div>
+                <div className="relative flex items-center my-2">
+                  <div className="flex-1 border-t border-gray-200" />
+                  <span className="mx-3 text-xs text-gray-400">{t('landing.o_registrate_con')}</span>
+                  <div className="flex-1 border-t border-gray-200" />
+                </div>
+                <div className="flex justify-center">
+                  <GoogleLogin
+                    onSuccess={(cred) => onGoogleSignup(cred.credential)}
+                    onError={() => setErrorGoogle(t('landing.error_registro'))}
+                    width="320"
+                    theme="outline"
+                    size="large"
+                    text="signup_with"
+                    shape="rectangular"
+                  />
+                </div>
+                {registrarGoogleMut.isPending && (
+                  <p className="mt-2 text-center text-xs text-gray-400">{t('landing.creando_cuenta')}</p>
+                )}
+                {errorGoogle && (
+                  <p className="mt-2 text-center text-xs text-red-500">{errorGoogle}</p>
+                )}
+                <div className="relative flex items-center my-2">
+                  <div className="flex-1 border-t border-gray-200" />
+                  <span className="mx-3 text-xs text-gray-400">{t('landing.o_con_email')}</span>
+                  <div className="flex-1 border-t border-gray-200" />
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div>

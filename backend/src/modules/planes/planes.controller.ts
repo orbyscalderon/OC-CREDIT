@@ -11,6 +11,7 @@ import { Permiso } from '../../common/constants/permisos.enum';
 import { PlanesService } from './planes.service';
 import { RegistrarTenantDto } from './dto/registrar-tenant.dto';
 import { GooglePayRegistroDto } from './dto/google-pay-registro.dto';
+import { RegistroGoogleDto } from './dto/registro-google.dto';
 import { SuscribirPlanDto } from './dto/suscribir-plan.dto';
 
 @ApiTags('Planes & Registro')
@@ -32,6 +33,15 @@ export class PlanesController {
   @ApiOperation({ summary: 'Registro público de nueva empresa — arranca con 7 días de prueba gratis' })
   registro(@Body() dto: RegistrarTenantDto) {
     return this.svc.registrarTenant(dto, false);
+  }
+
+  /** Registro público con Google — crea tenant + usuario admin autenticando con un ID token de Google, sin contraseña */
+  @Public()
+  @Post('registro-google')
+  @Throttle({ short: { limit: 3, ttl: 60_000 }, long: { limit: 10, ttl: 3_600_000 } })
+  @ApiOperation({ summary: 'Registro público con Google — arranca con 7 días de prueba gratis' })
+  registroConGoogle(@Body() dto: RegistroGoogleDto) {
+    return this.svc.registrarConGoogle(dto);
   }
 
   /** Registro con pago vía Google Pay — procesa cobro antes de crear la cuenta, sin período de prueba */

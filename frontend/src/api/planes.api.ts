@@ -1,5 +1,6 @@
 import { api } from './axios';
 import axios from 'axios';
+import type { LoginResponse } from './auth.api';
 
 export interface Plan {
   id: string;
@@ -52,6 +53,15 @@ export interface GooglePayRegistroDto extends RegistrarTenantDto {
   monto_usd?: number;
 }
 
+export interface RegistroGoogleDto {
+  credential: string;
+  nombre_empresa: string;
+  telefono?: string;
+  ruc_cedula?: string;
+  pais?: string;
+  plan_id: string;
+}
+
 export interface SuscribirPlanDto {
   plan_id: string;
   facturacion_anual?: boolean;
@@ -75,6 +85,14 @@ export const planesApi = {
   registrarConGooglePay: (dto: GooglePayRegistroDto) =>
     publicApi.post('/planes/google-pay', dto).then((r) =>
       (r.data as unknown as { data: unknown }).data ?? r.data,
+    ),
+
+  // Devuelve un LoginResponse completo (igual que /auth/login) -- el
+  // registro con Google deja al usuario autenticado de una vez, sin pedirle
+  // que inicie sesión por separado después.
+  registrarConGoogle: (dto: RegistroGoogleDto) =>
+    publicApi.post('/planes/registro-google', dto).then((r) =>
+      ((r.data as unknown as { data: LoginResponse }).data ?? r.data) as LoginResponse,
     ),
 
   usoActual: () =>

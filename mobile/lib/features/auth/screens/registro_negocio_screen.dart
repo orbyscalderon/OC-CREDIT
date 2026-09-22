@@ -1,11 +1,17 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../../data/remote/api_client.dart';
 import '../../../core/theme.dart';
 import '../../../core/constants/paises.dart';
 import '../../../l10n/app_localizations.dart';
+
+// Mismo Web Client ID que login_screen.dart y el panel web -- el backend
+// verifica el idToken contra este audience sin importar el origen.
+const _googleWebClientId =
+    '1085055865063-lnqimhkarihmtc0mh31srfmh9r33brm0.apps.googleusercontent.com';
 
 class Plan {
   final String id;
@@ -52,6 +58,10 @@ class _RegistroNegocioScreenState extends State<RegistroNegocioScreen> {
   bool _enviando = false;
   String? _error;
   bool _exito = false;
+  final _googleSignIn = GoogleSignIn(
+    scopes: ['email'],
+    serverClientId: _googleWebClientId,
+  );
 
   @override
   void initState() {
@@ -130,6 +140,50 @@ class _RegistroNegocioScreenState extends State<RegistroNegocioScreen> {
           _error = l10n.errorNoSePudoConectarServidor;
         });
       }
+    }
+  }
+
+  Future<void> _registrarConGoogle() async {
+    final l10n = AppLocalizations.of(context)!;
+    if (_empresaCtrl.text.trim().length < 3 || _planId == null) {
+      setState(() => _error = l10n.errorCompletaCamposObligatorios);
+      return;
+    }
+
+    setState(() { _enviando = true; _error = null; });
+
+    try {
+      final account = await _googleSignIn.signIn();
+      if (account == null) {
+        // El usuario cerró el selector de cuentas -- no es un error.
+        if (mounted) setState(() => _enviando = false);
+        return;
+      }
+      final auth = await account.authentication;
+      final idToken = auth.idToken;
+      if (idToken == null) {
+        if (mounted) setState(() { _enviando = false; _error = l10n.errorSesionGoogleNoObtenida; });
+        return;
+      }
+
+      await ApiClient.instance.dio.post('/planes/registro-google', data: {
+        'credential': idToken,
+        'nombre_empresa': _empresaCtrl.text.trim(),
+        if (_telefonoCtrl.text.trim().isNotEmpty) 'telefono': _telefonoCtrl.text.trim(),
+        'pais': _paisCodigo,
+        'plan_id': _planId,
+      });
+      if (mounted) setState(() { _enviando = false; _exito = true; });
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      String msg = l10n.errorNoSePudoCompletarRegistro;
+      if (data is Map && data['error'] != null) {
+        final err = data['error'];
+        msg = err is List ? err.first.toString() : err.toString();
+      }
+      if (mounted) setState(() { _enviando = false; _error = msg; });
+    } catch (_) {
+      if (mounted) setState(() { _enviando = false; _error = l10n.errorIniciarSesionGoogle; });
     }
   }
 
@@ -243,6 +297,23 @@ class _RegistroNegocioScreenState extends State<RegistroNegocioScreen> {
               ],
 
               const SizedBox(height: 24),
+              OutlinedButton.icon(
+                onPressed: _enviando ? null : _registrarConGoogle,
+                icon: const Icon(Icons.g_mobiledata, size: 26),
+                label: Text(l10n.continuarConGoogle),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  const Expanded(child: Divider()),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Text(l10n.oConEmailYContrasena, style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                  ),
+                  const Expanded(child: Divider()),
+                ],
+              ),
+              const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _enviando ? null : _registrar,
                 child: _enviando

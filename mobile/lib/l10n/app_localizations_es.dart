@@ -72,6 +72,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get registrarMiNegocio => 'Registrar mi negocio';
 
   @override
+  String get continuarConGoogle => 'Continuar con Google';
+
+  @override
+  String get oConEmailYContrasena => 'o con email y contraseña';
+
+  @override
   String get creaTuCuentaPruebaGratis =>
       'Crea tu cuenta — 7 días de prueba gratis';
 

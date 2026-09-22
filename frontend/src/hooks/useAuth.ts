@@ -72,6 +72,15 @@ export function useAuth() {
     }
   }, [navigate]);
 
+  // Para flujos que ya trajeron un LoginResponse por su cuenta (ej. registro
+  // con Google en la Landing) -- deja al usuario autenticado sin pedirle un
+  // login aparte.
+  const applySession = useCallback((resp: LoginResponse) => {
+    const session = buildSession(resp);
+    authStore.setSession(session);
+    setUser(session);
+  }, []);
+
   const logout = useCallback(() => {
     authApi.logout().catch(() => {});
     authStore.clearSession();
@@ -79,5 +88,5 @@ export function useAuth() {
     navigate('/login', { replace: true });
   }, [navigate]);
 
-  return { user, loading, error, googleError, login, loginWithGoogle, logout, isAuthenticated: authStore.isAuthenticated() };
+  return { user, loading, error, googleError, login, loginWithGoogle, applySession, logout, isAuthenticated: authStore.isAuthenticated() };
 }

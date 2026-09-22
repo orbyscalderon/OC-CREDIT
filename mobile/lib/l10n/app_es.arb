@@ -22,6 +22,8 @@
   "errorSesionGoogleNoObtenida": "No se pudo obtener la sesión de Google. Intenta de nuevo.",
   "errorIniciarSesionGoogle": "No se pudo iniciar sesión con Google.",
   "registrarMiNegocio": "Registrar mi negocio",
+  "continuarConGoogle": "Continuar con Google",
+  "oConEmailYContrasena": "o con email y contraseña",
   "creaTuCuentaPruebaGratis": "Crea tu cuenta — 7 días de prueba gratis",
   "despuesDeRegistrarteInfo": "Después de registrarte, gestiona empleados, rutas y clientes desde el panel web.",
   "nombreDeLaEmpresa": "Nombre de la empresa",

@@ -214,6 +214,18 @@ abstract class AppLocalizations {
   /// **'Registrar mi negocio'**
   String get registrarMiNegocio;
 
+  /// No description provided for @continuarConGoogle.
+  ///
+  /// In es, this message translates to:
+  /// **'Continuar con Google'**
+  String get continuarConGoogle;
+
+  /// No description provided for @oConEmailYContrasena.
+  ///
+  /// In es, this message translates to:
+  /// **'o con email y contraseña'**
+  String get oConEmailYContrasena;
+
   /// No description provided for @creaTuCuentaPruebaGratis.
   ///
   /// In es, this message translates to:

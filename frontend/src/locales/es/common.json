@@ -953,6 +953,8 @@
     "no_cobro_hoy": "No se te cobra nada hoy. Después de 7 días, {{precio}}{{periodo}} para seguir usando la cuenta.",
     "periodo_ano": "/año",
     "periodo_mes": "/mes",
+    "o_registrate_con": "o regístrate con",
+    "o_con_email": "o con email y contraseña",
     "nombre_empresa": "Nombre de la empresa",
     "nombre_empresa_placeholder": "Mi Financiera S.R.L.",
     "pais": "País",
