@@ -960,7 +960,7 @@
     "tarjeta": "Tarjeta",
     "tarjeta_hint": "No se cobra nada ahora — solo se valida la tarjeta para el cobro automático al terminar la prueba gratis.",
     "cargando_pago": "Cargando…",
-    "error_cargando_pago": "No se pudo cargar el formulario de pago. Intenta de nuevo.",
+    "error_cargando_pago": "No se pudo cargar el formulario de pago. Si tenés un bloqueador de anuncios/privacidad activo, probá desactivarlo para este sitio y recargá la página.",
     "error_tarjeta_invalida": "No se pudo validar la tarjeta. Revisa los datos e intenta de nuevo.",
     "periodo_ano": "/año",
     "periodo_mes": "/mes",

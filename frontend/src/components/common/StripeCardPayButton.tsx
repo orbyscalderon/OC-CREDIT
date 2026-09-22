@@ -39,15 +39,27 @@ export function StripeCardPayButton({ crearClientSecret, onPagoConfirmado, onErr
   useEffect(() => {
     let activo = true;
     (async () => {
-      const stripe = await getStripe();
-      if (!activo || !stripe || !containerRef.current) return;
-      stripeRef.current = stripe;
-      const elements = stripe.elements();
-      const card = elements.create('card', { style: { base: { fontSize: '15px' } } });
-      card.mount(containerRef.current);
-      card.on('change', (e) => setError(e.error ? e.error.message : null));
-      cardRef.current = card;
-      setListo(true);
+      try {
+        const stripe = await getStripe();
+        if (!activo) return;
+        if (!stripe) {
+          // loadStripe() devuelve null (no tira excepción) si el script de
+          // js.stripe.com no cargó -- bloqueador de anuncios/privacidad,
+          // sin conexión, etc. Sin esto quedaba en "Cargando…" para siempre.
+          setError(t('landing.error_cargando_pago'));
+          return;
+        }
+        if (!containerRef.current) return;
+        stripeRef.current = stripe;
+        const elements = stripe.elements();
+        const card = elements.create('card', { style: { base: { fontSize: '15px' } } });
+        card.mount(containerRef.current);
+        card.on('change', (e) => setError(e.error ? e.error.message : null));
+        cardRef.current = card;
+        setListo(true);
+      } catch {
+        if (activo) setError(t('landing.error_cargando_pago'));
+      }
     })();
     return () => {
       activo = false;

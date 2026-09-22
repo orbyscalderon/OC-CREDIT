@@ -41,7 +41,15 @@ export const StripeCardInput = forwardRef<StripeCardInputHandle>((_props, ref) =
           getStripe(),
           planesApi.crearSetupIntent(),
         ]);
-        if (!activo || !stripe || !containerRef.current) return;
+        if (!activo) return;
+        if (!stripe) {
+          // loadStripe() devuelve null (no tira excepción) si el script de
+          // js.stripe.com no cargó -- bloqueador de anuncios/privacidad,
+          // sin conexión, etc. Sin esto quedaba en "Cargando…" para siempre.
+          setError(t('landing.error_cargando_pago'));
+          return;
+        }
+        if (!containerRef.current) return;
         stripeRef.current = stripe;
         clientSecretRef.current = clientSecret;
         const elements = stripe.elements();

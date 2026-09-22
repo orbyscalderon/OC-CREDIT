@@ -960,7 +960,7 @@
     "tarjeta": "Card",
     "tarjeta_hint": "Nothing is charged now — the card is only validated for the automatic charge once the free trial ends.",
     "cargando_pago": "Loading…",
-    "error_cargando_pago": "Could not load the payment form. Please try again.",
+    "error_cargando_pago": "Could not load the payment form. If you have an ad/privacy blocker enabled, try disabling it for this site and reload the page.",
     "error_tarjeta_invalida": "Could not validate the card. Check the details and try again.",
     "periodo_ano": "/year",
     "periodo_mes": "/month",
