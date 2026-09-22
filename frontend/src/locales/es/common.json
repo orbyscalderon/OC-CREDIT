@@ -516,6 +516,9 @@
   "config": {
     "titulo": "Configuración",
     "subtitulo": "Personaliza la apariencia y comportamiento de tu empresa",
+    "plan_facturacion": "Plan y facturación",
+    "plan_facturacion_desc": "Tu plan actual y el uso de tu cuenta",
+    "cambiar_plan": "Cambiar de plan",
     "apariencia_datos": "Apariencia y datos",
     "logo": "Logo",
     "logo_alt": "Logo actual",

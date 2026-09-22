@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { ZONAS_HORARIAS, FORMATOS_FECHA } from '@/utils/zonasHorarias';
 import { MONEDAS, buscarMoneda } from '@/utils/currencies';
+import { PlanUpgradePanel } from '@/components/common/PlanUpgradePanel';
+import { UsoPlanMeter } from '@/components/common/UsoPlanMeter';
 
 type FormData = {
   color_primario: string;
@@ -198,6 +200,25 @@ export function ConfigPage() {
         <h1 className="text-2xl font-bold text-gray-900">{t('config.titulo')}</h1>
         <p className="text-sm text-gray-500">{t('config.subtitulo')}</p>
       </div>
+
+      {/* ── Plan y facturación ──────────────────────────────────────────────── */}
+      {user?.permisos?.includes('planes_admin') && (
+        <div className="card p-6 space-y-5">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-800">{t('config.plan_facturacion')}</h2>
+            <p className="text-xs text-gray-500 mt-0.5">{t('config.plan_facturacion_desc')}</p>
+          </div>
+          <UsoPlanMeter />
+          <details className="group">
+            <summary className="cursor-pointer text-sm font-medium text-blue-600 hover:underline list-none flex items-center gap-1">
+              {t('config.cambiar_plan')}
+            </summary>
+            <div className="pt-5 border-t border-gray-100 mt-5">
+              <PlanUpgradePanel onSuccess={() => qc.invalidateQueries({ queryKey: ['uso-plan'] })} />
+            </div>
+          </details>
+        </div>
+      )}
 
       {/* ── Apariencia ──────────────────────────────────────────────────────── */}
       <form onSubmit={handleSubmit((d) => saveMut.mutate(d))} className="card p-6 space-y-5">
