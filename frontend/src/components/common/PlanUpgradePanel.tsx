@@ -79,7 +79,15 @@ export function PlanUpgradePanel({ onSuccess }: { onSuccess?: () => void }) {
         })}
       </div>
 
-      {planSeleccionado && (
+      {planSeleccionado && suscribirMut.isSuccess && (
+        <div className="max-w-sm w-full">
+          <p className="text-center text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+            {t('suscripcion.pago_exitoso')}
+          </p>
+        </div>
+      )}
+
+      {planSeleccionado && !suscribirMut.isSuccess && (
         <div className="max-w-sm w-full space-y-3">
           <p className="text-center text-xs font-medium text-gray-500">
             {t('suscripcion.total')} <strong className="text-gray-900">${precio.toFixed(2)} USD</strong>{anual ? t('suscripcion.por_ano') : t('suscripcion.por_mes')}

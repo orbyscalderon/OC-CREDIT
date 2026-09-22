@@ -815,6 +815,7 @@
     "por_ano": " / año",
     "por_mes": " / mes",
     "error_pago": "Error al procesar el pago",
+    "pago_exitoso": "¡Listo! Tu plan se activó correctamente.",
     "o_con_tarjeta": "o con tarjeta",
     "pagar_con_tarjeta": "Pagar con tarjeta",
     "cerrar_sesion": "Cerrar sesión",

@@ -86,8 +86,8 @@ export class PlanesController {
   @Post('crear-payment-intent')
   @Throttle({ short: { limit: 5, ttl: 60_000 }, long: { limit: 20, ttl: 3_600_000 } })
   @ApiOperation({ summary: 'Crea un PaymentIntent para pagar el plan con tarjeta directa' })
-  crearPaymentIntentPago(@Body() dto: CrearPaymentIntentDto) {
-    return this.svc.crearPaymentIntentPago(dto.plan_id, dto.facturacion_anual ?? false);
+  crearPaymentIntentPago(@CurrentUser() user: JwtPayload, @Body() dto: CrearPaymentIntentDto) {
+    return this.svc.crearPaymentIntentPago(user.tenantId, dto.plan_id, dto.facturacion_anual ?? false);
   }
 
   /** Activa/renueva la suscripción a partir de una compra hecha dentro de la app Android (Google Play Billing) */

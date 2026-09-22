@@ -296,31 +296,11 @@ export class PlanesService {
 
     const precioUsd = this.precioTotalUsd(plan, dto.facturacion_anual ?? false);
 
-    // Sin prorrateo: cambiar de plan siempre resetea fecha_vencimiento a
-    // hoy + 1 ciclo del plan nuevo. Eso está bien cuando la suscripción ya
-    // venció (nada que perder) o cuando el cliente paga MÁS que su plan
-    // actual (mejora real, se desbloquea al toque aunque pierda un poco de
-    // valor de los días que quedaban del plan barato) -- pero si paga igual
-    // o menos con tiempo pagado por delante, cambiarlo ahora le
-    // regalaría/quitaría meses ya cobrados, así que se bloquea hasta que
-    // venza el ciclo vigente.
-    const hoy = fechaHoyEnZona(await this.zonaHorariaService.obtener(tenantId));
-    const tenantActual = await this.ds.query(
-      `SELECT to_char(t.fecha_vencimiento_suscripcion, 'YYYY-MM-DD') AS vencimiento,
-              p.precio_mensual_usd, p.precio_anual_usd, t.facturacion_anual
-       FROM tenants t
-       LEFT JOIN planes_saas p ON p.id = t.plan_id
-       WHERE t.id = $1 AND t.fecha_vencimiento_suscripcion > $2::date`,
-      [tenantId, hoy],
-    );
-    if (tenantActual.length) {
-      const precioActualUsd = tenantActual[0].precio_mensual_usd
-        ? this.precioTotalUsd(tenantActual[0], tenantActual[0].facturacion_anual)
-        : 0;
-      if (precioUsd <= precioActualUsd) {
-        throw new BadRequestException(msg('planes_suscripcion_activa', { fecha: tenantActual[0].vencimiento }));
-      }
-    }
+    // Validado ACÁ y en crearPaymentIntentPago (antes de cobrar) -- si solo
+    // estuviera acá, un pago directo con tarjeta ya cobrado por Stripe del
+    // lado del cliente podía terminar rechazado recién en este paso,
+    // dejando a alguien cobrado sin el plan activado.
+    await this.verificarPuedeCambiarPlan(tenantId, precioUsd);
 
     if (precioUsd > 0) {
       if (dto.paymentIntentId) {
@@ -342,6 +322,7 @@ export class PlanesService {
     }
 
     const meses = dto.facturacion_anual ? 12 : 1;
+    const hoy = fechaHoyEnZona(await this.zonaHorariaService.obtener(tenantId));
     await this.ds.query(
       `UPDATE tenants SET plan_id = $1, max_prestamos_activos = $2, max_cobradores = $3,
          facturacion_anual = $4, plan_suscripcion = $1,
@@ -452,6 +433,35 @@ export class PlanesService {
       : Number(plan.precio_mensual_usd);
   }
 
+  /**
+   * Tira una excepción si el tenant no puede cambiarse al plan nuevo ahora
+   * mismo -- se llama ANTES de cobrar nada (crearPaymentIntentPago) y de
+   * nuevo antes de activar (suscribirTenant) como red de seguridad. Sin
+   * prorrateo: cambiar de plan siempre resetea fecha_vencimiento a hoy + 1
+   * ciclo del plan nuevo, lo cual está bien si la suscripción ya venció o
+   * si el cliente paga MÁS que su plan actual (mejora real) -- pero si paga
+   * igual o menos con tiempo pagado por delante, se bloquea hasta que venza
+   * el ciclo vigente para no regalarle/quitarle meses ya cobrados.
+   */
+  private async verificarPuedeCambiarPlan(tenantId: string, precioNuevoUsd: number): Promise<void> {
+    const hoy = fechaHoyEnZona(await this.zonaHorariaService.obtener(tenantId));
+    const tenantActual = await this.ds.query(
+      `SELECT to_char(t.fecha_vencimiento_suscripcion, 'YYYY-MM-DD') AS vencimiento,
+              p.precio_mensual_usd, p.precio_anual_usd, t.facturacion_anual
+       FROM tenants t
+       LEFT JOIN planes_saas p ON p.id = t.plan_id
+       WHERE t.id = $1 AND t.fecha_vencimiento_suscripcion > $2::date`,
+      [tenantId, hoy],
+    );
+    if (!tenantActual.length) return;
+    const precioActualUsd = tenantActual[0].precio_mensual_usd
+      ? this.precioTotalUsd(tenantActual[0], tenantActual[0].facturacion_anual)
+      : 0;
+    if (precioNuevoUsd <= precioActualUsd) {
+      throw new BadRequestException(msg('planes_suscripcion_activa', { fecha: tenantActual[0].vencimiento }));
+    }
+  }
+
   private stripeClient(): Stripe {
     const secretKey = this.config.get<string>('STRIPE_SECRET_KEY');
     if (!secretKey) throw new BadRequestException(msg('planes_pasarela_no_configurada'));
@@ -481,11 +491,16 @@ export class PlanesService {
    * el navegador soporte Google Pay. El frontend lo confirma con Stripe
    * Elements y manda el id resultante a /planes/suscribir.
    */
-  async crearPaymentIntentPago(planId: string, facturacionAnual: boolean) {
+  async crearPaymentIntentPago(tenantId: string, planId: string, facturacionAnual: boolean) {
     const planes = await this.ds.query(`SELECT * FROM planes_saas WHERE id = $1 AND activo = TRUE`, [planId]);
     if (!planes.length) throw new NotFoundException(msg('planes_no_encontrado'));
     const montoUsd = this.precioTotalUsd(planes[0], facturacionAnual);
     if (montoUsd <= 0) throw new BadRequestException(msg('planes_no_encontrado'));
+
+    // Se valida ANTES de crear el PaymentIntent -- así un cambio que el
+    // backend va a rechazar (degradar/lateral con suscripción activa)
+    // nunca llega a cobrarle nada a la tarjeta del cliente.
+    await this.verificarPuedeCambiarPlan(tenantId, montoUsd);
 
     const stripe = this.stripeClient();
     const intent = await stripe.paymentIntents.create({

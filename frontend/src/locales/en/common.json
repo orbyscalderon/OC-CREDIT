@@ -815,6 +815,7 @@
     "por_ano": " / year",
     "por_mes": " / month",
     "error_pago": "Error processing the payment",
+    "pago_exitoso": "All set! Your plan was activated successfully.",
     "o_con_tarjeta": "or with card",
     "pagar_con_tarjeta": "Pay with card",
     "cerrar_sesion": "Log out",
