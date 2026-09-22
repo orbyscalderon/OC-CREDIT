@@ -6,7 +6,11 @@ import { ConfigService } from '@nestjs/config';
 import { DataSource, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
-import Stripe from 'stripe';
+// tsconfig no tiene esModuleInterop -- "import Stripe from 'stripe'" compila a
+// stripe_1.default (undefined, el paquete exporta el constructor directo por
+// require()) y explota en runtime con "no es un constructor" recién cuando
+// se llama, no en el chequeo de tipos. Import estilo CJS evita eso.
+import Stripe = require('stripe');
 import { RegistrarTenantDto } from './dto/registrar-tenant.dto';
 import { GooglePayRegistroDto } from './dto/google-pay-registro.dto';
 import { RegistroGoogleDto } from './dto/registro-google.dto';
@@ -419,7 +423,11 @@ export class PlanesService {
   async crearSetupIntent() {
     const stripe = this.stripeClient();
     const intent = await stripe.setupIntents.create({
-      automatic_payment_methods: { enabled: true },
+      // allow_redirects: 'never' -- el registro usa Card Element (sin
+      // redirect), y el cobro automático de fin de prueba corre off_session
+      // días después sin que el cliente esté presente para volver de un
+      // redirect. Sin esto Stripe exige un return_url y falla.
+      automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
     });
     return { clientSecret: intent.client_secret };
   }
