@@ -15,6 +15,7 @@ import { ZONAS_HORARIAS, FORMATOS_FECHA } from '@/utils/zonasHorarias';
 import { MONEDAS, buscarMoneda } from '@/utils/currencies';
 import { PlanUpgradePanel } from '@/components/common/PlanUpgradePanel';
 import { UsoPlanMeter } from '@/components/common/UsoPlanMeter';
+import { ModalOverlay } from '@/components/common/ModalOverlay';
 import { planesApi, type UsoPlan } from '@/api/planes.api';
 import { formatDate } from '@/utils/format';
 import { clsx } from 'clsx';
@@ -61,9 +62,13 @@ export function ConfigPage() {
     ? uso.fecha_vencimiento_suscripcion
     : null;
 
+  const [showCancelarCobro, setShowCancelarCobro] = useState(false);
   const cancelarCobroMut = useMutation({
     mutationFn: planesApi.cancelarCobroAutomatico,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['uso-plan'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['uso-plan'] });
+      setShowCancelarCobro(false);
+    },
   });
 
   const schema = z.object({
@@ -248,23 +253,45 @@ export function ConfigPage() {
               {cancelarCobroMut.isSuccess && (
                 <p className="text-xs text-green-600 mt-1">{t('config.cancelar_cobro_automatico_exito')}</p>
               )}
-              {cancelarCobroMut.isError && (
-                <p className="text-xs text-red-600 mt-1">{t('config.error_guardar')}</p>
-              )}
             </div>
             <button
               type="button"
               className="shrink-0 text-xs font-medium text-red-600 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={cancelarCobroMut.isPending || cancelarCobroMut.isSuccess}
-              onClick={() => {
-                if (window.confirm(t('config.cancelar_cobro_automatico_confirmar'))) {
-                  cancelarCobroMut.mutate();
-                }
-              }}
+              onClick={() => setShowCancelarCobro(true)}
             >
-              {cancelarCobroMut.isPending ? t('config.guardando') : t('config.cancelar_cobro_automatico')}
+              {t('config.cancelar_cobro_automatico')}
             </button>
           </div>
+          {showCancelarCobro && (
+            <ModalOverlay>
+              <div className="w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 space-y-4 animate-fade-in">
+                <h2 className="text-lg font-bold text-gray-900">{t('config.cancelar_cobro_automatico')}</h2>
+                <p className="text-sm text-gray-500">{t('config.cancelar_cobro_automatico_confirmar')}</p>
+                {cancelarCobroMut.isError && (
+                  <p className="text-xs text-red-600">{t('config.error_guardar')}</p>
+                )}
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => cancelarCobroMut.mutate()}
+                    disabled={cancelarCobroMut.isPending}
+                    className="flex-1 justify-center flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+                  >
+                    {cancelarCobroMut.isPending ? t('config.guardando') : t('config.cancelar_cobro_automatico')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowCancelarCobro(false)}
+                    disabled={cancelarCobroMut.isPending}
+                    className="btn-secondary"
+                  >
+                    {t('common.cancelar')}
+                  </button>
+                </div>
+              </div>
+            </ModalOverlay>
+          )}
           <details className="group">
             <summary className="cursor-pointer text-sm font-medium text-blue-600 hover:underline list-none flex items-center gap-1">
               {t('config.cambiar_plan')}
