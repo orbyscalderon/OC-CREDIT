@@ -61,6 +61,11 @@ export function ConfigPage() {
     ? uso.fecha_vencimiento_suscripcion
     : null;
 
+  const cancelarCobroMut = useMutation({
+    mutationFn: planesApi.cancelarCobroAutomatico,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['uso-plan'] }),
+  });
+
   const schema = z.object({
     color_primario:   z.string().regex(/^#[0-9A-Fa-f]{6}$/, t('config.color_hex_invalido')),
     color_secundario: z.string().regex(/^#[0-9A-Fa-f]{6}$/, t('config.color_hex_invalido')),
@@ -236,6 +241,30 @@ export function ConfigPage() {
               {t('config.suscripcion_activa_hasta', { fecha: formatDate(suscripcionActivaHasta, user) })}
             </p>
           )}
+          <div className="border-t border-gray-100 pt-4 flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-gray-800">{t('config.cancelar_cobro_automatico')}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{t('config.cancelar_cobro_automatico_desc')}</p>
+              {cancelarCobroMut.isSuccess && (
+                <p className="text-xs text-green-600 mt-1">{t('config.cancelar_cobro_automatico_exito')}</p>
+              )}
+              {cancelarCobroMut.isError && (
+                <p className="text-xs text-red-600 mt-1">{t('config.error_guardar')}</p>
+              )}
+            </div>
+            <button
+              type="button"
+              className="shrink-0 text-xs font-medium text-red-600 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={cancelarCobroMut.isPending || cancelarCobroMut.isSuccess}
+              onClick={() => {
+                if (window.confirm(t('config.cancelar_cobro_automatico_confirmar'))) {
+                  cancelarCobroMut.mutate();
+                }
+              }}
+            >
+              {cancelarCobroMut.isPending ? t('config.guardando') : t('config.cancelar_cobro_automatico')}
+            </button>
+          </div>
           <details className="group">
             <summary className="cursor-pointer text-sm font-medium text-blue-600 hover:underline list-none flex items-center gap-1">
               {t('config.cambiar_plan')}

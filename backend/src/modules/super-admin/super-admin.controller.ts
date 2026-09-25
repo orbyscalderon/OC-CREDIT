@@ -9,6 +9,7 @@ import { SuperAdminService } from './super-admin.service';
 import type { SuperAdminJwtPayload } from './super-admin-auth.service';
 import { BuroCreditoService } from '../buro-credito/buro-credito.service';
 import { InactivarReporteBuroDto } from '../buro-credito/dto/buro.dto';
+import { PlanesService } from '../planes/planes.service';
 import { CrearAdminDto } from './dto/crear-admin.dto';
 import { ToggleAdminActivoDto } from './dto/toggle-admin-activo.dto';
 
@@ -24,6 +25,7 @@ export class SuperAdminController {
   constructor(
     private readonly svc: SuperAdminService,
     private readonly buroSvc: BuroCreditoService,
+    private readonly planesSvc: PlanesService,
   ) {}
 
   /** Resumen global de la plataforma */
@@ -78,6 +80,13 @@ export class SuperAdminController {
     @Body() dto: { dias: number; motivo?: string },
   ) {
     return this.svc.extenderSuscripcion(id, dto.dias, dto.motivo);
+  }
+
+  /** Dispara manualmente el cobro de pruebas/suscripciones vencidas (mismo job que corre solo todos los días a las 6am) -- útil para pruebas y para forzar un reintento sin esperar al cron */
+  @Post('cobrar-vencidas')
+  @ApiOperation({ summary: 'Dispara manualmente el cobro de pruebas/suscripciones vencidas' })
+  cobrarVencidas() {
+    return this.planesSvc.cobrarPruebasVencidas();
   }
 
   /** MRR por mes (últimos 12 meses) */

@@ -93,6 +93,12 @@ class AppLocalizationsEs extends AppLocalizations {
       '¡Plan actualizado! Ya puedes seguir usando la cuenta.';
 
   @override
+  String get mensual => 'Mensual';
+
+  @override
+  String get anual => 'Anual';
+
+  @override
   String get creaTuCuentaPruebaGratis =>
       'Crea tu cuenta — 7 días de prueba gratis';
 

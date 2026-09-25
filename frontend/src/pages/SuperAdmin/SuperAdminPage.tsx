@@ -222,6 +222,21 @@ export function SuperAdminPage() {
     onError: (err: any) => window.alert(err?.response?.data?.message ?? t('superadmin.error_extender_suscripcion')),
   });
 
+  const cobrarVencidasMut = useMutation({
+    mutationFn: () => superApi.post('/super-admin/cobrar-vencidas').then(unwrap),
+    onSuccess: (data: any) => {
+      qc.invalidateQueries({ queryKey: ['sa-tenants'] });
+      window.alert(
+        t('superadmin.cobrar_vencidas_resultado', {
+          cobrados: data?.cobrados ?? 0,
+          fallidos: data?.fallidos ?? 0,
+          notificados: data?.notificados ?? 0,
+        }),
+      );
+    },
+    onError: (err: any) => window.alert(err?.response?.data?.message ?? t('superadmin.error_extender_suscripcion')),
+  });
+
   const extenderSuscripcion = (id: string) => {
     const diasStr = window.prompt(t('superadmin.prompt_dias_extender'));
     if (!diasStr) return;
@@ -251,6 +266,18 @@ export function SuperAdminPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              if (window.confirm(t('superadmin.cobrar_vencidas_confirmar'))) {
+                cobrarVencidasMut.mutate();
+              }
+            }}
+            disabled={cobrarVencidasMut.isPending}
+            title={t('superadmin.cobrar_vencidas_hint')}
+            className="flex items-center gap-2 rounded-lg border border-gray-700 px-3 py-2 text-xs text-gray-300 hover:bg-gray-800 disabled:opacity-50"
+          >
+            {cobrarVencidasMut.isPending ? t('superadmin.cobrando') : t('superadmin.cobrar_vencidas')}
+          </button>
           <button
             onClick={() => { qc.invalidateQueries(); }}
             className="flex items-center gap-2 rounded-lg border border-gray-700 px-3 py-2 text-xs text-gray-300 hover:bg-gray-800"

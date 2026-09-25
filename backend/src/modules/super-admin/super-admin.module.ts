@@ -9,6 +9,7 @@ import { SuperAdminAuthService } from './super-admin-auth.service';
 import { SuperAdminJwtGuard } from '../../common/guards/super-admin-jwt.guard';
 import { SuperAdmin } from './entities/super-admin.entity';
 import { BuroCreditoModule } from '../buro-credito/buro-credito.module';
+import { PlanesModule } from '../planes/planes.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { BuroCreditoModule } from '../buro-credito/buro-credito.module';
     JwtModule.register({}), // sin secret por defecto — se pasa explícito en cada signAsync/verifyAsync
     TypeOrmModule.forFeature([SuperAdmin]),
     BuroCreditoModule,
+    PlanesModule,
   ],
   controllers: [SuperAdminController, SuperAdminAuthController],
   providers: [SuperAdminService, SuperAdminAuthService, SuperAdminJwtGuard],

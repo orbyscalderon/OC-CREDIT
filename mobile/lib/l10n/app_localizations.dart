@@ -250,6 +250,18 @@ abstract class AppLocalizations {
   /// **'¡Plan actualizado! Ya puedes seguir usando la cuenta.'**
   String get planActualizadoExito;
 
+  /// No description provided for @mensual.
+  ///
+  /// In es, this message translates to:
+  /// **'Mensual'**
+  String get mensual;
+
+  /// No description provided for @anual.
+  ///
+  /// In es, this message translates to:
+  /// **'Anual'**
+  String get anual;
+
   /// No description provided for @creaTuCuentaPruebaGratis.
   ///
   /// In es, this message translates to:

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 
 import '../../../data/remote/api_client.dart';
 import '../../../core/theme.dart';
@@ -12,6 +13,23 @@ import '../../../l10n/app_localizations.dart';
 const _productIds = <String>{'plan_basico', 'plan_growth', 'plan_pro'};
 
 String _planIdDesdeProductId(String productId) => productId.replaceFirst('plan_', '');
+
+/// Una oferta de un plan (mensual o anual) -- cada plan de suscripción en
+/// Play Console tiene un "plan base" por ciclo de facturación, cada uno con
+/// su propio precio y offerToken. [GooglePlayProductDetails.subscriptionIndex]
+/// distingue cuál ciclo representa esta entrada (ver basePlanId).
+class _OfertaPlan {
+  _OfertaPlan(this.detalle);
+  final GooglePlayProductDetails detalle;
+
+  String get basePlanId {
+    final idx = detalle.subscriptionIndex;
+    if (idx == null) return '';
+    return detalle.productDetails.subscriptionOfferDetails?[idx].basePlanId ?? '';
+  }
+
+  bool get esAnual => basePlanId == 'anual';
+}
 
 /// Compra/actualización de plan hecha DENTRO de la app -- obligatorio por la
 /// política de Google Play para apps distribuidas por Play Store que venden
@@ -26,7 +44,7 @@ class ActualizarPlanScreen extends StatefulWidget {
 class _ActualizarPlanScreenState extends State<ActualizarPlanScreen> {
   final _iap = InAppPurchase.instance;
   StreamSubscription<List<PurchaseDetails>>? _sub;
-  List<ProductDetails> _productos = [];
+  Map<String, List<_OfertaPlan>> _ofertasPorPlan = {};
   bool _disponible = false;
   bool _cargando = true;
   String? _procesandoProductId;
@@ -53,10 +71,18 @@ class _ActualizarPlanScreenState extends State<ActualizarPlanScreen> {
       return;
     }
     final resp = await _iap.queryProductDetails(_productIds);
+    final ofertas = resp.productDetails.whereType<GooglePlayProductDetails>().map(_OfertaPlan.new).toList();
+    final agrupadas = <String, List<_OfertaPlan>>{};
+    for (final oferta in ofertas) {
+      agrupadas.putIfAbsent(oferta.detalle.id, () => []).add(oferta);
+    }
+    for (final lista in agrupadas.values) {
+      lista.sort((a, b) => a.esAnual ? 1 : -1);
+    }
     if (mounted) {
       setState(() {
         _disponible = true;
-        _productos = resp.productDetails;
+        _ofertasPorPlan = agrupadas;
         _cargando = false;
       });
     }
@@ -122,10 +148,13 @@ class _ActualizarPlanScreenState extends State<ActualizarPlanScreen> {
     }
   }
 
-  void _comprar(ProductDetails producto) {
+  void _comprar(_OfertaPlan oferta) {
     setState(() { _error = null; _mensajeExito = null; });
     _iap.buyNonConsumable(
-      purchaseParam: PurchaseParam(productDetails: producto),
+      purchaseParam: GooglePlayPurchaseParam(
+        productDetails: oferta.detalle,
+        offerToken: oferta.detalle.offerToken,
+      ),
     );
   }
 
@@ -167,26 +196,58 @@ class _ActualizarPlanScreenState extends State<ActualizarPlanScreen> {
                           ),
                           child: Text(_error!, style: const TextStyle(color: AppTheme.danger)),
                         ),
-                      if (_productos.isEmpty)
+                      if (_ofertasPorPlan.isEmpty)
                         Padding(
                           padding: const EdgeInsets.all(24),
                           child: Text(l10n.sinPlanesDisponibles, textAlign: TextAlign.center),
                         ),
-                      ..._productos.map((p) => Card(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            child: ListTile(
-                              title: Text(p.title),
-                              subtitle: Text(p.description),
-                              trailing: _procesandoProductId == p.id
-                                  ? const SizedBox(
-                                      height: 20, width: 20,
-                                      child: CircularProgressIndicator(strokeWidth: 2))
-                                  : ElevatedButton(
-                                      onPressed: () => _comprar(p),
-                                      child: Text(p.price),
+                      ..._ofertasPorPlan.entries.map((entry) {
+                        final productId = entry.key;
+                        final ofertas = entry.value;
+                        final primera = ofertas.first.detalle;
+                        final procesando = _procesandoProductId == productId;
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  primera.title,
+                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  primera.description,
+                                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                                ),
+                                const SizedBox(height: 12),
+                                if (procesando)
+                                  const Center(
+                                    child: SizedBox(
+                                      height: 24, width: 24,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
                                     ),
+                                  )
+                                else
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: ofertas.map((oferta) {
+                                      return ElevatedButton(
+                                        onPressed: () => _comprar(oferta),
+                                        child: Text(
+                                          '${oferta.esAnual ? l10n.anual : l10n.mensual}: ${oferta.detalle.price}',
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                              ],
                             ),
-                          )),
+                          ),
+                        );
+                      }),
                     ],
                   ),
       ),
