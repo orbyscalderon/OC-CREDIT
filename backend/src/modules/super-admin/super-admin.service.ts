@@ -102,9 +102,13 @@ export class SuperAdminService {
    * pierde la comisión de procesamiento (a diferencia de un reembolso, que
    * Stripe no devuelve). Extiende desde lo que ya tenga vigente, no lo
    * pisa; si estaba en prueba gratis, la reemplaza por suscripción activa.
+   *
+   * `dias` negativo también es válido (uso interno/pruebas): adelanta el
+   * vencimiento para liberar el bloqueo de "ya tenés suscripción activa" de
+   * verificarPuedeCambiarPlan sin tocar la tabla a mano.
    */
   async extenderSuscripcion(tenantId: string, dias: number, motivo?: string) {
-    if (!Number.isInteger(dias) || dias <= 0) {
+    if (!Number.isInteger(dias) || dias === 0) {
       throw new BadRequestException(msg('super_admin_dias_invalidos'));
     }
     const [tenant] = await this.ds.query(`SELECT id FROM tenants WHERE id = $1`, [tenantId]);

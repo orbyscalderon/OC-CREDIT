@@ -241,7 +241,7 @@ export function SuperAdminPage() {
     const diasStr = window.prompt(t('superadmin.prompt_dias_extender'));
     if (!diasStr) return;
     const dias = parseInt(diasStr, 10);
-    if (!Number.isInteger(dias) || dias <= 0) {
+    if (!Number.isInteger(dias) || dias === 0) {
       window.alert(t('superadmin.dias_invalidos'));
       return;
     }
