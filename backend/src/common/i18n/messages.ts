@@ -121,6 +121,7 @@ export const MESSAGES: Record<string, Entrada> = {
     en: 'There is no active cash register for that route. Start the workday first.',
   },
   cajas_no_encontrada: { es: 'Caja no encontrada', en: 'Cash register not found' },
+  cajas_empleado_no_encontrado: { es: 'El empleado seleccionado no existe o está inactivo', en: 'The selected employee does not exist or is inactive' },
 
   // ── clientes ──────────────────────────────────────────────────────────
   clientes_cedula_duplicada: {

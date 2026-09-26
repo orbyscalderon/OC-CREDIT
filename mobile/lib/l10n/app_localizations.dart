@@ -454,11 +454,17 @@ abstract class AppLocalizations {
   /// **'No tienes una caja abierta'**
   String get sinCajaAbierta;
 
-  /// No description provided for @abreTuCajaParaComenzar.
+  /// No description provided for @esperandoCajaAdmin.
   ///
   /// In es, this message translates to:
-  /// **'Abre tu caja para comenzar a registrar cobros.'**
-  String get abreTuCajaParaComenzar;
+  /// **'Tu administrador te asigna la caja del día. Avisale si todavía no te la abrió.'**
+  String get esperandoCajaAdmin;
+
+  /// No description provided for @actualizar.
+  ///
+  /// In es, this message translates to:
+  /// **'Actualizar'**
+  String get actualizar;
 
   /// No description provided for @abrirCaja.
   ///

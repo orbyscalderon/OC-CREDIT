@@ -211,8 +211,11 @@ class AppLocalizationsEs extends AppLocalizations {
   String get sinCajaAbierta => 'No tienes una caja abierta';
 
   @override
-  String get abreTuCajaParaComenzar =>
-      'Abre tu caja para comenzar a registrar cobros.';
+  String get esperandoCajaAdmin =>
+      'Tu administrador te asigna la caja del día. Avisale si todavía no te la abrió.';
+
+  @override
+  String get actualizar => 'Actualizar';
 
   @override
   String get abrirCaja => 'Abrir caja';

@@ -7,6 +7,10 @@ import {
 import { IsUuidLike } from '../../../common/decorators/is-uuid-like.decorator';
 
 export class AbrirCajaDto {
+  @ApiProperty({ description: 'ID del empleado (cobrador) al que se le asigna la caja -- la abre el Admin/Supervisor, el cobrador no abre la suya' })
+  @IsUuidLike()
+  cobrador_id: string;
+
   @ApiProperty({ description: 'ID de la ruta del día' })
   @IsUuidLike()
   ruta_id: string;

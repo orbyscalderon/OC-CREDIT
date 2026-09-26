@@ -70,22 +70,6 @@ class CajaNotifier extends StateNotifier<CajaActiva?> {
     } catch (_) {}
   }
 
-  Future<void> abrir() async {
-    final rutas = await ApiClient.instance.dio.get('/rutas/mis-rutas');
-    final lista = rutas.data as List;
-    if (lista.isEmpty) {
-      throw Exception('No tienes una ruta activa asignada. Contacta a tu administrador.');
-    }
-    final rutaId = (lista.first as Map<String, dynamic>)['id'] as String;
-
-    final resp = await ApiClient.instance.dio.post('/cajas/abrir', data: {
-      'ruta_id': rutaId,
-      'monto_apertura': 0,
-    });
-    state = CajaActiva.fromJson(resp.data as Map<String, dynamic>);
-    await _guardarCache(state);
-  }
-
   Future<void> cerrar(double montoDeclarado) async {
     if (state == null) return;
     await ApiClient.instance.dio.post('/cajas/cerrar', data: {

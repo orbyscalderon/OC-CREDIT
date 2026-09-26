@@ -49,6 +49,8 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
     );
   }
 
+  // El cobrador ya no abre su propia caja -- la asigna el Admin/Supervisor
+  // desde el panel web. Esta pantalla solo espera y deja refrescar a mano.
   Widget _buildSinCaja(AppLocalizations l10n) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -58,17 +60,17 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
         Text(l10n.sinCajaAbierta,
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
         const SizedBox(height: 8),
-        Text(l10n.abreTuCajaParaComenzar,
+        Text(l10n.esperandoCajaAdmin,
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey.shade500)),
         const SizedBox(height: 24),
-        ElevatedButton.icon(
+        OutlinedButton.icon(
           onPressed: _loading
               ? null
               : () async {
                   setState(() => _loading = true);
                   try {
-                    await ref.read(cajaActivaProvider.notifier).abrir();
+                    await ref.read(cajaActivaProvider.notifier).loadActiva();
                   } catch (e) {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -79,8 +81,8 @@ class _CajaScreenState extends ConsumerState<CajaScreen> {
                     if (mounted) setState(() => _loading = false);
                   }
                 },
-          icon: const Icon(Icons.open_in_new),
-          label: Text(l10n.abrirCaja),
+          icon: const Icon(Icons.refresh),
+          label: Text(l10n.actualizar),
         ),
       ],
     );

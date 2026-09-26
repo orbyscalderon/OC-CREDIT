@@ -49,8 +49,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // esa pantalla (ver Sidebar.tsx del panel web) -- si un admin le
     // personaliza los permisos a un cobrador, el drawer se arma solo.
     final vePanel = auth.tienePermiso('reportes_admin');
+    final veMiCaja = auth.tienePermiso('cajas_operar');
     final veCajasDia = auth.tienePermiso('cajas_supervisar');
     final veEmpleados = auth.tienePermiso('empleados_ver');
+    final veBuro = auth.tienePermiso('buro_consultar');
     final veReportes = auth.tienePermiso('reportes_admin');
     final veConfig = auth.tienePermiso('tenant_ver_config');
     final veSolicitudesPendientes = auth.tienePermiso('prestamos_aprobar');
@@ -141,11 +143,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       label: l10n.mapaTitulo,
                       onTap: () { Navigator.pop(context); context.push('/mapa'); },
                     ),
-                    _DrawerItem(
-                      icon: Icons.point_of_sale_outlined,
-                      label: l10n.miCaja,
-                      onTap: () { Navigator.pop(context); context.push('/caja'); },
-                    ),
+                    if (veMiCaja)
+                      _DrawerItem(
+                        icon: Icons.point_of_sale_outlined,
+                        label: l10n.miCaja,
+                        onTap: () { Navigator.pop(context); context.push('/caja'); },
+                      ),
                     if (veCajasDia)
                       _DrawerItem(
                         icon: Icons.point_of_sale,
@@ -158,11 +161,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         label: l10n.empleadosTitulo,
                         onTap: () { Navigator.pop(context); context.push('/empleados'); },
                       ),
-                    _DrawerItem(
-                      icon: Icons.shield_outlined,
-                      label: l10n.buroCredito,
-                      onTap: () { Navigator.pop(context); context.push('/buro'); },
-                    ),
+                    if (veBuro)
+                      _DrawerItem(
+                        icon: Icons.shield_outlined,
+                        label: l10n.buroCredito,
+                        onTap: () { Navigator.pop(context); context.push('/buro'); },
+                      ),
                     if (veReportes)
                       _DrawerItem(
                         icon: Icons.bar_chart_outlined,

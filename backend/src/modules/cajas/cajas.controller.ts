@@ -20,10 +20,13 @@ export class CajasController {
   constructor(private readonly service: CajasService) {}
 
   @Post('abrir')
-  @RequierePermiso(Permiso.CAJAS_OPERAR)
-  @ApiOperation({ summary: 'Abrir caja del día (inicio de jornada)' })
+  @RequierePermiso(Permiso.CAJAS_SUPERVISAR)
+  @ApiOperation({
+    summary: 'Asignar/abrir la caja del día a un cobrador (inicio de jornada)',
+    description: 'Solo Admin/Supervisor -- el cobrador no abre su propia caja, opera dentro de la que se le asignó.',
+  })
   abrir(@CurrentUser() user: JwtPayload, @Body() dto: AbrirCajaDto) {
-    return this.service.abrir(user.tenantId, user.empleadoId, dto);
+    return this.service.abrir(user.tenantId, dto.cobrador_id, dto);
   }
 
   @Post('cerrar')

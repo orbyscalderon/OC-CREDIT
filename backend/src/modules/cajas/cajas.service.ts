@@ -31,6 +31,14 @@ export class CajasService {
     cobradorId: string,
     dto: AbrirCajaDto,
   ): Promise<Caja> {
+    // El cobrador_id lo elige el Admin/Supervisor -- validar que exista y
+    // sea de este tenant, no confiar en un UUID cualquiera que venga del DTO.
+    const [empleado] = await this.em.query(
+      `SELECT e.id FROM empleados e WHERE e.id = $1 AND e.tenant_id = $2 AND e.activo = TRUE`,
+      [cobradorId, tenantId],
+    );
+    if (!empleado) throw new NotFoundException(msg('cajas_empleado_no_encontrado'));
+
     const hoy = fechaHoyEnZona(await this.zonaHorariaService.obtener(tenantId));
 
     // Verificar que no existe caja abierta hoy PARA ESTA RUTA. Un cobrador

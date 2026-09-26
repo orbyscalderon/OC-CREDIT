@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { Eye, PlusCircle, AlertCircle, X, PiggyBank } from 'lucide-react';
 import { cajasApi } from '@/api/cajas.api';
 import { rutasApi } from '@/api/rutas.api';
+import { empleadosApi } from '@/api/empleados.api';
 import { Table } from '@/components/common/Table';
 import { Badge } from '@/components/common/Badge';
 import { ModalOverlay } from '@/components/common/ModalOverlay';
@@ -19,8 +20,11 @@ export function CajasPage() {
   const qc = useQueryClient();
   const { user } = useAuth();
   const [showModal, setShowModal] = useState(false);
+  const [cobradorSeleccionado, setCobradorSeleccionado] = useState('');
   const [rutaSeleccionada, setRutaSeleccionada] = useState('');
   const [montoApertura, setMontoApertura] = useState('0');
+
+  const puedeAsignarCajas = user?.permisos?.includes('cajas_supervisar') ?? false;
 
   const { data: cajas, isLoading } = useQuery({
     queryKey: ['cajas-hoy'],
@@ -33,20 +37,35 @@ export function CajasPage() {
     queryFn: () => rutasApi.listar(),
   });
 
-  // Un cobrador puede tener varias cajas abiertas a la vez, una por ruta.
-  const misCajasHoy = cajas?.filter((c) => c.cobrador_id === user?.empleadoId) ?? [];
-  const rutasConCajaHoy = new Set(misCajasHoy.map((c) => c.ruta_id));
-  const rutasDisponibles = (rutas ?? []).filter((r) => !rutasConCajaHoy.has(r.id));
+  const { data: empleados } = useQuery({
+    queryKey: ['empleados'],
+    queryFn: () => empleadosApi.listar(),
+    enabled: puedeAsignarCajas,
+  });
+  const cobradores = (empleados ?? []).filter((e) => e.rol === 'cobrador_tenant' && e.activo);
+
+  // Rutas del cobrador elegido que todavía no tienen caja abierta hoy --
+  // la caja la abre el Admin/Supervisor a nombre del cobrador, ya no existe
+  // auto-apertura, así que el filtro es por el cobrador seleccionado, no
+  // por el usuario logueado.
+  const rutasConCajaHoy = new Set(
+    (cajas ?? []).filter((c) => c.cobrador_id === cobradorSeleccionado).map((c) => c.ruta_id),
+  );
+  const rutasDisponibles = (rutas ?? []).filter(
+    (r) => r.empleado_id === cobradorSeleccionado && !rutasConCajaHoy.has(r.id),
+  );
 
   const abrirMut = useMutation({
     mutationFn: () =>
       cajasApi.abrir({
+        cobrador_id: cobradorSeleccionado,
         ruta_id: rutaSeleccionada,
         monto_apertura: parseFloat(montoApertura) || 0,
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['cajas-hoy'] });
       setShowModal(false);
+      setCobradorSeleccionado('');
       setRutaSeleccionada('');
       setMontoApertura('0');
     },
@@ -73,39 +92,17 @@ export function CajasPage() {
             <PiggyBank size={15} />
             {t('cajas.registrar_cobro')}
           </Link>
-          <button
-            onClick={() => setShowModal(true)}
-            disabled={rutasDisponibles.length === 0}
-            title={rutasDisponibles.length === 0 ? t('cajas.todas_rutas_con_caja') : undefined}
-            className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <PlusCircle size={16} />
-            {t('cajas.abrir_caja')}
-          </button>
+          {puedeAsignarCajas && (
+            <button
+              onClick={() => setShowModal(true)}
+              className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+            >
+              <PlusCircle size={16} />
+              {t('cajas.abrir_caja')}
+            </button>
+          )}
         </div>
       </div>
-
-      {misCajasHoy.length > 0 && (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 space-y-2">
-          <p className="text-sm font-medium text-blue-800 flex items-center gap-2">
-            <AlertCircle size={15} className="text-blue-600 flex-shrink-0" />
-            {t('cajas.tus_cajas_hoy', { count: misCajasHoy.length })}
-          </p>
-          <div className="space-y-1.5 pl-6">
-            {misCajasHoy.map((c) => (
-              <div key={c.id} className="flex items-center justify-between gap-2.5 text-sm">
-                <span className="text-blue-800">
-                  {c.ruta?.nombre ?? t('cajas.sin_ruta')} —{' '}
-                  {c.estado === 'Abierta' ? t('cajas.abierta') : t('cajas.cerrada_no_reabrir')}
-                </span>
-                <Link to={`/cajas/${c.id}/arqueo`} className="text-xs font-semibold text-blue-700 hover:underline flex-shrink-0">
-                  {t('cajas.ver_arqueo')}
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {errorMsg && (
         <div className="flex items-center gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
@@ -185,7 +182,7 @@ export function CajasPage() {
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-gray-900">{t('cajas.modal_abrir_titulo')}</h2>
               <button
-                onClick={() => setShowModal(false)}
+                onClick={() => { setShowModal(false); setCobradorSeleccionado(''); setRutaSeleccionada(''); }}
                 className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
                 aria-label={t('prestamos.cerrar_aria')}
               >
@@ -196,12 +193,29 @@ export function CajasPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                  {t('cajas.cobrador')} <span className="text-red-400">*</span>
+                </label>
+                <select
+                  value={cobradorSeleccionado}
+                  onChange={(e) => { setCobradorSeleccionado(e.target.value); setRutaSeleccionada(''); }}
+                  className="input-field"
+                >
+                  <option value="">{t('cajas.seleccionar_cobrador')}</option>
+                  {cobradores.map((c) => (
+                    <option key={c.id} value={c.id}>{c.nombre} {c.apellido}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
                   {t('cajas.ruta_del_dia')} <span className="text-red-400">*</span>
                 </label>
                 <select
                   value={rutaSeleccionada}
                   onChange={(e) => setRutaSeleccionada(e.target.value)}
-                  className="input-field"
+                  disabled={!cobradorSeleccionado}
+                  className="input-field disabled:opacity-50"
                 >
                   <option value="">{t('cajas.seleccionar_ruta')}</option>
                   {rutasDisponibles.map((r) => (
@@ -209,7 +223,9 @@ export function CajasPage() {
                   ))}
                 </select>
                 <p className="mt-1 text-xs text-gray-400">
-                  {t('cajas.rutas_sin_caja_hint')}
+                  {cobradorSeleccionado && rutasDisponibles.length === 0
+                    ? t('cajas.cobrador_sin_rutas_disponibles')
+                    : t('cajas.rutas_sin_caja_hint')}
                 </p>
               </div>
 
@@ -239,7 +255,7 @@ export function CajasPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => abrirMut.mutate()}
-                disabled={!rutaSeleccionada || abrirMut.isPending}
+                disabled={!cobradorSeleccionado || !rutaSeleccionada || abrirMut.isPending}
                 className="btn-primary flex-1 justify-center"
               >
                 {abrirMut.isPending ? (
@@ -255,7 +271,7 @@ export function CajasPage() {
                 )}
               </button>
               <button
-                onClick={() => setShowModal(false)}
+                onClick={() => { setShowModal(false); setCobradorSeleccionado(''); setRutaSeleccionada(''); }}
                 className="btn-secondary"
               >
                 {t('common.cancelar')}

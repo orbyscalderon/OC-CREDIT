@@ -2,7 +2,7 @@ import { api } from './axios';
 import type { Caja, ArqueoCaja, MovimientoCaja } from '@/types';
 
 export const cajasApi = {
-  abrir: (dto: { ruta_id: string; monto_apertura: number; latitud?: number; longitud?: number }) =>
+  abrir: (dto: { cobrador_id: string; ruta_id: string; monto_apertura: number; latitud?: number; longitud?: number }) =>
     api.post<Caja>('/cajas/abrir', dto).then((r) => r.data),
 
   // El backend usa POST /cajas/cerrar con caja_id en el body
