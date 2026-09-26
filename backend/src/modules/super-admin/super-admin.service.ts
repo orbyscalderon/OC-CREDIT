@@ -110,6 +110,36 @@ export class SuperAdminService {
     return { mensaje: 'Precio del plan actualizado.' };
   }
 
+  /**
+   * Elimina un tenant y TODOS sus datos (préstamos, clientes, usuarios,
+   * cobros, etc.) -- acción irreversible, pensada para limpiar cuentas de
+   * prueba, no para uso con clientes reales.
+   *
+   * La mayoría de las tablas tienen `ON DELETE CASCADE` hacia tenants, pero
+   * `google_play_compras` no -- se borra a mano primero para que el DELETE
+   * de tenants no falle por esa FK si el tenant llegó a tener alguna compra
+   * de Play Billing registrada.
+   *
+   * `nombreConfirmacion` tiene que coincidir exactamente con el nombre de
+   * la empresa -- mismo patrón que "escribí el nombre del repo para
+   * confirmar" de GitHub, para evitar un borrado por click accidental.
+   */
+  async eliminarTenant(tenantId: string, nombreConfirmacion: string) {
+    const [tenant] = await this.ds.query(
+      `SELECT id, nombre_empresa FROM tenants WHERE id = $1`,
+      [tenantId],
+    );
+    if (!tenant) throw new NotFoundException(msg('super_admin_tenant_no_encontrado'));
+    if (nombreConfirmacion !== tenant.nombre_empresa) {
+      throw new BadRequestException(msg('super_admin_confirmacion_no_coincide'));
+    }
+
+    await this.ds.query(`DELETE FROM google_play_compras WHERE tenant_id = $1`, [tenantId]);
+    await this.ds.query(`DELETE FROM tenants WHERE id = $1`, [tenantId]);
+
+    return { mensaje: `"${tenant.nombre_empresa}" eliminado junto con todos sus datos.` };
+  }
+
   async toggleActivo(tenantId: string, activo: boolean, motivo?: string) {
     await this.ds.query(
       `UPDATE tenants SET activo = $1 WHERE id = $2`,

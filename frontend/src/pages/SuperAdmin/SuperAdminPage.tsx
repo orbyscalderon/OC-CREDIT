@@ -247,6 +247,24 @@ export function SuperAdminPage() {
     onError: (err: any) => setExtenderError(err?.response?.data?.message ?? t('superadmin.error_extender_suscripcion')),
   });
 
+  // Eliminar tenant -- irreversible, requiere escribir el nombre exacto de
+  // la empresa (mismo patrón que "escribí el nombre del repo" de GitHub).
+  const [eliminarTenant, setEliminarTenant] = useState<{ id: string; nombre: string } | null>(null);
+  const [eliminarConfirmacion, setEliminarConfirmacion] = useState('');
+  const [eliminarError, setEliminarError] = useState<string | null>(null);
+
+  const eliminarTenantMut = useMutation({
+    mutationFn: ({ id, nombre_confirmacion }: { id: string; nombre_confirmacion: string }) =>
+      superApi.delete(`/super-admin/tenants/${id}`, { data: { nombre_confirmacion } }).then(unwrap),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['sa-tenants'] });
+      setEliminarTenant(null);
+      setEliminarConfirmacion('');
+      setEliminarError(null);
+    },
+    onError: (err: any) => setEliminarError(err?.response?.data?.message ?? t('superadmin.error_eliminar_tenant')),
+  });
+
   const [showCobrarConfirm, setShowCobrarConfirm] = useState(false);
   const [cobrarResultado, setCobrarResultado] = useState<{ cobrados: number; fallidos: number; notificados: number } | null>(null);
 
@@ -461,6 +479,13 @@ export function SuperAdminPage() {
                             className="rounded-lg px-3 py-1.5 text-xs font-semibold bg-blue-900/40 text-blue-400 hover:bg-blue-900/60 transition-colors"
                           >
                             {t('superadmin.extender_suscripcion')}
+                          </button>
+                          <button
+                            onClick={() => { setEliminarTenant({ id: tn.id, nombre: tn.nombre_empresa }); setEliminarConfirmacion(''); setEliminarError(null); }}
+                            title={t('superadmin.eliminar_tenant_hint')}
+                            className="rounded-lg px-3 py-1.5 text-xs font-semibold bg-red-950 text-red-300 hover:bg-red-900 border border-red-900 transition-colors"
+                          >
+                            {t('superadmin.eliminar')}
                           </button>
                         </div>
                       </td>
@@ -715,6 +740,46 @@ export function SuperAdminPage() {
               </button>
               <button
                 onClick={() => setExtenderTenantId(null)}
+                className="rounded-lg border border-gray-700 px-4 py-2 text-sm text-gray-300 hover:bg-gray-800"
+              >
+                {t('common.cancelar')}
+              </button>
+            </div>
+          </div>
+        </ModalOverlay>
+      )}
+
+      {/* Modal: eliminar tenant (irreversible, requiere escribir el nombre exacto) */}
+      {eliminarTenant && (
+        <ModalOverlay>
+          <div className="w-full max-w-sm rounded-2xl bg-gray-900 border border-red-900 shadow-2xl p-6 space-y-4 animate-fade-in">
+            <h2 className="text-lg font-bold text-red-400">{t('superadmin.eliminar_tenant_titulo')}</h2>
+            <p className="text-sm text-gray-400">
+              {t('superadmin.eliminar_tenant_confirmar', { nombre: eliminarTenant.nombre })}
+            </p>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                {t('superadmin.eliminar_tenant_escribir', { nombre: eliminarTenant.nombre })}
+              </label>
+              <input
+                type="text"
+                autoFocus
+                value={eliminarConfirmacion}
+                onChange={(e) => setEliminarConfirmacion(e.target.value)}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-red-500"
+              />
+            </div>
+            {eliminarError && <p className="text-xs text-red-400">{eliminarError}</p>}
+            <div className="flex gap-3">
+              <button
+                onClick={() => eliminarTenantMut.mutate({ id: eliminarTenant.id, nombre_confirmacion: eliminarConfirmacion })}
+                disabled={eliminarConfirmacion !== eliminarTenant.nombre || eliminarTenantMut.isPending}
+                className="flex-1 justify-center flex items-center gap-2 rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {eliminarTenantMut.isPending ? t('superadmin.eliminando') : t('superadmin.eliminar_definitivamente')}
+              </button>
+              <button
+                onClick={() => setEliminarTenant(null)}
                 className="rounded-lg border border-gray-700 px-4 py-2 text-sm text-gray-300 hover:bg-gray-800"
               >
                 {t('common.cancelar')}

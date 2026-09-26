@@ -1,5 +1,5 @@
 import {
-  Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post,
+  Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post,
   ParseUUIDPipe, UseGuards, Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -90,6 +90,16 @@ export class SuperAdminController {
     @Body() dto: { precio_mensual_usd: number; precio_anual_usd: number },
   ) {
     return this.svc.actualizarPrecioPlan(id, dto.precio_mensual_usd, dto.precio_anual_usd);
+  }
+
+  /** Elimina un tenant y todos sus datos -- irreversible, pensado para limpiar cuentas de prueba */
+  @Delete('tenants/:id')
+  @ApiOperation({ summary: 'Elimina un tenant y todos sus datos (irreversible)' })
+  eliminarTenant(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: { nombre_confirmacion: string },
+  ) {
+    return this.svc.eliminarTenant(id, dto.nombre_confirmacion);
   }
 
   /** Dispara manualmente el cobro de pruebas/suscripciones vencidas (mismo job que corre solo todos los días a las 6am) -- útil para pruebas y para forzar un reintento sin esperar al cron */
