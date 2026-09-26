@@ -249,19 +249,25 @@ export function ConfigPage() {
           <div className="border-t border-gray-100 pt-4 flex items-start justify-between gap-4">
             <div>
               <p className="text-sm font-medium text-gray-800">{t('config.cancelar_cobro_automatico')}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{t('config.cancelar_cobro_automatico_desc')}</p>
+              {uso && !uso.tiene_cobro_automatico ? (
+                <p className="text-xs text-gray-500 mt-0.5">{t('config.sin_cobro_automatico')}</p>
+              ) : (
+                <p className="text-xs text-gray-500 mt-0.5">{t('config.cancelar_cobro_automatico_desc')}</p>
+              )}
               {cancelarCobroMut.isSuccess && (
                 <p className="text-xs text-green-600 mt-1">{t('config.cancelar_cobro_automatico_exito')}</p>
               )}
             </div>
-            <button
-              type="button"
-              className="shrink-0 text-xs font-medium text-red-600 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={cancelarCobroMut.isPending || cancelarCobroMut.isSuccess}
-              onClick={() => setShowCancelarCobro(true)}
-            >
-              {t('config.cancelar_cobro_automatico')}
-            </button>
+            {(!uso || uso.tiene_cobro_automatico) && (
+              <button
+                type="button"
+                className="shrink-0 text-xs font-medium text-red-600 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={cancelarCobroMut.isPending}
+                onClick={() => setShowCancelarCobro(true)}
+              >
+                {t('config.cancelar_cobro_automatico')}
+              </button>
+            )}
           </div>
           {showCancelarCobro && (
             <ModalOverlay>

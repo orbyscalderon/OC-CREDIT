@@ -524,6 +524,7 @@
     "cancelar_cobro_automatico_desc": "Removes the saved card so you're not charged automatically when the free trial ends or your subscription renews.",
     "cancelar_cobro_automatico_confirmar": "Are you sure you want to cancel automatic billing? Your account stays active until the current period ends, but it won't renew on its own.",
     "cancelar_cobro_automatico_exito": "Automatic billing canceled.",
+    "sin_cobro_automatico": "You don't have automatic billing active (no card on file).",
     "apariencia_datos": "Appearance and data",
     "logo": "Logo",
     "logo_alt": "Current logo",

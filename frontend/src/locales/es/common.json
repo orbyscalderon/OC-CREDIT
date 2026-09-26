@@ -524,6 +524,7 @@
     "cancelar_cobro_automatico_desc": "Quita la tarjeta guardada para que no se te cobre automáticamente al terminar la prueba gratis o al vencer tu suscripción.",
     "cancelar_cobro_automatico_confirmar": "¿Seguro que querés cancelar el cobro automático? Tu cuenta sigue activa hasta que termine el período actual, pero no se renovará sola.",
     "cancelar_cobro_automatico_exito": "Cobro automático cancelado.",
+    "sin_cobro_automatico": "No tenés cobro automático activo (sin tarjeta guardada).",
     "apariencia_datos": "Apariencia y datos",
     "logo": "Logo",
     "logo_alt": "Logo actual",
