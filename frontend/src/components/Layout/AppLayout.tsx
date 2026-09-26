@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Sidebar } from './Sidebar';
 import { authStore } from '@/stores/auth.store';
+import { authApi } from '@/api/auth.api';
 import { NotificacionesBell } from '@/components/common/NotificacionesBell';
 
 const pageTitleKeys: Record<string, string> = {
@@ -20,6 +22,33 @@ const pageTitleKeys: Record<string, string> = {
 export function AppLayout() {
   const { t } = useTranslation();
   const location = useLocation();
+
+  // El rol/permisos guardados en sessionStorage quedan congelados desde el
+  // último login -- si un admin le cambia los permisos a este usuario en
+  // otra sesión, recargar la página no lo reflejaba (Sidebar seguía leyendo
+  // el objeto viejo). Se pide /auth/me una vez por carga y, si cambió algo,
+  // se refresca sessionStorage y se recarga una sola vez para que todos los
+  // componentes (Sidebar incluido) partan del dato nuevo.
+  useEffect(() => {
+    if (!authStore.isAuthenticated()) return;
+    authApi.me().then((resp) => {
+      const actual = authStore.getUser();
+      const permisosNuevos = JSON.stringify(resp.usuario.permisos.slice().sort());
+      const permisosViejos = JSON.stringify((actual?.permisos ?? []).slice().sort());
+      if (!actual || permisosNuevos !== permisosViejos || actual.rol !== resp.usuario.rol) {
+        authStore.setSession({
+          ...actual!,
+          rol: resp.usuario.rol,
+          permisos: resp.usuario.permisos,
+          nombre: resp.usuario.nombre,
+          apellido: resp.usuario.apellido,
+          empleadoId: resp.usuario.empleado_id,
+        });
+        window.location.reload();
+      }
+    }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!authStore.isAuthenticated()) {
     return <Navigate to="/login" replace />;
