@@ -82,6 +82,16 @@ export class SuperAdminController {
     return this.svc.extenderSuscripcion(id, dto.dias, dto.motivo);
   }
 
+  /** Edita el precio mensual/anual de un plan sin tocar SQL a mano */
+  @Patch('planes/:id/precio')
+  @ApiOperation({ summary: 'Edita el precio mensual/anual de un plan' })
+  actualizarPrecioPlan(
+    @Param('id') id: string,
+    @Body() dto: { precio_mensual_usd: number; precio_anual_usd: number },
+  ) {
+    return this.svc.actualizarPrecioPlan(id, dto.precio_mensual_usd, dto.precio_anual_usd);
+  }
+
   /** Dispara manualmente el cobro de pruebas/suscripciones vencidas (mismo job que corre solo todos los días a las 6am) -- útil para pruebas y para forzar un reintento sin esperar al cron */
   @Post('cobrar-vencidas')
   @ApiOperation({ summary: 'Dispara manualmente el cobro de pruebas/suscripciones vencidas' })

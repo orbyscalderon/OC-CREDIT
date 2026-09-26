@@ -11,6 +11,7 @@ import {
   ResponsiveContainer, CartesianGrid,
 } from 'recharts';
 import { planesApi } from '@/api/planes.api';
+import { ModalOverlay } from '@/components/common/ModalOverlay';
 
 // Login propio de super-admin (JWT separado del de tenants, ver
 // SuperAdminAuthController en el backend). sessionStorage en vez de
@@ -168,6 +169,22 @@ export function SuperAdminPage() {
     enabled: authed,
   });
 
+  // Precios editables por plan -- se inicializan desde `planes` la primera
+  // vez que llegan y después el usuario los edita localmente hasta apretar
+  // "Guardar" (no se manda nada al backend en cada tecla).
+  const [preciosEdit, setPreciosEdit] = useState<Record<string, { mensual: string; anual: string }>>({});
+  const precioPlan = (p: { id: string; precio_mensual_usd: number; precio_anual_usd: number }) =>
+    preciosEdit[p.id] ?? { mensual: String(p.precio_mensual_usd), anual: String(p.precio_anual_usd) };
+
+  const actualizarPrecioMut = useMutation({
+    mutationFn: ({ id, mensual, anual }: { id: string; mensual: number; anual: number }) =>
+      superApi.patch(`/super-admin/planes/${id}/precio`, { precio_mensual_usd: mensual, precio_anual_usd: anual }).then(unwrap),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['sa-planes'] });
+      setPreciosEdit(({ [vars.id]: _omit, ...rest }) => rest);
+    },
+  });
+
   const [showNuevoAdmin, setShowNuevoAdmin] = useState(false);
   const [nuevoEmail, setNuevoEmail] = useState('');
   const [nuevoNombre, setNuevoNombre] = useState('');
@@ -212,41 +229,54 @@ export function SuperAdminPage() {
   // Compensar con días de suscripción en vez de reembolsar en efectivo --
   // no pasa por Stripe, así que no se pierde la comisión de procesamiento
   // (a diferencia de un reembolso).
+  const [extenderTenantId, setExtenderTenantId] = useState<string | null>(null);
+  const [extenderDiasStr, setExtenderDiasStr] = useState('');
+  const [extenderMotivo, setExtenderMotivo] = useState('');
+  const [extenderError, setExtenderError] = useState<string | null>(null);
+
   const extenderSuscripcionMut = useMutation({
     mutationFn: ({ id, dias, motivo }: { id: string; dias: number; motivo?: string }) =>
       superApi.patch(`/super-admin/tenants/${id}/extender-suscripcion`, { dias, motivo }).then(unwrap),
-    onSuccess: (data: any) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['sa-tenants'] });
-      window.alert(data?.mensaje ?? t('superadmin.suscripcion_extendida'));
+      setExtenderTenantId(null);
+      setExtenderDiasStr('');
+      setExtenderMotivo('');
+      setExtenderError(null);
     },
-    onError: (err: any) => window.alert(err?.response?.data?.message ?? t('superadmin.error_extender_suscripcion')),
+    onError: (err: any) => setExtenderError(err?.response?.data?.message ?? t('superadmin.error_extender_suscripcion')),
   });
+
+  const [showCobrarConfirm, setShowCobrarConfirm] = useState(false);
+  const [cobrarResultado, setCobrarResultado] = useState<{ cobrados: number; fallidos: number; notificados: number } | null>(null);
 
   const cobrarVencidasMut = useMutation({
     mutationFn: () => superApi.post('/super-admin/cobrar-vencidas').then(unwrap),
     onSuccess: (data: any) => {
       qc.invalidateQueries({ queryKey: ['sa-tenants'] });
-      window.alert(
-        t('superadmin.cobrar_vencidas_resultado', {
-          cobrados: data?.cobrados ?? 0,
-          fallidos: data?.fallidos ?? 0,
-          notificados: data?.notificados ?? 0,
-        }),
-      );
+      setCobrarResultado({
+        cobrados: data?.cobrados ?? 0,
+        fallidos: data?.fallidos ?? 0,
+        notificados: data?.notificados ?? 0,
+      });
     },
     onError: (err: any) => window.alert(err?.response?.data?.message ?? t('superadmin.error_extender_suscripcion')),
   });
 
   const extenderSuscripcion = (id: string) => {
-    const diasStr = window.prompt(t('superadmin.prompt_dias_extender'));
-    if (!diasStr) return;
-    const dias = parseInt(diasStr, 10);
+    setExtenderTenantId(id);
+    setExtenderDiasStr('');
+    setExtenderMotivo('');
+    setExtenderError(null);
+  };
+
+  const confirmarExtenderSuscripcion = () => {
+    const dias = parseInt(extenderDiasStr, 10);
     if (!Number.isInteger(dias) || dias === 0) {
-      window.alert(t('superadmin.dias_invalidos'));
+      setExtenderError(t('superadmin.dias_invalidos'));
       return;
     }
-    const motivo = window.prompt(t('superadmin.prompt_motivo_extender')) ?? undefined;
-    extenderSuscripcionMut.mutate({ id, dias, motivo });
+    extenderSuscripcionMut.mutate({ id: extenderTenantId!, dias, motivo: extenderMotivo || undefined });
   };
 
   if (!authed) {
@@ -267,11 +297,7 @@ export function SuperAdminPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => {
-              if (window.confirm(t('superadmin.cobrar_vencidas_confirmar'))) {
-                cobrarVencidasMut.mutate();
-              }
-            }}
+            onClick={() => setShowCobrarConfirm(true)}
             disabled={cobrarVencidasMut.isPending}
             title={t('superadmin.cobrar_vencidas_hint')}
             className="flex items-center gap-2 rounded-lg border border-gray-700 px-3 py-2 text-xs text-gray-300 hover:bg-gray-800 disabled:opacity-50"
@@ -351,7 +377,7 @@ export function SuperAdminPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-800/60">
                 <tr>
-                  {[t('superadmin.col_empresa'), t('superadmin.col_email'), t('superadmin.col_plan'), t('superadmin.col_uso'), t('superadmin.col_estado'), t('superadmin.col_mrr'), t('superadmin.col_acciones')].map(h => (
+                  {[t('superadmin.col_empresa'), t('superadmin.col_email'), t('superadmin.col_plan'), t('superadmin.col_uso'), t('superadmin.col_estado'), t('superadmin.col_vencimiento'), t('superadmin.col_mrr'), t('superadmin.col_acciones')].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">
                       {h}
                     </th>
@@ -360,7 +386,7 @@ export function SuperAdminPage() {
               </thead>
               <tbody className="divide-y divide-gray-800">
                 {isLoading ? (
-                  <tr><td colSpan={7} className="py-8 text-center text-gray-500">{t('superadmin.cargando')}</td></tr>
+                  <tr><td colSpan={8} className="py-8 text-center text-gray-500">{t('superadmin.cargando')}</td></tr>
                 ) : tenants.map((tn: any) => {
                   const pct = Math.round(Number(tn.pct_prestamos_usados) || 0);
                   return (
@@ -403,6 +429,15 @@ export function SuperAdminPage() {
                           <span className="inline-flex items-center gap-1 text-xs text-red-400 font-medium">
                             <XCircle size={11} /> {t('superadmin.inactivo')}
                           </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-xs">
+                        {tn.fecha_vencimiento_suscripcion ? (
+                          <span className={tn.fecha_vencimiento_suscripcion < new Date().toISOString().slice(0, 10) ? 'text-red-400' : 'text-gray-400'}>
+                            {tn.fecha_vencimiento_suscripcion}
+                          </span>
+                        ) : (
+                          <span className="text-gray-600">—</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-xs text-emerald-400 font-medium">
@@ -450,6 +485,58 @@ export function SuperAdminPage() {
               </button>
             </div>
           )}
+        </div>
+
+        {/* Precios de planes */}
+        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-800">
+            <h2 className="text-sm font-semibold text-gray-300">{t('superadmin.precios_planes')}</h2>
+            <p className="text-xs text-gray-500 mt-0.5">{t('superadmin.precios_planes_desc')}</p>
+          </div>
+          <table className="w-full text-sm">
+            <thead className="bg-gray-800/60">
+              <tr>
+                {[t('superadmin.col_plan'), t('superadmin.col_precio_mensual'), t('superadmin.col_precio_anual'), t('superadmin.col_acciones')].map(h => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-800">
+              {(planes as any[]).map((p) => {
+                const val = precioPlan(p);
+                return (
+                  <tr key={p.id} className="hover:bg-gray-800/40 transition-colors">
+                    <td className="px-4 py-3 font-medium text-gray-200">{p.nombre}</td>
+                    <td className="px-4 py-3">
+                      <input
+                        type="number" min="0" step="0.01"
+                        value={val.mensual}
+                        onChange={(e) => setPreciosEdit(prev => ({ ...prev, [p.id]: { mensual: e.target.value, anual: val.anual } }))}
+                        className="w-24 bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <input
+                        type="number" min="0" step="0.01"
+                        value={val.anual}
+                        onChange={(e) => setPreciosEdit(prev => ({ ...prev, [p.id]: { mensual: val.mensual, anual: e.target.value } }))}
+                        className="w-24 bg-gray-800 border border-gray-700 rounded-lg px-2 py-1 text-xs text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => actualizarPrecioMut.mutate({ id: p.id, mensual: Number(val.mensual), anual: Number(val.anual) })}
+                        disabled={actualizarPrecioMut.isPending}
+                        className="rounded-lg px-3 py-1.5 text-xs font-semibold bg-blue-900/40 text-blue-400 hover:bg-blue-900/60 transition-colors disabled:opacity-50"
+                      >
+                        {t('superadmin.guardar')}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
 
         {/* Cuentas Super Admin */}
@@ -543,6 +630,99 @@ export function SuperAdminPage() {
         </div>
 
       </div>
+
+      {/* Modal: confirmar cobro manual de vencidas */}
+      {showCobrarConfirm && (
+        <ModalOverlay>
+          <div className="w-full max-w-sm rounded-2xl bg-gray-900 border border-gray-800 shadow-2xl p-6 space-y-4 animate-fade-in">
+            <h2 className="text-lg font-bold text-white">{t('superadmin.cobrar_vencidas')}</h2>
+            <p className="text-sm text-gray-400">{t('superadmin.cobrar_vencidas_confirmar')}</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowCobrarConfirm(false); cobrarVencidasMut.mutate(); }}
+                disabled={cobrarVencidasMut.isPending}
+                className="flex-1 justify-center flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+              >
+                {cobrarVencidasMut.isPending ? t('superadmin.cobrando') : t('superadmin.confirmar')}
+              </button>
+              <button
+                onClick={() => setShowCobrarConfirm(false)}
+                className="rounded-lg border border-gray-700 px-4 py-2 text-sm text-gray-300 hover:bg-gray-800"
+              >
+                {t('common.cancelar')}
+              </button>
+            </div>
+          </div>
+        </ModalOverlay>
+      )}
+
+      {/* Modal: resultado del cobro manual */}
+      {cobrarResultado && (
+        <ModalOverlay>
+          <div className="w-full max-w-sm rounded-2xl bg-gray-900 border border-gray-800 shadow-2xl p-6 space-y-4 animate-fade-in">
+            <h2 className="text-lg font-bold text-white">{t('superadmin.cobrar_vencidas')}</h2>
+            <p className="text-sm text-gray-300">
+              {t('superadmin.cobrar_vencidas_resultado', cobrarResultado)}
+            </p>
+            <button
+              onClick={() => setCobrarResultado(null)}
+              className="w-full justify-center flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+            >
+              {t('superadmin.entendido')}
+            </button>
+          </div>
+        </ModalOverlay>
+      )}
+
+      {/* Modal: extender/adelantar suscripción (dias + motivo en un solo form) */}
+      {extenderTenantId && (
+        <ModalOverlay>
+          <div className="w-full max-w-sm rounded-2xl bg-gray-900 border border-gray-800 shadow-2xl p-6 space-y-4 animate-fade-in">
+            <h2 className="text-lg font-bold text-white">{t('superadmin.extender_suscripcion')}</h2>
+            <p className="text-xs text-gray-500">{t('superadmin.extender_suscripcion_hint')}</p>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                {t('superadmin.prompt_dias_extender')}
+              </label>
+              <input
+                type="number"
+                autoFocus
+                value={extenderDiasStr}
+                onChange={(e) => setExtenderDiasStr(e.target.value)}
+                placeholder="30"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                {t('superadmin.prompt_motivo_extender')}
+              </label>
+              <input
+                type="text"
+                value={extenderMotivo}
+                onChange={(e) => setExtenderMotivo(e.target.value)}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+            {extenderError && <p className="text-xs text-red-400">{extenderError}</p>}
+            <div className="flex gap-3">
+              <button
+                onClick={confirmarExtenderSuscripcion}
+                disabled={extenderSuscripcionMut.isPending}
+                className="flex-1 justify-center flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+              >
+                {extenderSuscripcionMut.isPending ? t('superadmin.guardando') : t('superadmin.confirmar')}
+              </button>
+              <button
+                onClick={() => setExtenderTenantId(null)}
+                className="rounded-lg border border-gray-700 px-4 py-2 text-sm text-gray-300 hover:bg-gray-800"
+              >
+                {t('common.cancelar')}
+              </button>
+            </div>
+          </div>
+        </ModalOverlay>
+      )}
     </div>
   );
 }

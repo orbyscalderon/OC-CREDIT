@@ -34,6 +34,7 @@ export class SuperAdminService {
       SELECT
         t.id, t.nombre_empresa, t.email_contacto, t.activo,
         t.plan_id, t.created_at,
+        to_char(t.fecha_vencimiento_suscripcion, 'YYYY-MM-DD') AS fecha_vencimiento_suscripcion,
         ps.nombre       AS plan_nombre,
         ps.precio_mensual_usd,
         v.prestamos_activos_usados,
@@ -85,6 +86,28 @@ export class SuperAdminService {
     );
 
     return { mensaje: `Plan actualizado a ${plan.nombre}` };
+  }
+
+  /**
+   * Edita el precio de un plan (planes_saas) sin tocar SQL a mano -- útil
+   * para ajustes de pricing o para bajar temporalmente un precio en
+   * pruebas de cobro real, sin dejar nada pendiente por revertir a mano.
+   */
+  async actualizarPrecioPlan(planId: string, precioMensualUsd: number, precioAnualUsd: number) {
+    if (
+      typeof precioMensualUsd !== 'number' || precioMensualUsd < 0 ||
+      typeof precioAnualUsd !== 'number' || precioAnualUsd < 0
+    ) {
+      throw new BadRequestException(msg('super_admin_precio_invalido'));
+    }
+    const [plan] = await this.ds.query(`SELECT id FROM planes_saas WHERE id = $1`, [planId]);
+    if (!plan) throw new NotFoundException(msg('super_admin_plan_no_encontrado'));
+
+    await this.ds.query(
+      `UPDATE planes_saas SET precio_mensual_usd = $1, precio_anual_usd = $2 WHERE id = $3`,
+      [precioMensualUsd, precioAnualUsd, planId],
+    );
+    return { mensaje: 'Precio del plan actualizado.' };
   }
 
   async toggleActivo(tenantId: string, activo: boolean, motivo?: string) {
